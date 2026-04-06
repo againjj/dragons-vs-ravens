@@ -1,21 +1,19 @@
-type Piece = "dragon" | "raven" | "gold";
-type Side = "dragons" | "ravens";
-type Phase = "setup" | "move" | "capture";
-
-interface MoveRecord {
-    from: string;
-    to: string;
-    captured?: string;
-}
-
-interface GameState {
-    board: Map<string, Piece>;
-    phase: Phase;
-    activeSide: Side;
-    selectedSquare: string | null;
-    pendingMove: MoveRecord | null;
-    turns: MoveRecord[];
-}
+import {
+    beginGame,
+    capturePiece,
+    commitTurn,
+    createInitialState,
+    cycleSetupPiece,
+    getCapturableSquares,
+    getSquareName,
+    getTargetableSquares,
+    movePiece,
+    moveToNotation,
+    rowLetters,
+    sideOwnsPiece,
+    type Piece,
+    type GameState
+} from "./game.js";
 
 const boardElement = document.querySelector<HTMLDivElement>("#board");
 const boardShellElement = document.querySelector<HTMLDivElement>(".board-shell");
@@ -45,25 +43,7 @@ if (
     throw new Error("Required DOM elements are missing.");
 }
 
-const rowLetters = ["i", "h", "g", "f", "e", "d", "c", "b", "a"];
-const bottomToTopLetters = [...rowLetters].reverse();
-
-const createInitialBoard = (): Map<string, Piece> => {
-    const board = new Map<string, Piece>();
-    board.set("e5", "gold");
-    return board;
-};
-
-const state: GameState = {
-    board: createInitialBoard(),
-    phase: "setup",
-    activeSide: "dragons",
-    selectedSquare: null,
-    pendingMove: null,
-    turns: []
-};
-
-const getSquareName = (rowIndex: number, colIndex: number): string => `${rowLetters[rowIndex]}${colIndex + 1}`;
+let state: GameState = createInitialState();
 
 const pieceGlyph: Record<Piece, string> = {
     dragon: "D",
@@ -71,117 +51,15 @@ const pieceGlyph: Record<Piece, string> = {
     gold: "G"
 };
 
-const oppositeSide = (side: Side): Side => (side === "dragons" ? "ravens" : "dragons");
-
-const sideOwnsPiece = (side: Side, piece: Piece): boolean => {
-    if (piece === "gold") {
-        return side === "dragons";
-    }
-    return side === "dragons" ? piece === "dragon" : piece === "raven";
-};
-
-const canCapturePiece = (side: Side, piece: Piece): boolean => {
-    return side === "dragons" ? piece === "raven" : piece === "dragon" || piece === "gold";
-};
-
-const cycleSetupPiece = (square: string): void => {
-    if (square === "e5") {
-        return;
-    }
-
-    const currentPiece = state.board.get(square);
-    if (!currentPiece) {
-        state.board.set(square, "dragon");
-        return;
-    }
-
-    if (currentPiece === "dragon") {
-        state.board.set(square, "raven");
-        return;
-    }
-
-    state.board.delete(square);
-};
-
-const beginGame = (): void => {
-    state.phase = "move";
-    state.activeSide = "dragons";
-    state.selectedSquare = null;
-    state.pendingMove = null;
-};
-
-const resetGame = (): void => {
-    state.board = createInitialBoard();
-    state.phase = "setup";
-    state.activeSide = "dragons";
-    state.selectedSquare = null;
-    state.pendingMove = null;
-    state.turns = [];
-};
-
-const commitTurn = (capturedSquare?: string): void => {
-    if (!state.pendingMove) {
-        return;
-    }
-
-    const completedMove: MoveRecord = {
-        ...state.pendingMove,
-        ...(capturedSquare ? { captured: capturedSquare } : {})
-    };
-
-    state.turns.push(completedMove);
-    state.pendingMove = null;
-    state.phase = "move";
-    state.selectedSquare = null;
-    state.activeSide = oppositeSide(state.activeSide);
-};
-
-const handleMove = (origin: string, destination: string): void => {
-    if (origin === destination) {
-        return;
-    }
-
-    const piece = state.board.get(origin);
-    if (!piece || state.board.has(destination)) {
-        return;
-    }
-
-    state.board.delete(origin);
-    state.board.set(destination, piece);
-    state.selectedSquare = null;
-    state.pendingMove = { from: origin, to: destination };
-
-    const hasCapturablePiece = [...state.board.entries()].some(([, boardPiece]) =>
-        canCapturePiece(state.activeSide, boardPiece)
-    );
-
-    if (hasCapturablePiece) {
-        state.phase = "capture";
-        return;
-    }
-
-    commitTurn();
-};
-
-const handleCapture = (square: string): void => {
-    const piece = state.board.get(square);
-    if (!piece || !canCapturePiece(state.activeSide, piece)) {
-        return;
-    }
-
-    state.board.delete(square);
-    commitTurn(square);
-};
-
 const handleSquareClick = (square: string): void => {
     if (state.phase === "setup") {
-        cycleSetupPiece(square);
+        state = cycleSetupPiece(state, square);
         render();
         return;
     }
 
     if (state.phase === "capture") {
-        handleCapture(square);
+        state = capturePiece(state, square);
         render();
         return;
     }
@@ -207,12 +85,9 @@ const handleSquareClick = (square: string): void => {
         return;
     }
 
-    handleMove(state.selectedSquare, square);
+    state = movePiece(state, state.selectedSquare, square);
     render();
 };
-
-const moveToNotation = (move: MoveRecord): string =>
-    `${move.from}-${move.to}${move.captured ? `x${move.captured}` : ""}`;
 
 const updateBoardSize = (): void => {
     const shellStyles = window.getComputedStyle(boardShellElement);
@@ -226,8 +101,11 @@ const updateBoardSize = (): void => {
         ? availableWidth
         : boardShellElement.clientHeight - labelRowHeight - boardLabelGap;
     const nextBoardSize = Math.max(180, Math.floor(Math.min(availableWidth, availableHeight)));
+    const nextBoardSizeValue = `${nextBoardSize}px`;
 
-    boardShellElement.style.setProperty("--board-size", `${nextBoardSize}px`);
+    if (boardShellElement.style.getPropertyValue("--board-size") !== nextBoardSizeValue) {
+        boardShellElement.style.setProperty("--board-size", nextBoardSizeValue);
+    }
 };
 
 const updateStatus = (): void => {
@@ -247,36 +125,15 @@ const updateStatus = (): void => {
     statusElement.textContent = `${moverLabel} to move.${extra}`;
 };
 
-const renderLabels = (): void => {
+const initializeLabels = (): void => {
     const columnsMarkup = Array.from({ length: 9 }, (_, index) => `<span>${index + 1}</span>`).join("");
     columnLabelsBottom.innerHTML = columnsMarkup;
-    rowLabelsLeft.innerHTML = bottomToTopLetters
-        .slice()
-        .reverse()
-        .map((letter) => `<span>${letter}</span>`)
-        .join("");
+    rowLabelsLeft.innerHTML = rowLetters.map((letter) => `<span>${letter}</span>`).join("");
 };
 
 const renderBoard = (): void => {
-    const validCaptureSquares = new Set(
-        state.phase === "capture"
-            ? [...state.board.entries()]
-                  .filter(([, piece]) => canCapturePiece(state.activeSide, piece))
-                  .map(([square]) => square)
-            : []
-    );
-
-    const targetableSquares = new Set<string>();
-    if (state.phase === "move" && state.selectedSquare) {
-        for (let rowIndex = 0; rowIndex < 9; rowIndex += 1) {
-            for (let colIndex = 0; colIndex < 9; colIndex += 1) {
-                const square = getSquareName(rowIndex, colIndex);
-                if (!state.board.has(square) && square !== state.selectedSquare) {
-                    targetableSquares.add(square);
-                }
-            }
-        }
-    }
+    const validCaptureSquares = new Set(state.phase === "capture" ? getCapturableSquares(state) : []);
+    const targetableSquares = new Set(getTargetableSquares(state));
 
     boardElement.innerHTML = "";
 
@@ -301,8 +158,6 @@ const renderBoard = (): void => {
             if (validCaptureSquares.has(squareName)) {
                 squareButton.classList.add("capture-target");
             }
-
-            squareButton.addEventListener("click", () => handleSquareClick(squareName));
 
             const label = document.createElement("span");
             label.className = "square-label";
@@ -334,15 +189,29 @@ const renderControls = (): void => {
 
 const render = (): void => {
     updateBoardSize();
-    renderLabels();
     renderBoard();
     renderMoveList();
     renderControls();
     updateStatus();
 };
 
+boardElement.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+        return;
+    }
+
+    const squareButton = target.closest<HTMLButtonElement>(".square[data-square]");
+    const squareName = squareButton?.dataset.square;
+    if (!squareName) {
+        return;
+    }
+
+    handleSquareClick(squareName);
+});
+
 startButton.addEventListener("click", () => {
-    beginGame();
+    state = beginGame(state);
     render();
 });
 
@@ -361,12 +230,12 @@ fullscreenButton.addEventListener("click", async () => {
 });
 
 resetButton.addEventListener("click", () => {
-    resetGame();
+    state = createInitialState();
     render();
 });
 
 captureSkipButton.addEventListener("click", () => {
-    commitTurn();
+    state = commitTurn(state);
     render();
 });
 
@@ -377,4 +246,5 @@ const resizeObserver = new ResizeObserver(() => {
 resizeObserver.observe(boardShellElement);
 window.addEventListener("resize", updateBoardSize);
 
+initializeLabels();
 render();

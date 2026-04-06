@@ -41,10 +41,6 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
-}
-
 tasks.withType<KotlinCompile> {
     compilerOptions {
         freeCompilerArgs.add("-Xjsr305=strict")
@@ -60,6 +56,8 @@ tasks.withType<JavaExec>().configureEach {
 }
 
 tasks.withType<Test>().configureEach {
+    dependsOn(testFrontend)
+    useJUnitPlatform()
     javaLauncher.set(java21Launcher)
 }
 
@@ -75,6 +73,18 @@ val buildFrontend by tasks.registering(NpmTask::class) {
         file("tsconfig.json")
     )
     outputs.dir(generatedFrontendDir)
+}
+
+val testFrontend by tasks.registering(NpmTask::class) {
+    dependsOn(tasks.npmInstall, buildFrontend)
+    npmCommand.set(listOf("run", "test"))
+
+    inputs.files(
+        fileTree("src/main/frontend"),
+        fileTree("src/test/frontend"),
+        file("package.json"),
+        file("tsconfig.json")
+    )
 }
 
 tasks.processResources {
