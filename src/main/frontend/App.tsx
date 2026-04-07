@@ -83,12 +83,6 @@ export const App = () => {
                 </section>
 
                 <section className="panel side-panel top-panel">
-                    <section className="legend">
-                        <p className="subtitle sidebar-intro">
-                            Place dragons, ravens, and gold during setup, then alternate turns. Dragons may move gold on their turns.
-                        </p>
-                    </section>
-
                     <section className="controls-panel">
                         <ControlsPanel
                             onStartGame={handleStartGame}
@@ -99,13 +93,18 @@ export const App = () => {
                     </section>
 
                     <section className="legend">
-                        <h2>Setup</h2>
-                        <p>Click any square during setup to cycle through dragon, raven, gold, then empty. You may place any number of gold pieces.</p>
+                        <h2>Overview</h2>
+                        <p>Place pieces during setup, then alternate turns. Dragons may move the gold on their turns.</p>
+                    </section>
+
+                    <section className="legend">
+                        <h2>Setup Phase</h2>
+                        <p>Click any square during setup to cycle through dragon, raven, gold, then empty.</p>
                     </section>
 
                     <section className="legend">
                         <h2>Turns</h2>
-                        <p>On a dragon turn, you may move a dragon or the gold. On a raven turn, move a raven. After moving, you may capture one opposing piece.</p>
+                        <p>On a dragon turn, you may move a dragon or gold. On a raven turn, move a raven. After moving, you may optionally capture one opposing piece.</p>
                     </section>
                 </section>
 

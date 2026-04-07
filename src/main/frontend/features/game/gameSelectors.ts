@@ -35,15 +35,13 @@ export const selectStatusText = createSelector(selectGameState, selectSnapshot, 
     }
 
     if (snapshot.phase === "setup") {
-        return "Setup phase: click a square to place dragon, raven, gold, or empty.";
+        return "Setup phase: place the pieces. Then start the game.";
     }
 
     if (snapshot.phase === "capture") {
-        const opposingLabel = snapshot.activeSide === "dragons" ? "raven" : "dragon or gold";
-        return `${snapshot.activeSide === "dragons" ? "Dragons" : "Ravens"} moved. Capture one ${opposingLabel}, or skip the capture.`;
+        return `${snapshot.activeSide === "dragons" ? "Dragons" : "Ravens"} moved. Capture a piece, or skip the capture.`;
     }
 
     const moverLabel = snapshot.activeSide === "dragons" ? "Dragons" : "Ravens";
-    const extra = snapshot.activeSide === "dragons" ? " Dragons may also move the gold." : "";
-    return `${moverLabel} to move.${extra}`;
+    return `${moverLabel} to move.`;
 });

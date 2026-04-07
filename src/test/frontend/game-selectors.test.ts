@@ -55,6 +55,65 @@ describe("game selectors", () => {
         expect(targetableSquares).toHaveLength(78);
     });
 
+    test("status text uses the updated setup copy", () => {
+        const store = createAppStore({
+            game: {
+                session: createSession({}, {
+                    phase: "setup"
+                }),
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: null
+            }
+        });
+
+        expect(selectStatusText(store.getState())).toBe("Setup phase: place the pieces. Then start the game.");
+    });
+
+    test("status text omits the extra gold reminder during move phase", () => {
+        const store = createAppStore({
+            game: {
+                session: createSession({}, {
+                    phase: "move",
+                    activeSide: "dragons"
+                }),
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: null
+            }
+        });
+
+        expect(selectStatusText(store.getState())).toBe("Dragons to move.");
+    });
+
+    test("status text uses the generic capture copy during capture phase", () => {
+        const store = createAppStore({
+            game: {
+                session: createSession({}, {
+                    phase: "capture",
+                    activeSide: "ravens"
+                }),
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: null
+            }
+        });
+
+        expect(selectStatusText(store.getState())).toBe("Ravens moved. Capture a piece, or skip the capture.");
+    });
+
     test("local selection can be updated independently of the shared session", () => {
         const store = createAppStore({
             game: {
