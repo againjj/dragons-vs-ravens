@@ -38,9 +38,10 @@ export interface GameCommandRequest {
     destination?: string;
 }
 
-export const rowLetters = ["i", "h", "g", "f", "e", "d", "c", "b", "a"];
+export const columnLetters = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
+export const rowNumbers = ["9", "8", "7", "6", "5", "4", "3", "2", "1"];
 
-export const getSquareName = (rowIndex: number, colIndex: number): string => `${rowLetters[rowIndex]}${colIndex + 1}`;
+export const getSquareName = (rowIndex: number, colIndex: number): string => `${columnLetters[colIndex]}${rowNumbers[rowIndex]}`;
 
 export const sideOwnsPiece = (side: Side, piece: Piece): boolean => {
     if (piece === "gold") {

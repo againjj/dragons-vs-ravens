@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+    columnLetters,
     getCapturableSquares,
     getPieceAtSquare,
     getTargetableSquares,
+    getSquareName,
     getTurnHistoryRows,
     normalizeSelectedSquare,
+    rowNumbers,
     turnToNotation
 } from "../../../build/generated/frontend/game.js";
 
@@ -33,6 +36,15 @@ test("targetable squares are all empty squares except the selected one during mo
     assert.equal(targetableSquares.includes("b2"), false);
     assert.equal(targetableSquares.includes("c3"), true);
     assert.equal(targetableSquares.length, 78);
+});
+
+test("square names follow column letters and row numbers in letter-number order", () => {
+    assert.deepEqual(columnLetters, ["a", "b", "c", "d", "e", "f", "g", "h", "i"]);
+    assert.deepEqual(rowNumbers, ["9", "8", "7", "6", "5", "4", "3", "2", "1"]);
+    assert.equal(getSquareName(0, 0), "a9");
+    assert.equal(getSquareName(4, 4), "e5");
+    assert.equal(getSquareName(8, 0), "a1");
+    assert.equal(getSquareName(8, 8), "i1");
 });
 
 test("selected square stays local only when it remains valid for the shared snapshot", () => {

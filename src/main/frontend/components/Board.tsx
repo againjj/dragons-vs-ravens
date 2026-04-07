@@ -1,5 +1,5 @@
 import { useAppDispatch, useAppSelector } from "../app/hooks.js";
-import { getPieceAtSquare, getSquareName, rowLetters, sideOwnsPiece, type Piece } from "../game.js";
+import { getPieceAtSquare, getSquareName, rowNumbers, sideOwnsPiece, type Piece } from "../game.js";
 import { selectCapturableSquares, selectSelectedSquare, selectSnapshot, selectTargetableSquares } from "../features/game/gameSelectors.js";
 import { capturePiece, cycleSetup, movePiece } from "../features/game/gameThunks.js";
 import { uiActions } from "../features/ui/uiSlice.js";
@@ -116,8 +116,8 @@ export const Board = () => {
     return (
         <div className="board-row">
             <div className="row-labels left" id="row-labels-left">
-                {rowLetters.map((letter) => (
-                    <span key={letter}>{letter}</span>
+                {rowNumbers.map((number) => (
+                    <span key={number}>{number}</span>
                 ))}
             </div>
             <div id="board" className="board" aria-label="9 by 9 game board">

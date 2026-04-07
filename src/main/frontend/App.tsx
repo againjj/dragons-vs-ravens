@@ -8,6 +8,7 @@ import { StatusBanner } from "./components/StatusBanner.js";
 import { selectStatusText } from "./features/game/gameSelectors.js";
 import { gameActions } from "./features/game/gameSlice.js";
 import { endGame, endSetup, skipCapture, startGame, undoMove } from "./features/game/gameThunks.js";
+import { columnLetters } from "./game.js";
 import { useGameSession } from "./features/game/useGameSession.js";
 import { useBoardSizing } from "./hooks/useBoardSizing.js";
 import { useFullscreen } from "./hooks/useFullscreen.js";
@@ -58,8 +59,8 @@ export const App = () => {
                         <div className="board-footer">
                             <div className="board-footer-spacer" aria-hidden="true"></div>
                             <div className="column-labels bottom" id="column-labels-bottom">
-                                {Array.from({ length: 9 }, (_, index) => (
-                                    <span key={index + 1}>{index + 1}</span>
+                                {columnLetters.map((letter) => (
+                                    <span key={letter}>{letter}</span>
                                 ))}
                             </div>
                         </div>

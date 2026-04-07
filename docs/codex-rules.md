@@ -106,6 +106,12 @@ If a requested change would alter one of those rules, implement it only when tha
 - Run the app: `./gradlew bootRun`
 - Run all tests: `./gradlew test`
 
+## Local Run Rules
+
+- If the user asks to start the server, first try the default app configuration.
+- If the default port is already in use, do not start the server on a different port unless the user explicitly asks for that fallback.
+- When the default port is busy, report the port conflict to the user and stop there.
+
 ## Prompt Snippet
 
 Use this in future requests:

@@ -28,6 +28,7 @@ When the page first loads, no game is in progress and only the `Start Game` cont
 Starting a game enters setup with an empty board. During setup, each click cycles a square through `empty -> dragon -> raven -> gold -> empty`, with any number of gold pieces allowed.
 Ending setup begins turns with dragons moving first.
 Ending the game returns to the no-game state while preserving the final board position and full completed history, including a `Game Over` entry, until the next game is started.
+The board now displays numbered rows from top to bottom and lettered columns from left to right, while square names still use `letter + number` notation such as `a1` and `e5`.
 
 ## Run Tests
 
@@ -79,4 +80,5 @@ Read docs/code-summary.md and docs/codex-rules.md before making changes. Follow 
 - Spring Boot serves the generated frontend assets as static resources and exposes `/api/game` plus `/api/game/stream`.
 - Undo is server-backed, shared across clients, and exposed as `canUndo` in the session payload so the UI can disable the button exactly.
 - Turn history now includes both completed moves and a terminal `Game Over` entry when a game is ended.
+- If `./gradlew bootRun` cannot bind its default port, treat that as a local environment issue to fix instead of silently switching ports.
 - If you change architecture, workflow, or gameplay in a meaningful way, update `docs/code-summary.md`.
