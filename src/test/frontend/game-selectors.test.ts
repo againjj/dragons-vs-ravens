@@ -89,7 +89,7 @@ describe("game selectors", () => {
             }
         });
 
-        expect(selectStatusText(store.getState())).toBe("No game in progress. Start a game to enter setup.");
+        expect(selectStatusText(store.getState())).toBe("No game in progress. Select a play style and start a game.");
     });
 
     test("status text uses the game over copy after ending a game", () => {

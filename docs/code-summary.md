@@ -62,6 +62,9 @@ This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a brows
   - The browser loads the initial shared game from `GET /api/game`.
   - The browser sends mutations to `POST /api/game/commands`.
   - The browser subscribes to `GET /api/game/stream` for live updates.
+- Runtime configuration:
+  - `server.port` reads `${PORT:8080}` so the app keeps its local default while also working on Railway-style platforms that inject the listen port at runtime.
+  - `railway.json` overrides Railway's deploy start command to `java -jar build/libs/dragons-vs-ravens.jar`, matching the Spring Boot fat jar produced by the Gradle build.
 - Result:
   - Running `./gradlew bootRun` serves the Vite-built frontend bundle plus static CSS through Spring Boot.
 

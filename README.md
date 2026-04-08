@@ -23,6 +23,8 @@ A Spring Boot + Kotlin web app that serves a browser-based board game prototype 
 
 Then open [http://localhost:8080](http://localhost:8080).
 
+The server also respects the `PORT` environment variable, so the same app can run on Railway and other managed platforms that inject a runtime port.
+
 Open the app in two browser tabs to see the shared game stay in sync through server-sent events.
 When the page first loads, no game is in progress and the controls include a play-style dropdown plus `Start Game`.
 `Free Play` preserves the original behavior: before starting, you can choose whether dragons or ravens move first; starting a game then enters setup with an empty board, setup clicks cycle `empty -> dragon -> raven -> gold -> empty`, capture is manual, and the game is ended manually.
@@ -42,6 +44,22 @@ This runs:
 - the frontend helper tests
 - the React/Redux component and selector tests
 - the Spring Boot test suite
+
+## Deploy On Railway
+
+Railway can deploy this app directly from the repository or from the Railway CLI. The app is a single Spring Boot service, and Railway should build it with Gradle automatically.
+
+This repo includes [`railway.json`](/Users/jrayazian/code/dragons-vs-ravens/railway.json), which sets the Railway start command to the Spring Boot jar produced by Gradle.
+
+If you want to deploy from your local machine with the Railway CLI:
+
+```bash
+railway login --browserless
+railway init
+railway up
+```
+
+Railway injects `PORT` at runtime, and the app now binds to that port automatically.
 
 ## Project Structure
 

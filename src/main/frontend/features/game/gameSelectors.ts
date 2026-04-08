@@ -53,7 +53,7 @@ export const selectStatusText = createSelector(selectGameState, selectSnapshot, 
     if (snapshot.phase === "none") {
         return snapshot.turns.length > 0
             ? "Game over. Start a new game when you're ready."
-            : "No game in progress. Start a game to enter setup.";
+            : "No game in progress. Select a play style and start a game.";
     }
 
     if (snapshot.phase === "capture") {

@@ -1,5 +1,6 @@
 import com.github.gradle.node.npm.task.NpmTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.springframework.boot.gradle.tasks.bundling.BootJar
 
 plugins {
     id("com.github.node-gradle.node") version "7.0.2"
@@ -53,6 +54,10 @@ val java21Launcher = javaToolchains.launcherFor {
 
 tasks.withType<JavaExec>().configureEach {
     javaLauncher.set(java21Launcher)
+}
+
+tasks.withType<BootJar>().configureEach {
+    archiveFileName.set("dragons-vs-ravens.jar")
 }
 
 tasks.withType<Test>().configureEach {
