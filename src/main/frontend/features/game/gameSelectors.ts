@@ -4,10 +4,14 @@ import { getCapturableSquares, getTargetableSquares, normalizeSelectedSquare } f
 import type { RootState } from "../../app/store.js";
 
 export const selectGameState = (state: RootState) => state.game;
+export const selectGameView = (state: RootState) => state.game.view;
+export const selectCurrentGameId = (state: RootState) => state.game.currentGameId;
 export const selectSnapshot = (state: RootState) => state.game.session?.snapshot ?? null;
 export const selectCanUndo = (state: RootState) => state.game.session?.canUndo ?? false;
 export const selectSelectedSquare = (state: RootState) => state.ui.selectedSquare;
 export const selectIsSubmitting = (state: RootState) => state.game.isSubmitting;
+export const selectIsLoadingGame = (state: RootState) => state.game.loadState === "loading";
+export const selectFeedbackMessage = (state: RootState) => state.game.feedbackMessage;
 export const selectAvailableRuleConfigurations = (state: RootState) =>
     state.game.session?.availableRuleConfigurations ?? [];
 export const selectSelectedRuleConfigurationId = (state: RootState) =>
@@ -38,12 +42,12 @@ export const selectStatusText = createSelector(selectGameState, selectSnapshot, 
 
     if (!snapshot) {
         if (gameState.loadState === "error") {
-            return "Unable to load shared game.";
+            return "Unable to load game.";
         }
 
         return gameState.connectionState === "reconnecting"
             ? "Connection lost. Trying to reconnect..."
-            : "Loading shared game...";
+            : "Loading game...";
     }
 
     if (snapshot.phase === "setup") {

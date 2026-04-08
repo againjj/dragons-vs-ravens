@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend now supports multiple in-memory game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend still uses the legacy default-game routes for now, alongside the newer multi-game backend API.
+This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple in-memory game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, creates or opens games by id, and then talks to the per-game backend API for the active session.
 
 ## Current Architecture
 
@@ -22,17 +22,18 @@ This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a brows
   - Transport helpers for REST commands and SSE subscription setup.
 - `src/main/frontend/App.tsx`
   - Top-level React layout and shell composition.
+  - Switches between the lobby screen and the active game screen.
 - `src/main/frontend/app/*.ts`
   - Redux store setup and typed hooks.
 - `src/main/frontend/features/game/*.ts`
   - Game slice, selectors, thunks, and stream lifecycle wiring.
-  - Includes shared-session helpers such as exact undo availability and small command-thunk wrappers.
+  - Includes current-game and current-view state, exact undo availability, and small command-thunk wrappers.
 - `src/main/frontend/features/ui/*.ts`
   - Local-only UI state such as selected square.
 - `src/main/frontend/components/*.tsx`
-  - React components for board rendering, controls, move list, and status text.
+  - React components for the lobby screen, board rendering, controls, move list, and status text.
 - `src/main/frontend/hooks/*.ts`
-  - Browser hooks for responsive sizing and fullscreen behavior.
+  - Browser hooks for responsive sizing, fullscreen behavior, and URL-to-game routing.
 - `src/test/frontend/game.test.js`
   - Frontend helper tests for server-backed snapshots and local-only selection behavior.
 - `src/test/kotlin/com/dragonsvsravens/game/GameRulesTest.kt`
@@ -59,14 +60,17 @@ This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a brows
   - Gradle task `testFrontend` runs the frontend tests.
   - `./gradlew test` runs both the frontend tests and the Kotlin/Spring test task.
 - Runtime flow:
-  - The current browser client still loads the default game from `GET /api/game`.
-  - The current browser client still sends mutations to `POST /api/game/commands`.
-  - The current browser client still subscribes to `GET /api/game/stream` for live updates.
-  - The backend also exposes multi-game endpoints:
-    - `POST /api/games`
-    - `GET /api/games/{gameId}`
-    - `POST /api/games/{gameId}/commands`
-    - `GET /api/games/{gameId}/stream`
+  - The browser lobby lives at `/`.
+  - The browser treats `/g/{gameId}` as the canonical active-game URL.
+  - Loading `/g/{gameId}` directly opens that game in the browser.
+  - Creating a game uses `POST /api/games`.
+  - Opening a game by id uses `GET /api/games/{gameId}`.
+  - The active game screen sends mutations to `POST /api/games/{gameId}/commands`.
+  - The active game screen subscribes to `GET /api/games/{gameId}/stream` for live updates.
+  - The backend still also exposes compatibility routes for the default game:
+    - `GET /api/game`
+    - `POST /api/game/commands`
+    - `GET /api/game/stream`
 - Runtime configuration:
   - `server.port` reads `${PORT:8080}` so the app keeps its local default while also working on Railway-style platforms that inject the listen port at runtime.
   - `railway.json` overrides Railway's deploy start command to `java -jar build/libs/dragons-vs-ravens.jar`, matching the Spring Boot fat jar produced by the Gradle build.
@@ -125,19 +129,30 @@ The React frontend is now split by responsibility.
 
 - `App.tsx` composes the page shell and top-level sections.
 - Redux owns shared client state such as the latest server session, loading/submission state, connection state, feedback messages, and local selection.
-- `gameThunks.ts` coordinates initial load and command submission against the backend API.
-- `gameStream.ts` plus `useGameSession.ts` open and maintain the SSE subscription.
+- Redux also owns the current browser view (`lobby` or `game`) plus the current game id.
+- `gameThunks.ts` coordinates lobby create/open actions plus command submission against the backend API.
+- `gameStream.ts` plus `useGameSession.ts` open and maintain the SSE subscription only for the active game screen.
+- `useGameRoute.ts` maps browser URLs to lobby or game state and keeps the address bar in sync with the active game id.
 - `Board.tsx`, `ControlsPanel.tsx`, `MoveList.tsx`, and `StatusBanner.tsx` render the current UI from Redux state.
+- `LobbyScreen.tsx` renders the create-or-open entry flow before a game is active.
 - `useBoardSizing.ts` and `useFullscreen.ts` wrap browser-specific layout and fullscreen behavior.
 
 Most UI-only changes should start in the relevant component, selector, or browser hook.
 
 ## Current Rules Implemented
 
+### Lobby and game entry
+
+- The browser initially loads into a lobby screen.
+- The lobby can create a new in-memory game or open an existing game by id.
+- Once a game is created or opened, the browser enters that game's board screen and updates the URL to `/g/{gameId}`.
+- Loading `/g/{gameId}` directly also enters that game's board screen.
+- The game screen shows the current game id and includes a `Back to Lobby` button.
+- Returning to the lobby closes the active SSE stream, clears browser-local selection, and returns the URL to `/`.
+
 ### Free Play
 
-- The browser initially loads into a no-game state with a play-style dropdown and `Start Game`.
-- When `Free Play` is selected in the no-game state, the browser also shows a starting-side dropdown so the shared setup can begin with either dragons or ravens.
+- Once a game screen is open and `Free Play` is selected in the no-game state, the browser also shows a starting-side dropdown so the shared setup can begin with either dragons or ravens.
 - `Free Play` preserves the original setup flow:
   - starting the game enters `setup`
   - clicking a square cycles `empty -> dragon -> raven -> gold -> empty`
@@ -181,7 +196,9 @@ Most UI-only changes should start in the relevant component, selector, or browse
 
 - Clients connected to the same game id see the same server-owned game session.
 - The backend can create additional in-memory games with generated ids.
+- Generated game ids now use 7 characters from the Open Location Code ("PLUS code") alphabet `23456789CFGHJMPQRVWX`, which is the shortest fixed width that still covers more than 1,000,000,000 possible games.
 - The server still keeps a default game with id `default` for the existing frontend.
+- The browser no longer relies on the default-game routes, but the backend keeps them as compatibility aliases.
 - Mutation requests include an expected version.
 - On a version conflict, the server returns `409` with the latest snapshot for that game only.
 - Freshly loaded clients receive an exact `canUndo` flag from the server.
@@ -198,6 +215,7 @@ The frontend now uses React components backed by Redux state.
 - `App.tsx` is the top-level shell.
 - Selectors derive render-ready values from the latest server snapshot plus local UI state.
 - Components rerender declaratively when Redux state changes after REST responses or SSE events.
+- `App.tsx` now switches between a lobby screen and the main three-column game layout.
 - Visual highlights remain class-based:
   - `selected`
   - `targetable`
@@ -231,8 +249,11 @@ Future UI changes should preserve the split of transport logic, Redux state, ren
   - turn notation including captures and winner text
   - Redux-backed status and target derivation
   - controls enablement, play-style selection, and config-specific control visibility
+  - lobby create/open interactions
+  - browser route handling for `/` and `/g/{gameId}`
   - visible row and column labels on the rendered board
   - board selection behavior, idle-board no-op handling, and capture highlighting
+  - stream connection and cleanup when entering or leaving a game screen
 - The backend tests currently cover:
   - rule-configuration-specific setup and movement validation, including Original Game and Sherwood Rules variants
   - initial snapshot

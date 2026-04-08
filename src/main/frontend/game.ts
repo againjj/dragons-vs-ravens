@@ -48,6 +48,17 @@ export interface ServerGameSession {
     selectedStartingSide: Side;
 }
 
+export interface CreateGameRequest {
+    ruleConfigurationId?: string;
+    startingSide?: Side;
+}
+
+export interface CreateGameResponse {
+    game: ServerGameSession;
+}
+
+export const generatedGameIdPattern = /^[23456789CFGHJMPQRVWX]{7}$/;
+
 export interface GameCommandRequest {
     expectedVersion: number;
     type:

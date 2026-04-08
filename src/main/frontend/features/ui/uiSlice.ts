@@ -4,13 +4,13 @@ export interface UiState {
     selectedSquare: string | null;
 }
 
-const initialState: UiState = {
+export const initialUiState: UiState = {
     selectedSquare: null
 };
 
 const uiSlice = createSlice({
     name: "ui",
-    initialState,
+    initialState: initialUiState,
     reducers: {
         selectedSquareSet(state, action: PayloadAction<string | null>) {
             state.selectedSquare = action.payload;

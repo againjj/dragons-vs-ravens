@@ -2,9 +2,9 @@ import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import type { ThunkAction, UnknownAction } from "@reduxjs/toolkit";
 
 import type { GameState } from "../features/game/gameSlice.js";
-import { gameReducer } from "../features/game/gameSlice.js";
+import { gameReducer, initialGameState } from "../features/game/gameSlice.js";
 import type { UiState } from "../features/ui/uiSlice.js";
-import { uiReducer } from "../features/ui/uiSlice.js";
+import { initialUiState, uiReducer } from "../features/ui/uiSlice.js";
 
 const rootReducer = combineReducers({
     game: gameReducer,
@@ -16,10 +16,33 @@ export interface PreloadedAppState {
     ui?: UiState;
 }
 
+const buildPreloadedGameState = (gameState?: GameState): GameState => {
+    const mergedGameState = {
+        ...initialGameState,
+        ...gameState
+    };
+
+    if (mergedGameState.session && !gameState?.currentGameId) {
+        mergedGameState.currentGameId = mergedGameState.session.id;
+    }
+
+    if (mergedGameState.session && !gameState?.view) {
+        mergedGameState.view = "game";
+    }
+
+    return mergedGameState;
+};
+
 export const createAppStore = (preloadedState?: PreloadedAppState) =>
     configureStore({
         reducer: rootReducer,
-        preloadedState
+        preloadedState: {
+            game: buildPreloadedGameState(preloadedState?.game),
+            ui: {
+                ...initialUiState,
+                ...preloadedState?.ui
+            }
+        }
     });
 
 export const store = createAppStore();

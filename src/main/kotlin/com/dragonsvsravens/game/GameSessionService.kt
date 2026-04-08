@@ -2,7 +2,6 @@ package com.dragonsvsravens.game
 
 import org.springframework.stereotype.Service
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
-import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -28,7 +27,7 @@ class GameSessionService(
 
         while (true) {
             val game = GameSessionFactory.createFreshStoredGame(
-                gameId = UUID.randomUUID().toString(),
+                gameId = GameIdGenerator.nextId(),
                 snapshot = createIdleSnapshot(selectedRuleConfigurationId, selectedStartingSide),
                 selectedRuleConfigurationId = selectedRuleConfigurationId,
                 selectedStartingSide = selectedStartingSide

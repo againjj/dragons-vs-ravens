@@ -2,28 +2,28 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 
-import { App } from "../../main/frontend/App.js";
 import { Board } from "../../main/frontend/components/Board.js";
+import { columnLetters } from "../../main/frontend/game.js";
 import { createSession } from "./fixtures.js";
 import { renderWithStore } from "./test-utils.js";
 
-vi.mock("../../main/frontend/features/game/useGameSession.js", () => ({
-    useGameSession: () => undefined
-}));
-
-vi.mock("../../main/frontend/hooks/useBoardSizing.js", () => ({
-    useBoardSizing: () => undefined
-}));
-
-vi.mock("../../main/frontend/hooks/useFullscreen.js", () => ({
-    useFullscreen: () => ({
-        toggleFullscreen: async () => ({ message: null })
-    })
-}));
+const TestBoardScreen = () => (
+    <div className="board-shell">
+        <Board />
+        <div className="board-footer">
+            <div className="board-footer-spacer" aria-hidden="true"></div>
+            <div className="column-labels bottom" id="column-labels-bottom">
+                {columnLetters.map((letter) => (
+                    <span key={letter}>{letter}</span>
+                ))}
+            </div>
+        </div>
+    </div>
+);
 
 describe("Board", () => {
     test("shows 7x7 row and column labels while square names stay letter-number", () => {
-        renderWithStore(<App />, {
+        renderWithStore(<TestBoardScreen />, {
             preloadedState: {
                 game: {
                     session: createSession({}, {

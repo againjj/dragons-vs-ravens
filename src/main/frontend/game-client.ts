@@ -1,4 +1,4 @@
-import type { GameCommandRequest, ServerGameSession } from "./game.js";
+import type { CreateGameRequest, CreateGameResponse, GameCommandRequest, ServerGameSession } from "./game.js";
 
 export interface ErrorMessage {
     message?: string;
@@ -14,6 +14,7 @@ export interface EventSourceLike {
 export type FetchLike = typeof fetch;
 export type EventSourceFactory = (url: string) => EventSourceLike;
 export const defaultCommandErrorMessage = "Unable to apply that action right now.";
+const getGameUrl = (gameId: string): string => `/api/games/${encodeURIComponent(gameId)}`;
 
 const parseJson = async <T>(response: { json(): Promise<unknown> }): Promise<T> =>
     await response.json() as T;
@@ -34,8 +35,27 @@ export const isSameServerGame = (
     currentGame.version === nextGame.version &&
     currentGame.updatedAt === nextGame.updatedAt;
 
-export const fetchGameSession = async (fetchImpl: FetchLike = fetch): Promise<ServerGameSession> => {
-    const response = await fetchImpl("/api/game");
+export const createGameSession = async (
+    request: CreateGameRequest = {},
+    fetchImpl: FetchLike = fetch
+): Promise<ServerGameSession> => {
+    const response = await fetchImpl("/api/games", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(request)
+    });
+    if (!response.ok) {
+        throw new Error(`Failed to create game: ${response.status}`);
+    }
+
+    const result = await parseJson<CreateGameResponse>(response);
+    return result.game;
+};
+
+export const fetchGameSession = async (gameId: string, fetchImpl: FetchLike = fetch): Promise<ServerGameSession> => {
+    const response = await fetchImpl(getGameUrl(gameId));
     if (!response.ok) {
         throw new Error(`Failed to load game: ${response.status}`);
     }
@@ -53,7 +73,7 @@ export const sendGameCommandRequest = async (
         expectedVersion: currentGame.version
     };
 
-    const response = await fetchImpl("/api/game/commands", {
+    const response = await fetchImpl(`${getGameUrl(currentGame.id)}/commands`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -74,11 +94,12 @@ export const sendGameCommandRequest = async (
 
 export const openGameStream = (
     createEventSource: EventSourceFactory,
+    gameId: string,
     onGame: (game: ServerGameSession) => void,
     onOpen: () => void,
     onError: () => void
 ): (() => void) => {
-    const eventSource = createEventSource("/api/game/stream");
+    const eventSource = createEventSource(`${getGameUrl(gameId)}/stream`);
 
     eventSource.addEventListener("game", (event) => {
         if (!isGameMessageEvent(event)) {

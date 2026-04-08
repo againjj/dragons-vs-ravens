@@ -1,14 +1,18 @@
 import type { GameCommandRequest } from "../../game.js";
-import { fetchGameSession, sendGameCommandRequest } from "../../game-client.js";
+import { createGameSession, fetchGameSession, sendGameCommandRequest } from "../../game-client.js";
 import { normalizeSelectedSquare } from "../../game.js";
 import type { AppThunk } from "../../app/store.js";
 import { gameActions } from "./gameSlice.js";
 import { uiActions } from "../ui/uiSlice.js";
 
+const resetSessionScopedUiState = (): AppThunk => (dispatch) => {
+    dispatch(uiActions.selectedSquareSet(null));
+};
+
 const syncSelectedSquare = (): AppThunk => (dispatch, getState) => {
     const snapshot = getState().game.session?.snapshot;
     if (!snapshot) {
-        dispatch(uiActions.selectedSquareSet(null));
+        dispatch(resetSessionScopedUiState());
         return;
     }
 
@@ -18,22 +22,50 @@ const syncSelectedSquare = (): AppThunk => (dispatch, getState) => {
 const sendSelectionClearingCommand = (
     partialCommand: Omit<GameCommandRequest, "expectedVersion">
 ): AppThunk<Promise<void>> => async (dispatch) => {
-    dispatch(uiActions.selectedSquareSet(null));
+    dispatch(resetSessionScopedUiState());
     await dispatch(sendCommand(partialCommand));
 };
 
-export const loadGame = (): AppThunk<Promise<boolean>> => async (dispatch) => {
+export const createGame = (): AppThunk<Promise<boolean>> => async (dispatch) => {
     dispatch(gameActions.loadStarted());
 
     try {
-        const session = await fetchGameSession();
+        const session = await createGameSession();
+        dispatch(gameActions.gameOpened(session.id));
         dispatch(gameActions.sessionUpdated(session));
         dispatch(syncSelectedSquare());
         return true;
     } catch {
         dispatch(gameActions.loadFailed());
+        dispatch(gameActions.feedbackMessageSet("Unable to create a new game right now."));
         return false;
     }
+};
+
+export const openGame = (gameId: string): AppThunk<Promise<boolean>> => async (dispatch) => {
+    const trimmedGameId = gameId.trim();
+    if (!trimmedGameId) {
+        dispatch(gameActions.feedbackMessageSet("Enter a game ID to open a game."));
+        return false;
+    }
+
+    dispatch(resetSessionScopedUiState());
+    dispatch(gameActions.gameLoadRequested(trimmedGameId));
+
+    try {
+        const session = await fetchGameSession(trimmedGameId);
+        dispatch(applyServerSession(session));
+        return true;
+    } catch {
+        dispatch(gameActions.loadFailed());
+        dispatch(gameActions.feedbackMessageSet(`Unable to open game "${trimmedGameId}".`));
+        return false;
+    }
+};
+
+export const returnToLobby = (): AppThunk => (dispatch) => {
+    dispatch(resetSessionScopedUiState());
+    dispatch(gameActions.returnedToLobby());
 };
 
 export const applyServerSession = (session: import("../../game.js").ServerGameSession): AppThunk => (dispatch) => {

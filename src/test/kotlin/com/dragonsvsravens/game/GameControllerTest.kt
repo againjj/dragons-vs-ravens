@@ -20,6 +20,7 @@ class GameControllerTest : AbstractGameControllerTestSupport() {
         }.andExpect {
             status { isOk() }
             jsonPath("$.game.id") { value(org.hamcrest.Matchers.not("default")) }
+            jsonPath("$.game.id") { value(org.hamcrest.Matchers.matchesPattern("[23456789CFGHJMPQRVWX]{7}")) }
             jsonPath("$.game.snapshot.phase", equalTo("none"))
             jsonPath("$.game.selectedRuleConfigurationId", equalTo("free-play"))
         }
@@ -68,5 +69,15 @@ class GameControllerTest : AbstractGameControllerTestSupport() {
                 status { isNotFound() }
                 jsonPath("$.message", equalTo("Game missing-game was not found."))
             }
+    }
+
+    @Test
+    fun `game route serves the frontend app shell`() {
+        mockMvc.get("/g/CFGHJMP") {
+            accept = MediaType.TEXT_HTML
+        }.andExpect {
+            status { isOk() }
+            forwardedUrl("/index.html")
+        }
     }
 }

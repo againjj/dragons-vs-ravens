@@ -26,8 +26,12 @@ Then open [http://localhost:8080](http://localhost:8080).
 The server also respects the `PORT` environment variable, so the same app can run on Railway and other managed platforms that inject a runtime port.
 
 Open the app in two browser tabs to see the shared game stay in sync through server-sent events.
-The current browser client still talks to the legacy default-game API, while the backend also exposes a new multi-game API for Milestone A.
-When the page first loads, no game is in progress and the controls include a play-style dropdown plus `Start Game`.
+The browser now opens on a lobby screen at `/`, where you can create a new game or open an existing one by ID.
+Each game has its own URL at `/g/{gameId}`.
+Loading a game URL directly opens that game, and after you create or open a game from the lobby the browser updates the address bar to that game's `/g/{gameId}` URL.
+The browser stays subscribed to that game's SSE stream until you go back to the lobby.
+The active game screen shows the current game ID plus a `Back to Lobby` button.
+Once a game is open, the controls include the play-style dropdown plus the usual gameplay actions.
 `Free Play` preserves the original behavior: before starting, you can choose whether dragons or ravens move first; starting a game then enters setup with an empty board, setup clicks cycle `empty -> dragon -> raven -> gold -> empty`, capture is manual, and the game is ended manually.
 `Trivial Configuration`, `Original Game`, and `Sherwood Rules` start from preset boards with no setup phase, resolve captures automatically, and end automatically based on their own rules.
 `Sherwood Rules` matches `Original Game` except the gold may move only one orthogonal square at a time.
@@ -103,5 +107,9 @@ Read docs/code-summary.md and docs/codex-rules.md before making changes. Follow 
 - The shared session now exposes available rule configurations plus the currently selected configuration so all clients stay in sync on the next play style.
 - `Original Game` follows the published Ravens and Dragons setup and movement/capture rules, including automatic wins and draws.
 - `Sherwood Rules` reuses the `Original Game` setup, capture, and win/draw conditions, but limits the gold to one-square orthogonal movement.
+- The browser client now uses the per-game routes under `/api/games` for create, load, command, and stream behavior.
+- Browser navigation now uses `/` for the lobby and `/g/{gameId}` for an active game view.
+- Newly created games now use 7-character IDs drawn from the Open Location Code ("PLUS code") alphabet: `23456789CFGHJMPQRVWX`.
+- The legacy `/api/game` routes remain on the backend as compatibility aliases for the default game, but they are no longer the main browser path.
 - If `./gradlew bootRun` cannot bind its default port, treat that as a local environment issue to fix instead of silently switching ports.
 - If you change architecture, workflow, or gameplay in a meaningful way, update `docs/code-summary.md`.

@@ -37,6 +37,16 @@ class GameSessionServiceTest {
     }
 
     @Test
+    fun `created games use seven character plus code style ids`() {
+        val service = createService()
+
+        val game = service.createGame()
+
+        assertTrue(GameIdGenerator.isGeneratedGameId(game.id))
+        assertEquals(GameIdGenerator.gameIdLength, game.id.length)
+    }
+
+    @Test
     fun `sse broadcasts are scoped to one game`() {
         val service = createService()
         val firstGame = service.createGame()

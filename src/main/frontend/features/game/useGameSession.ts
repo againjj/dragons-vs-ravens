@@ -1,27 +1,24 @@
 import { useEffect } from "react";
 
-import { useAppDispatch } from "../../app/hooks.js";
+import { useAppDispatch, useAppSelector } from "../../app/hooks.js";
+import { selectCurrentGameId, selectGameView } from "./gameSelectors.js";
 import { connectGameStream } from "./gameStream.js";
-import { loadGame } from "./gameThunks.js";
 
 export const useGameSession = (): void => {
     const dispatch = useAppDispatch();
+    const currentGameId = useAppSelector(selectCurrentGameId);
+    const view = useAppSelector(selectGameView);
+    const activeSessionId = useAppSelector((state) => state.game.session?.id ?? null);
 
     useEffect(() => {
-        let closeStream: (() => void) | null = null;
-        let disposed = false;
+        if (view !== "game" || !currentGameId || activeSessionId !== currentGameId) {
+            return;
+        }
 
-        void dispatch(loadGame()).then((loaded: boolean) => {
-            if (!loaded || disposed) {
-                return;
-            }
-
-            closeStream = connectGameStream(dispatch);
-        });
+        const closeStream = connectGameStream(dispatch, currentGameId);
 
         return () => {
-            disposed = true;
-            closeStream?.();
+            closeStream();
         };
-    }, [dispatch]);
+    }, [activeSessionId, currentGameId, dispatch, view]);
 };

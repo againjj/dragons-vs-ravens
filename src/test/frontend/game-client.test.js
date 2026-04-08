@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+    createGameSession,
     defaultCommandErrorMessage,
     fetchGameSession,
     isSameServerGame,
@@ -43,24 +44,52 @@ const createGame = (version = 1) => ({
     }
 });
 
-test("fetchGameSession returns the parsed game payload", async () => {
+test("createGameSession posts to the multi-game endpoint and returns the created game", async () => {
     const game = createGame(1);
-    const result = await fetchGameSession(async () => ({
-        ok: true,
-        json: async () => game
-    }));
+    const calls = [];
+
+    const result = await createGameSession(
+        {},
+        async (url, init) => {
+            calls.push({ url, init });
+            return {
+                ok: true,
+                json: async () => ({ game })
+            };
+        }
+    );
 
     assert.deepEqual(result, game);
+    assert.equal(calls[0].url, "/api/games");
+    assert.equal(calls[0].init.method, "POST");
+    assert.equal(calls[0].init.body, "{}");
+});
+
+test("fetchGameSession returns the parsed game payload for a game id", async () => {
+    const game = createGame(1);
+    const calls = [];
+    const result = await fetchGameSession("game-123", async (url) => {
+        calls.push(url);
+        return {
+            ok: true,
+            json: async () => game
+        };
+    });
+
+    assert.deepEqual(result, game);
+    assert.equal(calls[0], "/api/games/game-123");
 });
 
 test("sendGameCommandRequest includes the expected version and returns the next game", async () => {
     const currentGame = createGame(2);
     let requestBody = null;
+    let requestUrl = null;
 
     const result = await sendGameCommandRequest(
-        currentGame,
+        { ...currentGame, id: "game-77" },
         { type: "start-game" },
-        async (_url, init) => {
+        async (url, init) => {
+            requestUrl = url;
             requestBody = JSON.parse(init.body);
             return {
                 ok: true,
@@ -71,6 +100,7 @@ test("sendGameCommandRequest includes the expected version and returns the next 
     );
 
     assert.deepEqual(requestBody, { expectedVersion: 2, type: "start-game" });
+    assert.equal(requestUrl, "/api/games/game-77/commands");
     assert.equal(result.game.version, 3);
     assert.equal(result.errorMessage, undefined);
 });
@@ -168,7 +198,8 @@ test("openGameStream wires game, open, error, and close behavior", () => {
         opened: 0,
         errored: 0,
         closed: 0,
-        game: null
+        game: null,
+        url: null
     };
 
     class FakeMessageEvent extends Event {
@@ -193,7 +224,11 @@ test("openGameStream wires game, open, error, and close behavior", () => {
     };
 
     const stop = openGameStream(
-        () => fakeSource,
+        (url) => {
+            calls.url = url;
+            return fakeSource;
+        },
+        "game-42",
         (game) => {
             calls.game = game;
         },
@@ -213,6 +248,7 @@ test("openGameStream wires game, open, error, and close behavior", () => {
     assert.equal(calls.opened, 1);
     assert.equal(calls.errored, 1);
     assert.equal(calls.closed, 1);
+    assert.equal(calls.url, "/api/games/game-42/stream");
     assert.equal(calls.game.version, 8);
 });
 
@@ -230,6 +266,7 @@ test("openGameStream ignores non-message events for game updates", () => {
 
     openGameStream(
         () => fakeSource,
+        "game-42",
         (game) => {
             receivedGame = game;
         },

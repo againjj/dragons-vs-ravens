@@ -68,6 +68,23 @@ body {
     gap: 16px;
 }
 
+.hero-copy {
+    display: grid;
+    gap: 8px;
+}
+
+.hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.game-id-banner {
+    margin: 0;
+    color: var(--muted);
+    font-weight: 700;
+}
+
 h1,
 h2,
 h3 {
@@ -95,6 +112,38 @@ h3 {
     grid-template-rows: minmax(0, 1fr);
     gap: var(--layout-gap);
     align-items: stretch;
+}
+
+.lobby-screen {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 28px;
+    display: grid;
+    gap: 22px;
+    align-content: start;
+}
+
+.lobby-copy {
+    display: grid;
+    gap: 8px;
+}
+
+.lobby-copy p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.lobby-actions {
+    display: grid;
+    gap: 14px;
+}
+
+.lobby-feedback {
+    min-height: 1.5em;
+    margin: 0;
+    color: var(--muted);
+    font-weight: 600;
 }
 
 .panel {
@@ -341,7 +390,8 @@ h3 {
     pointer-events: none;
 }
 
-select {
+select,
+.text-input {
     appearance: none;
     width: 100%;
     border: 1px solid rgba(46, 48, 78, 0.14);
@@ -353,14 +403,21 @@ select {
     cursor: pointer;
 }
 
-select:focus {
+select:focus,
+.text-input:focus {
     outline: 2px solid rgba(58, 46, 32, 0.14);
     outline-offset: 1px;
 }
 
-select:disabled {
+select:disabled,
+.text-input:disabled {
     cursor: not-allowed;
     opacity: 0.6;
+}
+
+.text-input {
+    padding-right: 14px;
+    cursor: text;
 }
 
 button {
@@ -386,6 +443,13 @@ button:disabled {
     opacity: 0.55;
     transform: none;
     box-shadow: none;
+}
+
+.secondary-button {
+    color: var(--line);
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: none;
+    border: 1px solid rgba(58, 46, 32, 0.12);
 }
 
 .icon-button {
@@ -558,9 +622,19 @@ button:disabled {
 
     .hero-header {
         align-items: center;
+        flex-wrap: wrap;
     }
 
     .controls-sidebar {
         flex-direction: column;
+    }
+
+    .hero-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .lobby-screen {
+        padding: 20px;
     }
 }

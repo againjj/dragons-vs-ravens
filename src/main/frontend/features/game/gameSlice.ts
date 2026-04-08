@@ -2,7 +2,11 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 import type { ServerGameSession } from "../../game.js";
 
+export type GameView = "lobby" | "game";
+
 export interface GameState {
+    currentGameId: string | null;
+    view: GameView;
     session: ServerGameSession | null;
     isSubmitting: boolean;
     loadState: "idle" | "loading" | "ready" | "error";
@@ -10,7 +14,9 @@ export interface GameState {
     feedbackMessage: string | null;
 }
 
-const initialState: GameState = {
+export const initialGameState: GameState = {
+    currentGameId: null,
+    view: "lobby",
     session: null,
     isSubmitting: false,
     loadState: "idle",
@@ -20,16 +26,39 @@ const initialState: GameState = {
 
 const gameSlice = createSlice({
     name: "game",
-    initialState,
+    initialState: initialGameState,
     reducers: {
-        loadStarted(state) {
+        gameLoadRequested(state, action: PayloadAction<string>) {
+            state.currentGameId = action.payload;
+            state.view = "game";
+            state.session = null;
+            state.isSubmitting = false;
             state.loadState = "loading";
             state.connectionState = "connecting";
             state.feedbackMessage = null;
         },
+        gameOpened(state, action: PayloadAction<string>) {
+            state.currentGameId = action.payload;
+            state.view = "game";
+            state.feedbackMessage = null;
+        },
+        returnedToLobby(state) {
+            state.currentGameId = null;
+            state.view = "lobby";
+            state.session = null;
+            state.isSubmitting = false;
+            state.loadState = "idle";
+            state.connectionState = "idle";
+            state.feedbackMessage = null;
+        },
+        loadStarted(state) {
+            state.loadState = "loading";
+            state.connectionState = state.view === "game" ? "connecting" : "idle";
+            state.feedbackMessage = null;
+        },
         loadFailed(state) {
             state.loadState = "error";
-            state.feedbackMessage = null;
+            state.session = null;
         },
         commandStarted(state) {
             state.isSubmitting = true;
@@ -39,6 +68,7 @@ const gameSlice = createSlice({
             state.isSubmitting = false;
         },
         sessionUpdated(state, action: PayloadAction<ServerGameSession>) {
+            state.currentGameId = action.payload.id;
             state.session = action.payload;
             state.loadState = "ready";
             state.feedbackMessage = null;
