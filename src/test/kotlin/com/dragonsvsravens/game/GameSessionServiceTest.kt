@@ -207,7 +207,7 @@ class GameSessionServiceTest {
     }
 
     @Test
-    fun `end game preserves the board and clears undo`() {
+    fun `end game preserves the board and keeps undo available`() {
         val service = createService()
         val gameId = createGameId(service)
 
@@ -228,7 +228,34 @@ class GameSessionServiceTest {
         assertEquals(Phase.none, ended.snapshot.phase)
         assertEquals(Piece.dragon, ended.snapshot.board["a2"])
         assertEquals(TurnType.gameOver, ended.snapshot.turns.last().type)
-        assertFalse(ended.canUndo)
+        assertTrue(ended.canUndo)
+    }
+
+    @Test
+    fun `undo after end game restores the previous playable snapshot`() {
+        val service = createService()
+        val gameId = createGameId(service)
+
+        enterMovePhaseWithDragonAtA1(service, gameId)
+        service.applyCommand(
+            gameId,
+            GameCommandRequest(
+                expectedVersion = 3,
+                type = "move-piece",
+                origin = "a1",
+                destination = "a2"
+            )
+        )
+        service.applyCommand(gameId, GameCommandRequest(expectedVersion = 4, type = "end-game"))
+
+        val undone = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 5, type = "undo"))
+
+        assertEquals(GameLifecycle.active, undone.lifecycle)
+        assertEquals(Phase.move, undone.snapshot.phase)
+        assertEquals(Piece.dragon, undone.snapshot.board["a2"])
+        assertEquals(TurnType.move, undone.snapshot.turns.last().type)
+        assertFalse(undone.snapshot.turns.any { it.type == TurnType.gameOver })
+        assertTrue(undone.canUndo)
     }
 
     @Test

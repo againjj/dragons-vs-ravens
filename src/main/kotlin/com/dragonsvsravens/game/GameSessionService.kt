@@ -108,7 +108,7 @@ class GameSessionService(
                 current.next(
                     lifecycle = GameLifecycle.finished,
                     snapshot = GameRules.endGame(snapshot, "Game ended"),
-                    undoSnapshots = emptyList()
+                    undoSnapshots = current.undoSnapshots + snapshot
                 )
             }
             else -> throw InvalidCommandException("Unknown command type: ${command.type}")
@@ -340,12 +340,16 @@ class GameSessionService(
         )
 
     private fun StoredGame.undo(): StoredGame {
-        validateLifecycle(this)
         val previousSnapshot = undoSnapshots.lastOrNull()
             ?: throw InvalidCommandException("No move is available to undo.")
         return next(
             snapshot = previousSnapshot,
-            undoSnapshots = undoSnapshots.dropLast(1)
+            undoSnapshots = undoSnapshots.dropLast(1),
+            lifecycle = if (previousSnapshot.turns.lastOrNull()?.type == TurnType.gameOver) {
+                GameLifecycle.finished
+            } else {
+                GameLifecycle.active
+            }
         )
     }
 }

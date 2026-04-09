@@ -161,7 +161,8 @@ Most UI-only changes should start in the relevant component, selector, or browse
 - If an opposing piece exists after a move, the game enters `capture`, where dragons may capture one raven and ravens may capture one dragon or gold.
 - Capture can still be skipped.
 - Active play still exposes `End Game`, which appends a terminal `gameOver` turn and marks the session finished.
-- Finished games stay viewable on the same game id, but that game id cannot be restarted or reconfigured into another game.
+- Finished games stay viewable on the same game id, and `Undo` can roll back the terminal game-over state to resume the previous playable snapshot when undo history exists.
+- Finished games still cannot be restarted or reconfigured on the same game id while they remain finished.
 
 ### Trivial Configuration
 
@@ -199,7 +200,7 @@ Most UI-only changes should start in the relevant component, selector, or browse
 - Generated game ids now use 7 characters from the Open Location Code ("PLUS code") alphabet `23456789CFGHJMPQRVWX`, which is the shortest fixed width that still covers more than 1,000,000,000 possible games.
 - Mutation requests include an expected version.
 - On a version conflict, the server returns `409` with the latest snapshot for that game only.
-- Freshly loaded clients receive an exact `canUndo` flag from the server.
+- Freshly loaded clients receive an exact `canUndo` flag from the server, including after a finished game if undo can still roll back the terminal game-over state.
 - Freshly loaded clients also receive whether the shared session is `new`, `active`, or `finished`.
 - Freshly loaded clients also receive the shared selected play style and the full list of available rule configurations.
 - Freshly loaded clients also receive the shared selected starting side for `Free Play`.

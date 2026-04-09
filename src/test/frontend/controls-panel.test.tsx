@@ -251,7 +251,8 @@ describe("ControlsPanel", () => {
         renderPanel(
             createSession(
                 {
-                    lifecycle: "finished"
+                    lifecycle: "finished",
+                    canUndo: true
                 },
                 {
                     turns: [{ type: "move", from: "a1", to: "a2" }, { type: "gameOver", outcome: "Dragons win" }]
@@ -262,5 +263,7 @@ describe("ControlsPanel", () => {
         expect(screen.queryByRole("button", { name: "Start Game" })).toBeNull();
         expect(screen.queryByLabelText("Play Style")).toBeNull();
         expect(screen.queryByLabelText("Starting Side")).toBeNull();
+        expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled();
+        expect(screen.queryByRole("button", { name: "End Game" })).toBeNull();
     });
 });

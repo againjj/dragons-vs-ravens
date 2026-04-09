@@ -1,6 +1,7 @@
 package com.dragonsvsravens.game
 
 import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.hasSize
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
@@ -397,7 +398,27 @@ class GameCommandControllerTest : AbstractGameControllerTestSupport() {
             jsonPath("$.snapshot.board.a2", equalTo("dragon"))
             jsonPath("$.snapshot.turns[0].type", equalTo("move"))
             jsonPath("$.snapshot.turns[1].type", equalTo("gameOver"))
-            jsonPath("$.canUndo", equalTo(false))
+            jsonPath("$.canUndo", equalTo(true))
+        }
+    }
+
+    @Test
+    fun `undo after game over restores the last playable state`() {
+        val game = createGame()
+        startSetup(game.id)
+        setupDragonAt(game.id, "a1")
+        endSetup(game.id)
+        executeGameCommand(game.id, command(currentVersion(game.id), "move-piece", origin = "a1", destination = "a2"))
+        executeGameCommand(game.id, command(currentVersion(game.id), "end-game"))
+
+        postGameCommand(game.id, command(currentVersion(game.id), "undo")).andExpect {
+            status { isOk() }
+            jsonPath("$.lifecycle", equalTo("active"))
+            jsonPath("$.snapshot.phase", equalTo("move"))
+            jsonPath("$.snapshot.board.a2", equalTo("dragon"))
+            jsonPath("$.snapshot.turns[0].type", equalTo("move"))
+            jsonPath("$.snapshot.turns", hasSize<Any>(1))
+            jsonPath("$.canUndo", equalTo(true))
         }
     }
 

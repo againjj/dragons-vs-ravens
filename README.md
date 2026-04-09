@@ -36,7 +36,8 @@ Once a game is open, the controls include the play-style dropdown plus the usual
 `Trivial Configuration`, `Original Game`, and `Sherwood Rules` start from preset boards with no setup phase, resolve captures automatically, and end automatically based on their own rules.
 `Sherwood Rules` matches `Original Game` except the gold may move only one orthogonal square at a time.
 Game over returns the session to a finished no-game state while preserving the final board position and full completed history, including a terminal `Game Over: ...` entry.
-Finished games stay viewable on their existing game IDs, but you cannot restart or reconfigure a finished game on that same ID; creating another game gives you a fresh ID.
+Finished games stay viewable on their existing game IDs, and if the session still has undo history you can undo the terminal game-over state to resume play from the previous snapshot.
+You still cannot restart or reconfigure a finished game on that same ID while it remains finished; creating another game gives you a fresh ID.
 The board now displays numbered rows from top to bottom and lettered columns from left to right on a 7x7 grid, while square names still use `letter + number` notation such as `a1` and `d4`.
 
 ## Run Tests
@@ -103,7 +104,7 @@ Read docs/code-summary.md and docs/codex-rules.md before making changes. Follow 
 - The frontend is built with TypeScript plus Vite into `build/generated/frontend`.
 - Frontend tests use Node's built-in test runner for shared helper modules and Vitest with jsdom for React/Redux tests.
 - Spring Boot serves the generated frontend assets as static resources and exposes the per-game backend routes under `/api/games`.
-- Undo is server-backed, shared across clients, and exposed as `canUndo` in the session payload so the UI can disable the button exactly.
+- Undo is server-backed, shared across clients, and exposed as `canUndo` in the session payload so the UI can disable the button exactly, including after a manual game over when a rollback is still available.
 - Turn history now includes both completed moves and a terminal `Game Over` entry when a game is ended.
 - The shared session now exposes available rule configurations plus the currently selected configuration so all clients stay in sync on the next play style.
 - `Original Game` follows the published Ravens and Dragons setup and movement/capture rules, including automatic wins and draws.

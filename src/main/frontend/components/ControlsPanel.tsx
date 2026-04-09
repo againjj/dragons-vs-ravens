@@ -41,8 +41,20 @@ export const ControlsPanel = ({
     const disabled = !snapshot || isSubmitting;
     const phase = snapshot?.phase;
     const isActivePlay = phase === "move" || phase === "capture";
+    const isFinishedGame = phase === "none" && snapshot && !showPreGameControls;
     const canSkipCapture = phase === "capture" && currentRuleConfiguration?.hasManualCapture;
     const canManualEndGame = isActivePlay && currentRuleConfiguration?.hasManualEndGame;
+    const showUndo = (isActivePlay || isFinishedGame) && !!snapshot;
+    const undoButton = (
+        <button
+            id="undo-button"
+            type="button"
+            disabled={disabled || !canUndo}
+            onClick={onUndo}
+        >
+            Undo
+        </button>
+    );
 
     return (
         <div className="controls controls-sidebar">
@@ -121,14 +133,7 @@ export const ControlsPanel = ({
                             Skip Capture
                         </button>
                     ) : null}
-                    <button
-                        id="undo-button"
-                        type="button"
-                        disabled={disabled || !canUndo}
-                        onClick={onUndo}
-                    >
-                        Undo
-                    </button>
+                    {showUndo ? undoButton : null}
                     {canManualEndGame ? (
                         <button
                             id="end-game-button"
@@ -140,6 +145,9 @@ export const ControlsPanel = ({
                         </button>
                     ) : null}
                 </>
+            ) : null}
+            {showUndo && !isActivePlay ? (
+                undoButton
             ) : null}
         </div>
     );
