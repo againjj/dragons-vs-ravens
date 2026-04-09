@@ -8,6 +8,7 @@ export const createSession = (
     version: 1,
     createdAt: "2026-04-05T00:00:00Z",
     updatedAt: "2026-04-05T00:00:01Z",
+    lifecycle: "new",
     canUndo: false,
     availableRuleConfigurations: [
         {

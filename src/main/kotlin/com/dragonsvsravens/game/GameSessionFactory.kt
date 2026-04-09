@@ -16,6 +16,7 @@ object GameSessionFactory {
         version = 0,
         createdAt = now,
         updatedAt = now,
+        lifecycle = GameLifecycle.new,
         selectedRuleConfigurationId = selectedRuleConfigurationId,
         selectedStartingSide = selectedStartingSide
     )
@@ -28,6 +29,7 @@ object GameSessionFactory {
         createdAt: Instant,
         updatedAt: Instant,
         lastAccessedAt: Instant = updatedAt,
+        lifecycle: GameLifecycle,
         selectedRuleConfigurationId: String,
         selectedStartingSide: Side
     ): StoredGame = StoredGame(
@@ -36,6 +38,7 @@ object GameSessionFactory {
             version = version,
             createdAt = createdAt,
             updatedAt = updatedAt,
+            lifecycle = lifecycle,
             snapshot = snapshot,
             canUndo = undoSnapshots.isNotEmpty(),
             availableRuleConfigurations = GameRules.availableRuleConfigurations(),

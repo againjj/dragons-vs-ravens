@@ -95,9 +95,14 @@ describe("game selectors", () => {
     test("status text uses the game over copy after ending a game", () => {
         const store = createAppStore({
             game: {
-                session: createSession({}, {
-                    turns: [{ type: "move", from: "a1", to: "a2" }, { type: "gameOver", outcome: "Dragons win" }]
-                }),
+                session: createSession(
+                    {
+                        lifecycle: "finished"
+                    },
+                    {
+                        turns: [{ type: "move", from: "a1", to: "a2" }, { type: "gameOver", outcome: "Dragons win" }]
+                    }
+                ),
                 isSubmitting: false,
                 loadState: "ready",
                 connectionState: "open",
@@ -108,7 +113,7 @@ describe("game selectors", () => {
             }
         });
 
-        expect(selectStatusText(store.getState())).toBe("Game over. Start a new game when you're ready.");
+        expect(selectStatusText(store.getState())).toBe("This game is finished. Go back to the lobby to create a new game.");
     });
 
     test("status text omits the extra gold reminder during move phase", () => {

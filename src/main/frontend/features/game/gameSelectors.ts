@@ -7,6 +7,7 @@ export const selectGameState = (state: RootState) => state.game;
 export const selectGameView = (state: RootState) => state.game.view;
 export const selectCurrentGameId = (state: RootState) => state.game.currentGameId;
 export const selectSnapshot = (state: RootState) => state.game.session?.snapshot ?? null;
+export const selectLifecycle = (state: RootState) => state.game.session?.lifecycle ?? null;
 export const selectCanUndo = (state: RootState) => state.game.session?.canUndo ?? false;
 export const selectSelectedSquare = (state: RootState) => state.ui.selectedSquare;
 export const selectIsSubmitting = (state: RootState) => state.game.isSubmitting;
@@ -29,13 +30,25 @@ export const selectCapturableSquares = createSelector(selectSnapshot, (snapshot)
     snapshot && snapshot.phase === "capture" ? getCapturableSquares(snapshot) : []
 );
 
+export const selectIsFinishedGame = createSelector(
+    selectSnapshot,
+    selectLifecycle,
+    (snapshot, lifecycle) => snapshot?.phase === "none" && lifecycle === "finished"
+);
+
+export const selectShowPreGameControls = createSelector(
+    selectSnapshot,
+    selectLifecycle,
+    (snapshot, lifecycle) => snapshot?.phase === "none" && lifecycle === "new"
+);
+
 export const selectTargetableSquares = createSelector(
     selectSnapshot,
     selectSelectedSquare,
     (snapshot, selectedSquare) => (snapshot ? getTargetableSquares(snapshot, selectedSquare) : [])
 );
 
-export const selectStatusText = createSelector(selectGameState, selectSnapshot, (gameState, snapshot) => {
+export const selectStatusText = createSelector(selectGameState, selectSnapshot, selectIsFinishedGame, (gameState, snapshot, isFinishedGame) => {
     if (gameState.feedbackMessage) {
         return gameState.feedbackMessage;
     }
@@ -55,8 +68,8 @@ export const selectStatusText = createSelector(selectGameState, selectSnapshot, 
     }
 
     if (snapshot.phase === "none") {
-        return snapshot.turns.length > 0
-            ? "Game over. Start a new game when you're ready."
+        return isFinishedGame
+            ? "This game is finished. Go back to the lobby to create a new game."
             : "No game in progress. Select a play style and start a game.";
     }
 

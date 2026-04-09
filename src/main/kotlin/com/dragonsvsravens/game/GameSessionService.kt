@@ -54,6 +54,7 @@ class GameSessionService(
         val nextState = when (command.type) {
             "start-game" -> applyInPhase(current, command, Phase.none) {
                 current.next(
+                    lifecycle = GameLifecycle.active,
                     snapshot = GameRules.startGame(
                         current.session.selectedRuleConfigurationId,
                         current.session.selectedStartingSide
@@ -105,6 +106,7 @@ class GameSessionService(
                     throw InvalidCommandException("This rule configuration ends automatically.")
                 }
                 current.next(
+                    lifecycle = GameLifecycle.finished,
                     snapshot = GameRules.endGame(snapshot, "Game ended"),
                     undoSnapshots = emptyList()
                 )
@@ -183,6 +185,7 @@ class GameSessionService(
     private fun StoredGame.next(
         snapshot: GameSnapshot,
         undoSnapshots: List<GameSnapshot> = this.undoSnapshots,
+        lifecycle: GameLifecycle = this.session.lifecycle,
         selectedRuleConfigurationId: String = this.session.selectedRuleConfigurationId,
         selectedStartingSide: Side = this.session.selectedStartingSide
     ): StoredGame = GameSessionFactory.createStoredGame(
@@ -192,6 +195,7 @@ class GameSessionService(
         version = session.version + 1,
         createdAt = session.createdAt,
         updatedAt = Instant.now(clock),
+        lifecycle = resolveLifecycle(snapshot, lifecycle),
         selectedRuleConfigurationId = selectedRuleConfigurationId,
         selectedStartingSide = selectedStartingSide
     )
@@ -252,12 +256,19 @@ class GameSessionService(
         }
     }
 
+    private fun validateLifecycle(current: StoredGame) {
+        if (current.session.lifecycle == GameLifecycle.finished) {
+            throw InvalidCommandException("Game ${current.session.id} is finished. Create a new game to play again.")
+        }
+    }
+
     private fun applyInPhase(
         current: StoredGame,
         command: GameCommandRequest,
         expectedPhase: Phase,
         update: (GameSnapshot) -> StoredGame
     ): StoredGame {
+        validateLifecycle(current)
         validatePhase(current.session.snapshot, expectedPhase, command.type)
         return update(current.session.snapshot)
     }
@@ -267,6 +278,7 @@ class GameSessionService(
         command: GameCommandRequest,
         update: (GameSnapshot) -> StoredGame
     ): StoredGame {
+        validateLifecycle(current)
         val phase = current.session.snapshot.phase
         if (phase != Phase.move && phase != Phase.capture) {
             throw InvalidCommandException("Command ${command.type} is not allowed during $phase.")
@@ -302,6 +314,13 @@ class GameSessionService(
         return value
     }
 
+    private fun resolveLifecycle(snapshot: GameSnapshot, fallback: GameLifecycle): GameLifecycle =
+        if (snapshot.turns.lastOrNull()?.type == TurnType.gameOver) {
+            GameLifecycle.finished
+        } else {
+            fallback
+        }
+
     private fun StoredGame.nextWithUndo(snapshot: GameSnapshot): StoredGame =
         next(
             snapshot = snapshot,
@@ -321,6 +340,7 @@ class GameSessionService(
         )
 
     private fun StoredGame.undo(): StoredGame {
+        validateLifecycle(this)
         val previousSnapshot = undoSnapshots.lastOrNull()
             ?: throw InvalidCommandException("No move is available to undo.")
         return next(

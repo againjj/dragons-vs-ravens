@@ -66,7 +66,7 @@ object GameRules {
                 RuleDescriptionSection(
                     heading = "Turns",
                     paragraphs = listOf(
-                        "Dragons move first. Dragons may move the gold on their turns. To move, click on a piece, and then click on the destination square. After moving, you may optionally capture an opposing piece. End the game to play a new game."
+                        "Dragons move first. Dragons may move the gold on their turns. To move, click on a piece, and then click on the destination square. After moving, you may optionally capture an opposing piece. End the game to finish this game, then create a new game in the lobby to play again."
                     )
                 )
             ),

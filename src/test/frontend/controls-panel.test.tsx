@@ -118,10 +118,16 @@ describe("ControlsPanel", () => {
 
     test("shows end game, skip capture, and undo during active play", () => {
         renderPanel(
-            createSession({ canUndo: true }, {
-                phase: "move",
-                activeSide: "ravens"
-            })
+            createSession(
+                {
+                    canUndo: true,
+                    lifecycle: "active"
+                },
+                {
+                    phase: "move",
+                    activeSide: "ravens"
+                }
+            )
         );
 
         const buttons = screen.getAllByRole("button");
@@ -135,10 +141,15 @@ describe("ControlsPanel", () => {
 
     test("enables capture skipping only during the capture phase", () => {
         renderPanel(
-            createSession({}, {
-                phase: "capture",
-                activeSide: "ravens"
-            })
+            createSession(
+                {
+                    lifecycle: "active"
+                },
+                {
+                    phase: "capture",
+                    activeSide: "ravens"
+                }
+            )
         );
 
         expect(screen.getByRole("button", { name: "End Game" })).toBeEnabled();
@@ -220,6 +231,7 @@ describe("ControlsPanel", () => {
         renderPanel(
             createSession(
                 {
+                    lifecycle: "active",
                     selectedRuleConfigurationId: "original-game"
                 },
                 {
@@ -233,5 +245,22 @@ describe("ControlsPanel", () => {
         expect(screen.queryByRole("button", { name: "End Game" })).toBeNull();
         expect(screen.queryByLabelText("Starting Side")).toBeNull();
         expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    });
+
+    test("hides start controls after a game has finished", () => {
+        renderPanel(
+            createSession(
+                {
+                    lifecycle: "finished"
+                },
+                {
+                    turns: [{ type: "move", from: "a1", to: "a2" }, { type: "gameOver", outcome: "Dragons win" }]
+                }
+            )
+        );
+
+        expect(screen.queryByRole("button", { name: "Start Game" })).toBeNull();
+        expect(screen.queryByLabelText("Play Style")).toBeNull();
+        expect(screen.queryByLabelText("Starting Side")).toBeNull();
     });
 });

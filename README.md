@@ -35,7 +35,8 @@ Once a game is open, the controls include the play-style dropdown plus the usual
 `Free Play` preserves the original behavior: before starting, you can choose whether dragons or ravens move first; starting a game then enters setup with an empty board, setup clicks cycle `empty -> dragon -> raven -> gold -> empty`, capture is manual, and the game is ended manually.
 `Trivial Configuration`, `Original Game`, and `Sherwood Rules` start from preset boards with no setup phase, resolve captures automatically, and end automatically based on their own rules.
 `Sherwood Rules` matches `Original Game` except the gold may move only one orthogonal square at a time.
-Game over returns to the no-game state while preserving the final board position and full completed history, including a terminal `Game Over: ...` entry, until the next game is started.
+Game over returns the session to a finished no-game state while preserving the final board position and full completed history, including a terminal `Game Over: ...` entry.
+Finished games stay viewable on their existing game IDs, but you cannot restart or reconfigure a finished game on that same ID; creating another game gives you a fresh ID.
 The board now displays numbered rows from top to bottom and lettered columns from left to right on a 7x7 grid, while square names still use `letter + number` notation such as `a1` and `d4`.
 
 ## Run Tests

@@ -32,6 +32,7 @@ class GameCommandControllerTest : AbstractGameControllerTestSupport() {
         postGameCommand(game.id, command(game.version, "start-game")).andExpect {
             status { isOk() }
             jsonPath("$.version", equalTo((game.version + 1).toInt()))
+            jsonPath("$.lifecycle", equalTo("active"))
             jsonPath("$.snapshot.phase", equalTo("setup"))
         }
     }
@@ -391,6 +392,7 @@ class GameCommandControllerTest : AbstractGameControllerTestSupport() {
 
         postGameCommand(game.id, command(currentVersion(game.id), "end-game")).andExpect {
             status { isOk() }
+            jsonPath("$.lifecycle", equalTo("finished"))
             jsonPath("$.snapshot.phase", equalTo("none"))
             jsonPath("$.snapshot.board.a2", equalTo("dragon"))
             jsonPath("$.snapshot.turns[0].type", equalTo("move"))
@@ -400,20 +402,39 @@ class GameCommandControllerTest : AbstractGameControllerTestSupport() {
     }
 
     @Test
-    fun `starting a new game after game over clears the preserved board and history`() {
+    fun `starting a new game after game over is rejected for the same game id`() {
         val game = createGame()
         startSetup(game.id)
         setupDragonAt(game.id, "a1")
         endSetup(game.id)
         executeGameCommand(game.id, command(currentVersion(game.id), "move-piece", origin = "a1", destination = "a2"))
         executeGameCommand(game.id, command(currentVersion(game.id), "end-game"))
+        val before = currentGame(game.id)
 
-        postGameCommand(game.id, command(currentVersion(game.id), "start-game")).andExpect {
-            status { isOk() }
-            jsonPath("$.snapshot.phase", equalTo("setup"))
-            jsonPath("$.snapshot.board", equalTo(emptyMap<String, String>()))
-            jsonPath("$.snapshot.turns.length()", equalTo(0))
-        }
+        assertRejectedCommandLeavesGameUnchanged(
+            gameId = game.id,
+            before = before,
+            command = command(before.version, "start-game"),
+            message = "Game ${game.id} is finished. Create a new game to play again."
+        )
+    }
+
+    @Test
+    fun `changing the rule configuration after game over is rejected for the same game id`() {
+        val game = createGame()
+        startSetup(game.id)
+        setupDragonAt(game.id, "a1")
+        endSetup(game.id)
+        executeGameCommand(game.id, command(currentVersion(game.id), "move-piece", origin = "a1", destination = "a2"))
+        executeGameCommand(game.id, command(currentVersion(game.id), "end-game"))
+        val before = currentGame(game.id)
+
+        assertRejectedCommandLeavesGameUnchanged(
+            gameId = game.id,
+            before = before,
+            command = command(before.version, "select-rule-configuration", ruleConfigurationId = "trivial"),
+            message = "Game ${game.id} is finished. Create a new game to play again."
+        )
     }
 
     @Test

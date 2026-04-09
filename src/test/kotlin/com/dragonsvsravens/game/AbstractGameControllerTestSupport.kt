@@ -31,6 +31,11 @@ abstract class AbstractGameControllerTestSupport {
         snapshot: GameSnapshot = GameRules.createIdleSnapshot(GameRules.freePlayRuleConfigurationId, Side.dragons),
         selectedRuleConfigurationId: String = snapshot.ruleConfigurationId,
         selectedStartingSide: Side = Side.dragons,
+        lifecycle: GameLifecycle = when {
+            snapshot.turns.lastOrNull()?.type == TurnType.gameOver -> GameLifecycle.finished
+            snapshot.phase == Phase.none -> GameLifecycle.new
+            else -> GameLifecycle.active
+        },
         version: Long = 0,
         createdAt: Instant = Instant.now(),
         updatedAt: Instant = createdAt,
@@ -44,6 +49,7 @@ abstract class AbstractGameControllerTestSupport {
             createdAt = createdAt,
             updatedAt = updatedAt,
             lastAccessedAt = lastAccessedAt,
+            lifecycle = lifecycle,
             selectedRuleConfigurationId = selectedRuleConfigurationId,
             selectedStartingSide = selectedStartingSide
         )

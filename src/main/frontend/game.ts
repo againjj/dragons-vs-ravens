@@ -2,6 +2,7 @@ export type Piece = "dragon" | "raven" | "gold";
 export type Side = "dragons" | "ravens";
 export type Phase = "none" | "setup" | "move" | "capture";
 export type TurnType = "move" | "gameOver";
+export type GameLifecycle = "new" | "active" | "finished";
 export interface RuleDescriptionSection {
     heading?: string;
     paragraphs: string[];
@@ -41,6 +42,7 @@ export interface ServerGameSession {
     version: number;
     createdAt: string;
     updatedAt: string;
+    lifecycle: GameLifecycle;
     snapshot: ServerGameSnapshot;
     canUndo: boolean;
     availableRuleConfigurations: RuleConfigurationSummary[];

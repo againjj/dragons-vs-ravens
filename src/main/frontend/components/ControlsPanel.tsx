@@ -6,6 +6,7 @@ import {
     selectIsSubmitting,
     selectSelectedRuleConfigurationId,
     selectSelectedStartingSide,
+    selectShowPreGameControls,
     selectSnapshot
 } from "../features/game/gameSelectors.js";
 import type { Side } from "../game.js";
@@ -32,6 +33,7 @@ export const ControlsPanel = ({
     const snapshot = useAppSelector(selectSnapshot);
     const canUndo = useAppSelector(selectCanUndo);
     const isSubmitting = useAppSelector(selectIsSubmitting);
+    const showPreGameControls = useAppSelector(selectShowPreGameControls);
     const availableRuleConfigurations = useAppSelector(selectAvailableRuleConfigurations);
     const currentRuleConfiguration = useAppSelector(selectCurrentRuleConfiguration);
     const selectedRuleConfigurationId = useAppSelector(selectSelectedRuleConfigurationId);
@@ -44,7 +46,7 @@ export const ControlsPanel = ({
 
     return (
         <div className="controls controls-sidebar">
-            {phase === "none" ? (
+            {showPreGameControls ? (
                 <>
                     <div className="control-row">
                         <label className="control-label" htmlFor="rule-configuration-select">

@@ -20,6 +20,7 @@ class GameControllerTest : AbstractGameControllerTestSupport() {
         }.andExpect {
             status { isOk() }
             jsonPath("$.game.id") { value(org.hamcrest.Matchers.matchesPattern("[23456789CFGHJMPQRVWX]{7}")) }
+            jsonPath("$.game.lifecycle", equalTo("new"))
             jsonPath("$.game.snapshot.phase", equalTo("none"))
             jsonPath("$.game.selectedRuleConfigurationId", equalTo("free-play"))
         }

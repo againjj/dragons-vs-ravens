@@ -15,6 +15,7 @@ const createGame = (version = 1) => ({
     version,
     createdAt: "2026-04-05T00:00:00Z",
     updatedAt: `2026-04-05T00:00:0${version}Z`,
+    lifecycle: "new",
     canUndo: false,
     availableRuleConfigurations: [
         {

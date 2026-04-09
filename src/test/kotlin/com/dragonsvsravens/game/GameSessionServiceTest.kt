@@ -37,6 +37,7 @@ class GameSessionServiceTest {
         )
 
         assertEquals(1, updated.version)
+        assertEquals(GameLifecycle.active, updated.lifecycle)
         assertEquals(Phase.setup, updated.snapshot.phase)
         assertEquals(2, recordingEmitter.eventsSent)
     }
@@ -90,6 +91,7 @@ class GameSessionServiceTest {
         val unchangedSecondGame = service.getGame(secondGame.id)
 
         assertEquals(Phase.setup, updatedFirstGame.snapshot.phase)
+        assertEquals(GameLifecycle.new, unchangedSecondGame.lifecycle)
         assertEquals(Phase.none, unchangedSecondGame.snapshot.phase)
         assertEquals(0, unchangedSecondGame.version)
     }
@@ -147,6 +149,7 @@ class GameSessionServiceTest {
         )
 
         assertEquals("trivial", updated.selectedRuleConfigurationId)
+        assertEquals(GameLifecycle.new, updated.lifecycle)
         assertEquals("trivial", updated.snapshot.ruleConfigurationId)
         assertEquals(Phase.none, updated.snapshot.phase)
         assertEquals(Piece.dragon, updated.snapshot.board["a1"])
@@ -170,6 +173,7 @@ class GameSessionServiceTest {
         )
 
         assertEquals(Side.ravens, updated.selectedStartingSide)
+        assertEquals(GameLifecycle.new, updated.lifecycle)
         assertEquals(Side.ravens, updated.snapshot.activeSide)
         assertEquals(GameRules.freePlayRuleConfigurationId, updated.snapshot.ruleConfigurationId)
     }
@@ -220,10 +224,48 @@ class GameSessionServiceTest {
 
         val ended = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 4, type = "end-game"))
 
+        assertEquals(GameLifecycle.finished, ended.lifecycle)
         assertEquals(Phase.none, ended.snapshot.phase)
         assertEquals(Piece.dragon, ended.snapshot.board["a2"])
         assertEquals(TurnType.gameOver, ended.snapshot.turns.last().type)
         assertFalse(ended.canUndo)
+    }
+
+    @Test
+    fun `finished games cannot be restarted on the same game id`() {
+        val service = createService()
+        val gameId = createGameId(service)
+
+        enterMovePhaseWithDragonAtA1(service, gameId)
+        service.applyCommand(gameId, GameCommandRequest(expectedVersion = 3, type = "end-game"))
+
+        val exception = assertThrows<InvalidCommandException> {
+            service.applyCommand(gameId, GameCommandRequest(expectedVersion = 4, type = "start-game"))
+        }
+
+        assertEquals("Game $gameId is finished. Create a new game to play again.", exception.message)
+    }
+
+    @Test
+    fun `finished games cannot be reconfigured on the same game id`() {
+        val service = createService()
+        val gameId = createGameId(service)
+
+        enterMovePhaseWithDragonAtA1(service, gameId)
+        service.applyCommand(gameId, GameCommandRequest(expectedVersion = 3, type = "end-game"))
+
+        val exception = assertThrows<InvalidCommandException> {
+            service.applyCommand(
+                gameId,
+                GameCommandRequest(
+                    expectedVersion = 4,
+                    type = "select-rule-configuration",
+                    ruleConfigurationId = "trivial"
+                )
+            )
+        }
+
+        assertEquals("Game $gameId is finished. Create a new game to play again.", exception.message)
     }
 
     @Test

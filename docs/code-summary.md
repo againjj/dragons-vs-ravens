@@ -97,6 +97,7 @@ The canonical board is represented on the server as `Map<String, Piece>` and on 
 
 `GameSession` currently also contains:
 
+- `lifecycle` (`new`, `active`, or `finished`)
 - `canUndo`
 - `availableRuleConfigurations`
 - `selectedRuleConfigurationId`
@@ -159,7 +160,8 @@ Most UI-only changes should start in the relevant component, selector, or browse
 - Ending setup switches to `move`, the selected starting side moves first, dragons may move dragons or gold, ravens may move ravens, and movement allows any owned piece to move to any empty square.
 - If an opposing piece exists after a move, the game enters `capture`, where dragons may capture one raven and ravens may capture one dragon or gold.
 - Capture can still be skipped.
-- Active play still exposes `End Game`, which appends a terminal `gameOver` turn and returns the game to `none`.
+- Active play still exposes `End Game`, which appends a terminal `gameOver` turn and marks the session finished.
+- Finished games stay viewable on the same game id, but that game id cannot be restarted or reconfigured into another game.
 
 ### Trivial Configuration
 
@@ -198,6 +200,7 @@ Most UI-only changes should start in the relevant component, selector, or browse
 - Mutation requests include an expected version.
 - On a version conflict, the server returns `409` with the latest snapshot for that game only.
 - Freshly loaded clients receive an exact `canUndo` flag from the server.
+- Freshly loaded clients also receive whether the shared session is `new`, `active`, or `finished`.
 - Freshly loaded clients also receive the shared selected play style and the full list of available rule configurations.
 - Freshly loaded clients also receive the shared selected starting side for `Free Play`.
 - The browser keeps piece selection local; other clients do not see half-finished selections.

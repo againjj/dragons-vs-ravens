@@ -25,6 +25,12 @@ enum class TurnType {
     gameOver
 }
 
+enum class GameLifecycle {
+    new,
+    active,
+    finished
+}
+
 data class RuleConfigurationSummary(
     val id: String,
     val name: String,
@@ -62,6 +68,7 @@ data class GameSession(
     val version: Long,
     val createdAt: Instant,
     val updatedAt: Instant,
+    val lifecycle: GameLifecycle,
     val snapshot: GameSnapshot,
     val canUndo: Boolean,
     val availableRuleConfigurations: List<RuleConfigurationSummary>,
