@@ -537,11 +537,11 @@ object GameRules {
             )
 
             if (repeated) {
-                return endGame(snapshotWithHistory, "Draw")
+                return endGame(snapshotWithHistory, "Draw by repetition")
             }
 
             return if (!hasAnyLegalMove(snapshotWithHistory)) {
-                endGame(snapshotWithHistory, "Draw")
+                endGame(snapshotWithHistory, "Draw by no legal move")
             } else {
                 snapshotWithHistory
             }

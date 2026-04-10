@@ -187,6 +187,7 @@ Most UI-only changes should start in the relevant component, selector, or browse
 - Dragons win when the gold reaches a corner.
 - Ravens win when the gold is captured.
 - The game is drawn on repeated positions or when the side to move has no legal move.
+- Original Game and Sherwood Rules now record the draw cause in turn history as `Game Over: Draw by repetition` or `Game Over: Draw by no legal move`.
 
 ### Sherwood Rules
 
@@ -227,6 +228,7 @@ The frontend now uses React components backed by Redux state.
   - `targetable`
   - `capture-target`
 - Move history is shown as simple notation like `a1-b2`, `a1-b2xc3`, or multi-capture variants, plus a terminal `Game Over: ...` row when a game ends.
+- Original-style draws now surface their specific cause in that terminal row.
 
 Future UI changes should preserve the split of transport logic, Redux state, render derivations, and presentational components.
 

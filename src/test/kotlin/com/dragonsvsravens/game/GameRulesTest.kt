@@ -360,6 +360,43 @@ class GameRulesTest {
     }
 
     @Test
+    fun `sherwood rules keep the game going after dragons move f3 to f4 in the pictured position`() {
+        val moved = GameRules.movePiece(
+            createSnapshot(
+                board = linkedMapOf(
+                    "d7" to Piece.raven,
+                    "d6" to Piece.raven,
+                    "d5" to Piece.dragon,
+                    "f5" to Piece.raven,
+                    "a4" to Piece.raven,
+                    "b4" to Piece.raven,
+                    "c4" to Piece.dragon,
+                    "d4" to Piece.gold,
+                    "g4" to Piece.raven,
+                    "d3" to Piece.dragon,
+                    "f3" to Piece.dragon,
+                    "d2" to Piece.raven,
+                    "d1" to Piece.raven
+                ),
+                activeSide = Side.dragons,
+                ruleConfigurationId = "sherwood-rules",
+                positionKeys = listOf(
+                    "sherwood-rules|dragons|a4:raven,b4:raven,c4:dragon,d1:raven,d2:raven,d3:dragon,d4:gold,d5:dragon,d6:raven,d7:raven,f3:dragon,f5:raven,g4:raven"
+                )
+            ),
+            "f3",
+            "f4"
+        )
+
+        assertEquals(Phase.move, moved.phase)
+        assertEquals(Side.ravens, moved.activeSide)
+        assertEquals(
+            listOf(TurnRecord(type = TurnType.move, from = "f3", to = "f4")),
+            moved.turns
+        )
+    }
+
+    @Test
     fun `original game is a draw when the resulting position repeats`() {
         val repeatedKey = "original-game|dragons|b4:raven,g7:gold"
         val moved = GameRules.movePiece(
@@ -377,7 +414,32 @@ class GameRulesTest {
         )
 
         assertEquals(Phase.none, moved.phase)
-        assertEquals("Draw", moved.turns.last().outcome)
+        assertEquals("Draw by repetition", moved.turns.last().outcome)
+    }
+
+    @Test
+    fun `original game reports a draw when the next side has no legal move`() {
+        val moved = GameRules.movePiece(
+            createSnapshot(
+                board = linkedMapOf(
+                    "g7" to Piece.gold,
+                    "c1" to Piece.dragon,
+                    "b2" to Piece.dragon,
+                    "f3" to Piece.dragon,
+                    "b1" to Piece.raven
+                ),
+                activeSide = Side.dragons,
+                ruleConfigurationId = "original-game",
+                positionKeys = listOf(
+                    "original-game|dragons|b1:raven,b2:dragon,c1:dragon,f3:dragon,g7:gold"
+                )
+            ),
+            "f3",
+            "f4"
+        )
+
+        assertEquals(Phase.none, moved.phase)
+        assertEquals("Draw by no legal move", moved.turns.last().outcome)
     }
 
     private fun createFreePlayCaptureSnapshot(): GameSnapshot = createSnapshot(
