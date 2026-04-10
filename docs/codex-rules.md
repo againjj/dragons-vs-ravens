@@ -81,6 +81,7 @@ If a requested change would alter one of those rules, implement it only when tha
 
 - Before creating a commit, make sure all tests pass.
 - Before creating a commit, update `docs/code-summary.md` and `README.md` so they reflect every relevant change since the last commit.
+- When the user says `commit and push`, always create the commit first and only push after that commit succeeds.
 - Commit messages must use a short, meaningful title line.
 - Commit message bodies must include a full description of what changed and why those changes were made.
 
