@@ -10,6 +10,11 @@ This file contains repository-specific instructions for AI-assisted work in this
 ## Project Priorities
 
 - Do not make changes to the codebase until the user explicitly asks for implementation work.
+- Do not assume the user wants code changes.
+- A request that describes a feature, fix, or desired outcome is not by itself permission to edit files.
+- If the user asks for planning, review, investigation, or explanation first, stay in analysis mode and do not edit files.
+- When the user's intent is ambiguous, default to reading code and proposing a plan only.
+- This rule overrides any general instruction to assume the user wants code changes by default.
 - Preserve existing behavior unless the user explicitly asks to change gameplay or UX.
 - Prefer small, reviewable refactors over broad rewrites.
 - Keep the codebase easy to extend for future rule changes.
