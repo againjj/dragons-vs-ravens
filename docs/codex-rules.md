@@ -90,6 +90,12 @@ If a requested change would alter one of those rules, implement it only when tha
 - Commit messages must use a short, meaningful title line.
 - Commit message bodies must include a full description of what changed and why those changes were made.
 
+## Deployment Rules
+
+- When the user asks to deploy to Railway, do not say the deploy is complete until you have confirmed that the latest intended changes were included in the deployment.
+- Treat a Railway deploy as incomplete while the latest deployment is still building or otherwise not yet successful.
+- Only report a Railway deploy as complete after verifying that the latest deployment finished successfully.
+
 ## Review Rules
 
 - In review mode, prioritize:

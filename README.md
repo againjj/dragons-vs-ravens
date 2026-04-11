@@ -73,6 +73,8 @@ railway up
 
 Railway injects `PORT` at runtime, and the app now binds to that port automatically.
 
+The current Railway production URL is [https://dragons-vs-ravens-production.up.railway.app](https://dragons-vs-ravens-production.up.railway.app).
+
 ## Project Structure
 
 - `src/main/frontend/game.ts`
