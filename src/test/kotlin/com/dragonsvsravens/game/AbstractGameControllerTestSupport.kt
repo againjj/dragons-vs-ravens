@@ -2,10 +2,12 @@ package com.dragonsvsravens.game
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.assertAll
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
@@ -19,11 +21,14 @@ abstract class AbstractGameControllerTestSupport {
     lateinit var objectMapper: ObjectMapper
 
     @Autowired
-    lateinit var gameStore: InMemoryGameStore
+    lateinit var gameStore: GameStore
+
+    @Autowired
+    lateinit var jdbcTemplate: JdbcTemplate
 
     @BeforeEach
     fun resetGames() {
-        gameStore.clear()
+        jdbcTemplate.update("delete from games")
     }
 
     protected fun seedGame(
@@ -55,7 +60,7 @@ abstract class AbstractGameControllerTestSupport {
             selectedStartingSide = selectedStartingSide,
             selectedBoardSize = selectedBoardSize
         )
-        gameStore.put(storedGame)
+        assertTrue(gameStore.putIfAbsent(storedGame))
         return storedGame.session
     }
 

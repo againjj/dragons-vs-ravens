@@ -63,6 +63,21 @@ class GameControllerTest : AbstractGameControllerTestSupport() {
     }
 
     @Test
+    fun `persisted game can be reloaded after a follow up request`() {
+        val created = createGame()
+
+        executeGameCommand(created.id, command(created.version, "start-game"))
+
+        mockMvc.get("/api/games/${created.id}")
+            .andExpect {
+                status { isOk() }
+                jsonPath("$.id", equalTo(created.id))
+                jsonPath("$.version", equalTo(1))
+                jsonPath("$.snapshot.phase", equalTo("setup"))
+            }
+    }
+
+    @Test
     fun `missing game returns not found on multi game routes`() {
         mockMvc.get("/api/games/missing-game")
             .andExpect {

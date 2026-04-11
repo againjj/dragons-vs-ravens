@@ -2,14 +2,16 @@
 
 ## Overview
 
-This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple in-memory game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, creates or opens games by id, and then talks to the per-game backend API for the active session.
+This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, creates or opens games by id, and then talks to the per-game backend API for the active session.
 
 ## Current Architecture
 
 - `src/main/kotlin/com/dragonsvsravens/DragonsVsRavensApplication.kt`
   - Spring Boot entrypoint.
 - `src/main/kotlin/com/dragonsvsravens/game/*.kt`
-  - Server-side game state models, pure-ish rules, the in-memory multi-game store, the session service, and REST/SSE endpoints.
+  - Server-side game state models, pure-ish rules, the JDBC-backed game store, the session service, and REST/SSE endpoints.
+- `src/main/resources/db/migration/*.sql`
+  - Flyway migrations for the persistent game schema.
 - `src/main/frontend/index.html`
   - Frontend HTML entry for the Vite build.
   - Loads `/styles.css` and mounts the React app.
@@ -49,6 +51,7 @@ This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a brows
 - `build.gradle.kts` uses:
   - Spring Boot for serving the app.
   - Kotlin/JVM with Java 21.
+  - Spring JDBC plus Flyway for persistence.
   - `com.github.node-gradle.node` to download Node and npm automatically.
 - Frontend build flow:
   - `npm run build` runs `tsc && vite build`.
@@ -67,9 +70,11 @@ This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a brows
   - Opening a game by id uses `GET /api/games/{gameId}`.
   - The active game screen sends mutations to `POST /api/games/{gameId}/commands`.
   - The active game screen subscribes to `GET /api/games/{gameId}/stream` for live updates.
-  - Games stay in memory on the server and are automatically evicted when they have not been accessed for more than one hour and no SSE viewers are connected.
+  - Games are stored in the configured database and are automatically evicted when they have not been accessed for more than one hour and no SSE viewers are connected.
 - Runtime configuration:
   - `server.port` reads `${PORT:8080}` so the app keeps its local default while also working on Railway-style platforms that inject the listen port at runtime.
+  - `spring.datasource.*` defaults to an H2 file database for local persistence and may be overridden for PostgreSQL deploys.
+  - Flyway runs startup migrations from `classpath:db/migration`.
   - `railway.json` overrides Railway's deploy start command to `java -jar build/libs/dragons-vs-ravens.jar`, matching the Spring Boot fat jar produced by the Gradle build.
 - Result:
   - Running `./gradlew bootRun` serves the Vite-built frontend bundle plus static CSS through Spring Boot.
@@ -106,7 +111,7 @@ The canonical board is represented on the server as `Map<String, Piece>` and on 
 - `selectedStartingSide`
 - `selectedBoardSize`
 
-Important implication: games are still entirely in memory on the server. Clients connected to the same game id share one server-owned session, but restarting the server resets every game.
+Important implication: game state is now persisted in the configured database, so clients can reopen the same game after server restart. SSE subscriptions and live fanout remain in memory per app instance, so persistence does not by itself add cross-instance push delivery.
 
 ## Responsibilities By File
 
@@ -118,8 +123,9 @@ The Kotlin game module is now the source of truth for game rules and state trans
 - Owns setup cycling logic.
 - Owns turn transitions.
 - Owns rule-configuration lookup, movement validation, capture resolution, and automatic game-over checks.
-- Wraps each snapshot in a versioned in-memory game session.
+- Wraps each snapshot in a versioned persisted game session.
 - Keeps server-only undo snapshot history alongside the public shared session payload.
+- Serializes snapshots and undo history into the `games` table.
 - Broadcasts updated snapshots to SSE clients scoped by game id.
 - Tracks last access time server-side for stale-game eviction.
 
@@ -146,7 +152,7 @@ Most UI-only changes should start in the relevant component, selector, or browse
 ### Lobby and game entry
 
 - The browser initially loads into a lobby screen.
-- The lobby can create a new in-memory game or open an existing game by id.
+- The lobby can create a new persisted game or open an existing game by id.
 - The lobby presents separate create and rejoin cards, uppercases typed game ids locally, and keeps `Open Game` disabled until an id is present.
 - Once a game is created or opened, the browser enters that game's board screen and updates the URL to `/g/{gameId}`.
 - Loading `/g/{gameId}` directly also enters that game's board screen.
@@ -211,7 +217,7 @@ Most UI-only changes should start in the relevant component, selector, or browse
 ### Shared play behavior
 
 - Clients connected to the same game id see the same server-owned game session.
-- The backend can create additional in-memory games with generated ids.
+- The backend can create additional persisted games with generated ids.
 - Generated game ids now use 7 characters from the Open Location Code ("PLUS code") alphabet `23456789CFGHJMPQRVWX`, which is the shortest fixed width that still covers more than 1,000,000,000 possible games.
 - Mutation requests include an expected version.
 - On a version conflict, the server returns `409` with the latest snapshot for that game only.
@@ -224,7 +230,7 @@ Most UI-only changes should start in the relevant component, selector, or browse
 - Only actionable squares show hover/pointer affordances; inactive and non-actionable squares stay visually still on mouseover.
 - The move list now shows an empty-state message before any moves exist and auto-scrolls to the latest entry when history changes.
 - The move list now groups completed moves into numbered two-column display rows while still rendering a terminal `Game Over` entry separately.
-- Games that have not been loaded, mutated, or watched for more than one hour are evicted from the in-memory store.
+- Games that have not been loaded, mutated, or watched for more than one hour are evicted from the persistent store.
 - An active SSE subscription keeps a game alive even if no commands are sent during that hour.
 
 ## Rendering Strategy
@@ -292,6 +298,7 @@ Future UI changes should preserve the split of transport logic, Redux state, ren
   - version increments
   - stale-version conflicts scoped to a single game
   - SSE delivery scoped to one game
+  - persistence round-tripping for stored snapshots and undo history
   - stale-game eviction and active-viewer protection
   - removed legacy `/api/game*` routes
   - invalid command validation
@@ -305,13 +312,13 @@ Future UI changes should preserve the split of transport logic, Redux state, ren
   - Start in the relevant React component, selector, thunk, or hook under `src/main/frontend`.
   - Update `src/main/resources/static/styles.css` if layout or styling is affected.
 - To persist games or support richer multiplayer:
-  - Extend the backend game store and session service to add durable storage behind the current game-id-based API.
+  - Extend the backend game store and session service further to add cross-instance event fanout behind the current game-id-based API.
 - To support undo/redo or replay:
   - Expand the backend session model with richer history, then expose that through the API.
 
 ## Constraints And Gotchas
 
-- The shared game currently exists only in memory; a server restart resets it.
+- Game state persists in the configured database, but SSE delivery remains local to each app instance.
 - `Free Play` and `Trivial Configuration` still allow effectively teleporting a selected piece to any empty square, while `Original Game` and `Sherwood Rules` use constrained orthogonal movement.
 - Capture eligibility is global, not positional; if any opposing capturable piece exists anywhere, capture mode begins.
 - Selection remains browser-local and may be cleared when a new server snapshot makes it invalid.
@@ -323,6 +330,6 @@ Future UI changes should preserve the split of transport logic, Redux state, ren
 
 1. Define undo/history semantics on top of the shared server-owned session model.
 2. Decide whether the current snapshot-history undo model should stay as-is or evolve into a richer event/command history as rules grow.
-3. Decide whether the single in-memory shared game should become durable storage or multiple rooms.
+3. Decide whether cross-instance live update delivery should use database notifications, Redis pub/sub, or another fanout layer.
 4. Keep backend game rules centralized and avoid drifting gameplay logic into React components or Redux reducers.
 5. Expand backend and frontend tests alongside any new move, capture, or win-condition logic.

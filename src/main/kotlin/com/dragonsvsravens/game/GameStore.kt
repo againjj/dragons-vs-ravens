@@ -1,6 +1,5 @@
 package com.dragonsvsravens.game
 
-import org.springframework.stereotype.Component
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
@@ -24,7 +23,6 @@ interface GameStore {
     fun remove(gameId: String): Boolean
 }
 
-@Component
 class InMemoryGameStore : GameStore {
     private val games = ConcurrentHashMap<String, StoredGame>()
 
@@ -52,3 +50,6 @@ class InMemoryGameStore : GameStore {
         games.clear()
     }
 }
+
+class ConcurrentGameUpdateException(gameId: String) :
+    RuntimeException("Game $gameId was updated concurrently.")

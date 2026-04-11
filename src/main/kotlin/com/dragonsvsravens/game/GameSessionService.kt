@@ -126,7 +126,12 @@ class GameSessionService(
             else -> throw InvalidCommandException("Unknown command type: ${command.type}")
         }
 
-        gameStore.put(nextState)
+        try {
+            gameStore.put(nextState)
+        } catch (_: ConcurrentGameUpdateException) {
+            val latest = gameStore.get(gameId) ?: throw GameNotFoundException(gameId)
+            throw VersionConflictException(latest.session)
+        }
         broadcast(gameId, nextState.session)
         nextState.session
     }

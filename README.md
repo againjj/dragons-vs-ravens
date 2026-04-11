@@ -1,10 +1,10 @@
 # Dragons vs Ravens
 
-A Spring Boot + Kotlin web app that serves a browser-based board game prototype with in-memory server state and a React + Redux frontend.
+A Spring Boot + Kotlin web app that serves a browser-based board game prototype with database-backed game persistence and a React + Redux frontend.
 
 ## What This Repo Contains
 
-- A Spring Boot backend that owns in-memory game sessions and serves live updates
+- A Spring Boot backend that stores game sessions in a database and serves live updates
 - A React + Redux browser frontend for the game UI
 - Frontend helpers for transport, board derivation, and local-only selection behavior
 
@@ -24,6 +24,7 @@ A Spring Boot + Kotlin web app that serves a browser-based board game prototype 
 Then open [http://localhost:8080](http://localhost:8080).
 
 The server also respects the `PORT` environment variable, so the same app can run on Railway and other managed platforms that inject a runtime port.
+By default, the backend uses an H2 file database at `build/db/dragons-vs-ravens`, so created games survive local app restarts.
 
 Open the app in two browser tabs to see the shared game stay in sync through server-sent events.
 The browser now opens on a lobby screen at `/`, where you can create a new game or open an existing one by ID.
@@ -45,6 +46,7 @@ Finished games stay viewable on their existing game IDs, and if the session stil
 You still cannot restart or reconfigure a finished game on that same ID while it remains finished; creating another game gives you a fresh ID.
 The board now displays numbered rows from top to bottom and lettered columns from left to right on a 7x7 grid, while square names still use `letter + number` notation such as `a1` and `d4`.
 Only actionable board squares now show pointer/hover affordances, and the move list shows an empty-state message before play begins, auto-scrolls to the latest history entry during play, and groups moves into numbered two-column rows.
+Games remain subject to stale cleanup and are removed after more than one hour without a load, command, or active SSE viewer.
 
 ## Run Tests
 
@@ -73,6 +75,16 @@ railway up
 ```
 
 Railway injects `PORT` at runtime, and the app now binds to that port automatically.
+For persistent production storage, also set:
+
+```text
+SPRING_DATASOURCE_URL=jdbc:postgresql://...
+SPRING_DATASOURCE_USERNAME=...
+SPRING_DATASOURCE_PASSWORD=...
+SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+```
+
+Flyway runs the schema migration automatically on startup for both local H2 and deployed PostgreSQL databases.
 
 The current Railway production URL is [https://dragons-vs-ravens-production.up.railway.app](https://dragons-vs-ravens-production.up.railway.app).
 
@@ -122,7 +134,8 @@ Read docs/code-summary.md and docs/codex-rules.md before making changes. Follow 
 - Missing SSE subscriptions for unknown game IDs now return a plain `404` response instead of logging a media-type exception on the server.
 - Browser navigation now uses `/` for the lobby and `/g/{gameId}` for an active game view.
 - Newly created games now use 7-character IDs drawn from the Open Location Code ("PLUS code") alphabet: `23456789CFGHJMPQRVWX`.
-- In-memory games are evicted automatically after more than one hour without a load, command, or active SSE viewer.
+- Game sessions are stored durably in the configured database, while SSE emitter tracking remains in memory per app instance.
+- Persisted games are evicted automatically after more than one hour without a load, command, or active SSE viewer.
 - If `./gradlew bootRun` cannot bind its default port, treat that as a local environment issue to fix instead of silently switching ports.
 - `docs/codex-rules.md` now explicitly says not to modify the codebase until the user asks for implementation work.
 - If you change architecture, workflow, or gameplay in a meaningful way, update `docs/code-summary.md`.
