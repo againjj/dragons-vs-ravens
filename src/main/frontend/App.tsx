@@ -53,7 +53,7 @@ export const App = () => {
 
     useGameRoute();
     useGameSession();
-    useBoardSizing(boardShellRef);
+    useBoardSizing(boardShellRef, view === "game");
 
     const handleFullscreen = (): void => {
         void toggleFullscreen().then(({ message }) => {

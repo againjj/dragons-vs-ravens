@@ -33,6 +33,7 @@ Loading a game URL directly opens that game, and after you create or open a game
 If you load a game URL directly and then return to the lobby, the app now replaces that direct-entry history slot instead of trapping the browser Back button inside the app.
 The browser stays subscribed to that game's SSE stream until you go back to the lobby.
 The active game screen shows the current game ID plus a `Back to Lobby` button.
+The game board now resumes responsive resizing correctly after entering a game from the lobby.
 Once a game is open, the controls include the play-style dropdown plus the usual gameplay actions.
 `Free Play` preserves the original behavior: before starting, you can choose whether dragons or ravens move first; starting a game then enters setup with an empty board, setup clicks cycle `empty -> dragon -> raven -> gold -> empty`, capture is manual, and the game is ended manually.
 `Trivial Configuration`, `Original Game`, and `Sherwood Rules` start from preset boards with no setup phase, resolve captures automatically, and end automatically based on their own rules.

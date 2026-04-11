@@ -1,7 +1,14 @@
 import { useEffect, type RefObject } from "react";
 
-export const useBoardSizing = (boardShellRef: RefObject<HTMLDivElement | null>): void => {
+export const useBoardSizing = (
+    boardShellRef: RefObject<HTMLDivElement | null>,
+    isEnabled = true
+): void => {
     useEffect(() => {
+        if (!isEnabled) {
+            return;
+        }
+
         const boardShell = boardShellRef.current;
         if (!boardShell) {
             return;
@@ -38,5 +45,5 @@ export const useBoardSizing = (boardShellRef: RefObject<HTMLDivElement | null>):
             resizeObserver.disconnect();
             window.removeEventListener("resize", updateBoardSize);
         };
-    }, [boardShellRef]);
+    }, [boardShellRef, isEnabled]);
 };

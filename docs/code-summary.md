@@ -253,6 +253,7 @@ Future UI changes should preserve the split of transport logic, Redux state, ren
 - CSS custom properties drive sizing and proportions.
 - `updateBoardSize()` computes `--board-size` from the available container space.
 - A `ResizeObserver` and `window.resize` listener keep the board responsive.
+- The resize hook is re-enabled when the app switches from the lobby into an active game so the board resumes responsive sizing after conditional mount.
 - The page supports fullscreen via `requestFullscreen()` on the `.page` element.
 - Mobile/narrow layouts collapse the three-column layout into stacked sections.
 
