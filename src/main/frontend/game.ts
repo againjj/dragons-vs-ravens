@@ -3,10 +3,12 @@ export type Side = "dragons" | "ravens";
 export type Phase = "none" | "setup" | "move" | "capture";
 export type TurnType = "move" | "gameOver";
 export type GameLifecycle = "new" | "active" | "finished";
+
 export interface RuleDescriptionSection {
     heading?: string;
     paragraphs: string[];
 }
+
 export interface RuleConfigurationSummary {
     id: string;
     name: string;
@@ -15,6 +17,7 @@ export interface RuleConfigurationSummary {
     hasManualCapture: boolean;
     hasManualEndGame: boolean;
 }
+
 export type TurnHistoryRow =
     | { type: "move"; label: string; key: string }
     | { type: "gameOver"; label: string; key: string };
@@ -29,6 +32,8 @@ export interface TurnRecord {
 
 export interface ServerGameSnapshot {
     board: Record<string, Piece>;
+    boardSize: number;
+    specialSquare: string;
     phase: Phase;
     activeSide: Side;
     pendingMove: TurnRecord | null;
@@ -48,11 +53,13 @@ export interface ServerGameSession {
     availableRuleConfigurations: RuleConfigurationSummary[];
     selectedRuleConfigurationId: string;
     selectedStartingSide: Side;
+    selectedBoardSize: number;
 }
 
 export interface CreateGameRequest {
     ruleConfigurationId?: string;
     startingSide?: Side;
+    boardSize?: number;
 }
 
 export interface CreateGameResponse {
@@ -67,6 +74,7 @@ export interface GameCommandRequest {
         | "start-game"
         | "select-rule-configuration"
         | "select-starting-side"
+        | "select-board-size"
         | "cycle-setup"
         | "end-setup"
         | "move-piece"
@@ -79,16 +87,31 @@ export interface GameCommandRequest {
     destination?: string;
     ruleConfigurationId?: string;
     side?: Side;
+    boardSize?: number;
 }
 
+const maxColumnLetters = Array.from({ length: 26 }, (_, index) => String.fromCharCode(97 + index));
 export const columnLetters = ["a", "b", "c", "d", "e", "f", "g"];
 export const rowNumbers = ["7", "6", "5", "4", "3", "2", "1"];
 export const boardDimension = columnLetters.length;
 
-export const getSquareName = (rowIndex: number, colIndex: number): string => `${columnLetters[colIndex]}${rowNumbers[rowIndex]}`;
-const allSquares = rowNumbers.flatMap((_, rowIndex) =>
-    columnLetters.map((_, colIndex) => getSquareName(rowIndex, colIndex))
-);
+export const getColumnLetters = (boardSize: number): string[] => maxColumnLetters.slice(0, boardSize);
+
+export const getRowNumbers = (boardSize: number): string[] =>
+    Array.from({ length: boardSize }, (_, index) => String(boardSize - index));
+
+export const getBoardDimension = (snapshot: Pick<ServerGameSnapshot, "boardSize"> | null | undefined): number =>
+    snapshot?.boardSize ?? boardDimension;
+
+export const getSquareName = (rowIndex: number, colIndex: number, boardSize: number = boardDimension): string =>
+    `${getColumnLetters(boardSize)[colIndex]}${getRowNumbers(boardSize)[rowIndex]}`;
+
+const getRank = (square: string): string => square.slice(1);
+
+const getAllSquares = (boardSize: number): string[] =>
+    getRowNumbers(boardSize).flatMap((_, rowIndex) =>
+        getColumnLetters(boardSize).map((_, colIndex) => getSquareName(rowIndex, colIndex, boardSize))
+    );
 
 export const sideOwnsPiece = (side: Side, piece: Piece): boolean => {
     if (piece === "gold") {
@@ -105,11 +128,13 @@ export const getCapturableSquares = (snapshot: ServerGameSnapshot): string[] =>
         .filter(([, piece]) => canCapturePiece(snapshot.activeSide, piece))
         .map(([square]) => square);
 
-const getOrthogonalPath = (origin: string, destination: string): string[] | null => {
-    const originFile = columnLetters.indexOf(origin[0]);
-    const destinationFile = columnLetters.indexOf(destination[0]);
-    const originRank = rowNumbers.indexOf(origin[1]);
-    const destinationRank = rowNumbers.indexOf(destination[1]);
+const getOrthogonalPath = (origin: string, destination: string, boardSize: number): string[] | null => {
+    const columns = getColumnLetters(boardSize);
+    const rows = getRowNumbers(boardSize);
+    const originFile = columns.indexOf(origin[0]);
+    const destinationFile = columns.indexOf(destination[0]);
+    const originRank = rows.indexOf(getRank(origin));
+    const destinationRank = rows.indexOf(getRank(destination));
 
     if (originFile !== destinationFile && originRank !== destinationRank) {
         return null;
@@ -122,7 +147,7 @@ const getOrthogonalPath = (origin: string, destination: string): string[] | null
     let nextRank = originRank + rankStep;
 
     while (nextFile !== destinationFile || nextRank !== destinationRank) {
-        path.push(`${columnLetters[nextFile]}${rowNumbers[nextRank]}`);
+        path.push(`${columns[nextFile]}${rows[nextRank]}`);
         nextFile += fileStep;
         nextRank += rankStep;
     }
@@ -130,20 +155,37 @@ const getOrthogonalPath = (origin: string, destination: string): string[] | null
     return path;
 };
 
-const isCenterSquare = (square: string): boolean => square === "d4";
-const isCornerSquare = (square: string): boolean => ["a1", "a7", "g1", "g7"].includes(square);
-const originalStyleRuleConfigurationIds = new Set(["original-game", "sherwood-rules"]);
+const isCenterSquare = (square: string, specialSquare: string): boolean => square === specialSquare;
+
+const isCornerSquare = (square: string, boardSize: number): boolean => {
+    const columns = getColumnLetters(boardSize);
+    return [
+        `${columns[0]}1`,
+        `${columns[0]}${boardSize}`,
+        `${columns[boardSize - 1]}1`,
+        `${columns[boardSize - 1]}${boardSize}`
+    ].includes(square);
+};
+
+const originalStyleRuleConfigurationIds = new Set(["original-game", "sherwood-rules", "sherwood-x-9"]);
+const sherwoodStyleRuleConfigurationIds = new Set(["sherwood-rules", "sherwood-x-9"]);
+
 const isOriginalStyleRuleConfiguration = (ruleConfigurationId: string): boolean =>
     originalStyleRuleConfigurationIds.has(ruleConfigurationId);
-const isSingleOrthogonalStep = (origin: string, destination: string): boolean => {
-    const fileDistance = Math.abs(columnLetters.indexOf(origin[0]) - columnLetters.indexOf(destination[0]));
-    const rankDistance = Math.abs(rowNumbers.indexOf(origin[1]) - rowNumbers.indexOf(destination[1]));
+
+const isSingleOrthogonalStep = (origin: string, destination: string, boardSize: number): boolean => {
+    const columns = getColumnLetters(boardSize);
+    const rows = getRowNumbers(boardSize);
+    const fileDistance = Math.abs(columns.indexOf(origin[0]) - columns.indexOf(destination[0]));
+    const rankDistance = Math.abs(rows.indexOf(getRank(origin)) - rows.indexOf(getRank(destination)));
     return fileDistance + rankDistance === 1;
 };
 
-const getNeighbors = (square: string): string[] => {
-    const fileIndex = columnLetters.indexOf(square[0]);
-    const rankIndex = rowNumbers.indexOf(square[1]);
+const getNeighbors = (square: string, boardSize: number): string[] => {
+    const columns = getColumnLetters(boardSize);
+    const rows = getRowNumbers(boardSize);
+    const fileIndex = columns.indexOf(square[0]);
+    const rankIndex = rows.indexOf(getRank(square));
     const pairs = [
         [fileIndex, rankIndex - 1],
         [fileIndex + 1, rankIndex],
@@ -152,8 +194,8 @@ const getNeighbors = (square: string): string[] => {
     ];
 
     return pairs
-        .filter(([file, rank]) => file >= 0 && file < columnLetters.length && rank >= 0 && rank < rowNumbers.length)
-        .map(([file, rank]) => `${columnLetters[file]}${rowNumbers[rank]}`);
+        .filter(([file, rank]) => file >= 0 && file < columns.length && rank >= 0 && rank < rows.length)
+        .map(([file, rank]) => `${columns[file]}${rows[rank]}`);
 };
 
 const isEnemyPiece = (piece: Piece | undefined, movedPiece: Piece): boolean => {
@@ -164,9 +206,11 @@ const isEnemyPiece = (piece: Piece | undefined, movedPiece: Piece): boolean => {
     return movedPiece === "raven" ? piece === "dragon" || piece === "gold" : piece === "raven";
 };
 
-const getOppositePairs = (square: string): Array<[string, string]> => {
-    const fileIndex = columnLetters.indexOf(square[0]);
-    const rankIndex = rowNumbers.indexOf(square[1]);
+const getOppositePairs = (square: string, boardSize: number): Array<[string, string]> => {
+    const columns = getColumnLetters(boardSize);
+    const rows = getRowNumbers(boardSize);
+    const fileIndex = columns.indexOf(square[0]);
+    const rankIndex = rows.indexOf(getRank(square));
     const pairs = [
         [
             [fileIndex, rankIndex - 1],
@@ -181,17 +225,17 @@ const getOppositePairs = (square: string): Array<[string, string]> => {
     return pairs
         .filter(([[firstFile, firstRank], [secondFile, secondRank]]) =>
             firstFile >= 0 &&
-            firstFile < columnLetters.length &&
+            firstFile < columns.length &&
             firstRank >= 0 &&
-            firstRank < rowNumbers.length &&
+            firstRank < rows.length &&
             secondFile >= 0 &&
-            secondFile < columnLetters.length &&
+            secondFile < columns.length &&
             secondRank >= 0 &&
-            secondRank < rowNumbers.length
+            secondRank < rows.length
         )
         .map(([[firstFile, firstRank], [secondFile, secondRank]]) => [
-            `${columnLetters[firstFile]}${rowNumbers[firstRank]}`,
-            `${columnLetters[secondFile]}${rowNumbers[secondRank]}`
+            `${columns[firstFile]}${rows[firstRank]}`,
+            `${columns[secondFile]}${rows[secondRank]}`
         ]);
 };
 
@@ -201,51 +245,58 @@ const sideOwnsPieceForOriginalGameCapture = (side: Side, piece: Piece): boolean 
 const isHostileSquareForOriginalGame = (
     board: Record<string, Piece>,
     square: string,
-    capturingSide: Side
+    capturingSide: Side,
+    snapshot: ServerGameSnapshot
 ): boolean => {
     const piece = board[square];
     if (piece) {
         return sideOwnsPieceForOriginalGameCapture(capturingSide, piece);
     }
 
-    return isCenterSquare(square) || isCornerSquare(square);
+    return isCenterSquare(square, snapshot.specialSquare) || isCornerSquare(square, snapshot.boardSize);
 };
 
 const isRegularPieceCapturedInOriginalGame = (
     board: Record<string, Piece>,
     square: string,
-    capturingSide: Side
+    capturingSide: Side,
+    snapshot: ServerGameSnapshot
 ): boolean =>
-    getOppositePairs(square).some(([first, second]) =>
-        isHostileSquareForOriginalGame(board, first, capturingSide) &&
-        isHostileSquareForOriginalGame(board, second, capturingSide)
+    getOppositePairs(square, snapshot.boardSize).some(([first, second]) =>
+        isHostileSquareForOriginalGame(board, first, capturingSide, snapshot) &&
+        isHostileSquareForOriginalGame(board, second, capturingSide, snapshot)
     );
 
-const isGoldCapturedInOriginalGame = (board: Record<string, Piece>, square: string): boolean => {
-    const neighbors = getNeighbors(square);
-    if (isCenterSquare(square)) {
+const isGoldCapturedInOriginalGame = (
+    board: Record<string, Piece>,
+    square: string,
+    snapshot: ServerGameSnapshot
+): boolean => {
+    const neighbors = getNeighbors(square, snapshot.boardSize);
+    if (isCenterSquare(square, snapshot.specialSquare)) {
         return neighbors.every((neighbor) => board[neighbor] === "raven");
     }
 
-    if (neighbors.includes("d4")) {
+    if (neighbors.includes(snapshot.specialSquare)) {
         return neighbors
-            .filter((neighbor) => neighbor !== "d4")
+            .filter((neighbor) => neighbor !== snapshot.specialSquare)
             .every((neighbor) => board[neighbor] === "raven");
     }
 
-    return isRegularPieceCapturedInOriginalGame(board, square, "ravens");
+    return isRegularPieceCapturedInOriginalGame(board, square, "ravens", snapshot);
 };
 
 const getAutoCapturedSquaresInOriginalGame = (
     board: Record<string, Piece>,
-    capturingSide: Side
+    capturingSide: Side,
+    snapshot: ServerGameSnapshot
 ): string[] =>
     Object.entries(board)
         .filter(([, piece]) => !sideOwnsPiece(capturingSide, piece))
         .filter(([square, piece]) =>
             piece === "gold"
-                ? isGoldCapturedInOriginalGame(board, square)
-                : isRegularPieceCapturedInOriginalGame(board, square, capturingSide)
+                ? isGoldCapturedInOriginalGame(board, square, snapshot)
+                : isRegularPieceCapturedInOriginalGame(board, square, capturingSide, snapshot)
         )
         .map(([square]) => square);
 
@@ -262,13 +313,13 @@ const wouldCauseFriendlyCaptureInOriginalGame = (
 
     if (
         piece === "gold"
-            ? isGoldCapturedInOriginalGame(movedBoard, destination)
-            : isRegularPieceCapturedInOriginalGame(movedBoard, destination, opposingSide)
+            ? isGoldCapturedInOriginalGame(movedBoard, destination, snapshot)
+            : isRegularPieceCapturedInOriginalGame(movedBoard, destination, opposingSide, snapshot)
     ) {
         return true;
     }
 
-    for (const capturedSquare of getAutoCapturedSquaresInOriginalGame(movedBoard, snapshot.activeSide)) {
+    for (const capturedSquare of getAutoCapturedSquaresInOriginalGame(movedBoard, snapshot.activeSide, snapshot)) {
         delete movedBoard[capturedSquare];
     }
 
@@ -277,8 +328,8 @@ const wouldCauseFriendlyCaptureInOriginalGame = (
         .filter(([square]) => square !== destination)
         .some(([square, remainingPiece]) =>
             remainingPiece === "gold"
-                ? isGoldCapturedInOriginalGame(movedBoard, square)
-                : isRegularPieceCapturedInOriginalGame(movedBoard, square, opposingSide)
+                ? isGoldCapturedInOriginalGame(movedBoard, square, snapshot)
+                : isRegularPieceCapturedInOriginalGame(movedBoard, square, opposingSide, snapshot)
         );
 };
 
@@ -288,19 +339,19 @@ const isIllegalOriginalGameDestination = (
     piece: Piece,
     destination: string
 ): boolean => {
-    if (snapshot.ruleConfigurationId === "sherwood-rules" && piece === "gold" && !isSingleOrthogonalStep(origin, destination)) {
+    if (sherwoodStyleRuleConfigurationIds.has(snapshot.ruleConfigurationId) && piece === "gold" && !isSingleOrthogonalStep(origin, destination, snapshot.boardSize)) {
         return true;
     }
 
-    if (isCenterSquare(destination)) {
+    if (isCenterSquare(destination, snapshot.specialSquare)) {
         return true;
     }
 
-    if (piece !== "gold" && isCornerSquare(destination)) {
+    if (piece !== "gold" && isCornerSquare(destination, snapshot.boardSize)) {
         return true;
     }
 
-    return getOppositePairs(destination).some(
+    return getOppositePairs(destination, snapshot.boardSize).some(
         ([first, second]) => isEnemyPiece(snapshot.board[first], piece) && isEnemyPiece(snapshot.board[second], piece)
     ) || wouldCauseFriendlyCaptureInOriginalGame(snapshot, origin, destination, piece);
 };
@@ -315,7 +366,7 @@ export const getTargetableSquares = (snapshot: ServerGameSnapshot, selectedSquar
         return [];
     }
 
-    return allSquares.filter((square) => {
+    return getAllSquares(snapshot.boardSize).filter((square) => {
         if (square in snapshot.board || square === selectedSquare) {
             return false;
         }
@@ -324,7 +375,7 @@ export const getTargetableSquares = (snapshot: ServerGameSnapshot, selectedSquar
             return true;
         }
 
-        const path = getOrthogonalPath(selectedSquare, square);
+        const path = getOrthogonalPath(selectedSquare, square, snapshot.boardSize);
         if (path === null || path.some((pathSquare) => pathSquare in snapshot.board)) {
             return false;
         }

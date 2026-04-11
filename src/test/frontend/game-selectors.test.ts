@@ -3,7 +3,6 @@ import { describe, expect, test } from "vitest";
 import { createAppStore } from "../../main/frontend/app/store.js";
 import { gameActions } from "../../main/frontend/features/game/gameSlice.js";
 import { selectStatusText, selectTargetableSquares } from "../../main/frontend/features/game/gameSelectors.js";
-import { boardDimension } from "../../main/frontend/game.js";
 import { uiActions } from "../../main/frontend/features/ui/uiSlice.js";
 import { createSession } from "./fixtures.js";
 
@@ -53,7 +52,7 @@ describe("game selectors", () => {
         expect(targetableSquares).toContain("c3");
         expect(targetableSquares).not.toContain("a1");
         expect(targetableSquares).not.toContain("b2");
-        expect(targetableSquares).toHaveLength((boardDimension * boardDimension) - 3);
+        expect(targetableSquares).toHaveLength((7 * 7) - 3);
     });
 
     test("status text uses the updated setup copy", () => {
@@ -344,6 +343,76 @@ describe("game selectors", () => {
         expect(targetableSquares).toContain("d6");
         expect(targetableSquares).not.toContain("d7");
         expect(targetableSquares).not.toContain("a5");
+    });
+
+    test("sherwood x 9 only allows one-step gold targets on a 9x9 board", () => {
+        const store = createAppStore({
+            game: {
+                session: createSession(
+                    {
+                        selectedRuleConfigurationId: "sherwood-x-9"
+                    },
+                    {
+                        boardSize: 9,
+                        specialSquare: "e5",
+                        phase: "move",
+                        ruleConfigurationId: "sherwood-x-9",
+                        activeSide: "dragons",
+                        board: {
+                            e6: "gold",
+                            a9: "raven"
+                        }
+                    }
+                ),
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: "e6"
+            }
+        });
+
+        const targetableSquares = selectTargetableSquares(store.getState());
+
+        expect(targetableSquares).toContain("d6");
+        expect(targetableSquares).toContain("f6");
+        expect(targetableSquares).toContain("e7");
+        expect(targetableSquares).not.toContain("e9");
+        expect(targetableSquares).not.toContain("a6");
+    });
+
+    test("sherwood x 9 does not show targets for a stale gold selection when ravens are to move", () => {
+        const store = createAppStore({
+            game: {
+                session: createSession(
+                    {
+                        selectedRuleConfigurationId: "sherwood-x-9"
+                    },
+                    {
+                        boardSize: 9,
+                        specialSquare: "e5",
+                        phase: "move",
+                        ruleConfigurationId: "sherwood-x-9",
+                        activeSide: "ravens",
+                        board: {
+                            e5: "gold",
+                            e8: "raven"
+                        }
+                    }
+                ),
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: "e5"
+            }
+        });
+
+        expect(selectTargetableSquares(store.getState())).toEqual([]);
     });
 
     test("local selection can be updated independently of the shared session", () => {

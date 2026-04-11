@@ -31,6 +31,7 @@ abstract class AbstractGameControllerTestSupport {
         snapshot: GameSnapshot = GameRules.createIdleSnapshot(GameRules.freePlayRuleConfigurationId, Side.dragons),
         selectedRuleConfigurationId: String = snapshot.ruleConfigurationId,
         selectedStartingSide: Side = Side.dragons,
+        selectedBoardSize: Int = snapshot.boardSize,
         lifecycle: GameLifecycle = when {
             snapshot.turns.lastOrNull()?.type == TurnType.gameOver -> GameLifecycle.finished
             snapshot.phase == Phase.none -> GameLifecycle.new
@@ -51,7 +52,8 @@ abstract class AbstractGameControllerTestSupport {
             lastAccessedAt = lastAccessedAt,
             lifecycle = lifecycle,
             selectedRuleConfigurationId = selectedRuleConfigurationId,
-            selectedStartingSide = selectedStartingSide
+            selectedStartingSide = selectedStartingSide,
+            selectedBoardSize = selectedBoardSize
         )
         gameStore.put(storedGame)
         return storedGame.session
@@ -64,7 +66,8 @@ abstract class AbstractGameControllerTestSupport {
         origin: String? = null,
         destination: String? = null,
         ruleConfigurationId: String? = null,
-        side: Side? = null
+        side: Side? = null,
+        boardSize: Int? = null
     ): GameCommandRequest = GameCommandRequest(
         expectedVersion = expectedVersion,
         type = type,
@@ -72,7 +75,8 @@ abstract class AbstractGameControllerTestSupport {
         origin = origin,
         destination = destination,
         ruleConfigurationId = ruleConfigurationId,
-        side = side
+        side = side,
+        boardSize = boardSize
     )
 
     protected fun createGame(request: CreateGameRequest = CreateGameRequest()): GameSession =

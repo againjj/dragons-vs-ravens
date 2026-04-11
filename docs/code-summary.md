@@ -86,6 +86,8 @@ The canonical board is represented on the server as `Map<String, Piece>` and on 
 `GameSnapshot` currently contains:
 
 - `board`
+- `boardSize`
+- `specialSquare`
 - `phase`
 - `activeSide`
 - `pendingMove`
@@ -102,6 +104,7 @@ The canonical board is represented on the server as `Map<String, Piece>` and on 
 - `availableRuleConfigurations`
 - `selectedRuleConfigurationId`
 - `selectedStartingSide`
+- `selectedBoardSize`
 
 Important implication: games are still entirely in memory on the server. Clients connected to the same game id share one server-owned session, but restarting the server resets every game.
 
@@ -153,7 +156,8 @@ Most UI-only changes should start in the relevant component, selector, or browse
 
 ### Free Play
 
-- Once a game screen is open and `Free Play` is selected in the no-game state, the browser also shows a starting-side dropdown so the shared setup can begin with either dragons or ravens.
+- Once a game screen is open and `Free Play` is selected in the no-game state, the browser also shows shared controls for starting side and square board size.
+- Free Play board size may be selected from `3x3` through `26x26`.
 - `Free Play` preserves the original setup flow:
   - starting the game enters `setup`
   - clicking a square cycles `empty -> dragon -> raven -> gold -> empty`
@@ -197,6 +201,13 @@ Most UI-only changes should start in the relevant component, selector, or browse
 - The gold may move only one orthogonal square at a time.
 - Landing restrictions, self-capture prevention, automatic capture rules, win conditions, and draw conditions otherwise match `Original Game`.
 
+### Sherwood x 9
+
+- `Sherwood x 9` uses the Sherwood Rules movement, capture, win, and draw behavior on a `9x9` board.
+- The special square is `e5`.
+- The setup is the Sherwood cross formation shifted one file right and one rank up so the gold starts on `e5`.
+- Ravens move first.
+
 ### Shared play behavior
 
 - Clients connected to the same game id see the same server-owned game session.
@@ -235,9 +246,9 @@ Future UI changes should preserve the split of transport logic, Redux state, ren
 
 ## Layout And UX Notes
 
-- The board is a 7x7 CSS grid.
+- The board is a square CSS grid sized from the active server snapshot.
 - The UI now displays numbered row labels on the left and lettered column labels along the bottom.
-- Square names still use `letter + number` notation, so the bottom-left square is `a1` and the center square is `d4`.
+- Square names still use `letter + number` notation, so the bottom-left square is always `a1`.
 - CSS custom properties drive sizing and proportions.
 - `updateBoardSize()` computes `--board-size` from the available container space.
 - A `ResizeObserver` and `window.resize` listener keep the board responsive.

@@ -19,6 +19,8 @@ export const selectSelectedRuleConfigurationId = (state: RootState) =>
     state.game.session?.selectedRuleConfigurationId ?? null;
 export const selectSelectedStartingSide = (state: RootState) =>
     state.game.session?.selectedStartingSide ?? "dragons";
+export const selectSelectedBoardSize = (state: RootState) =>
+    state.game.session?.selectedBoardSize ?? 7;
 export const selectCurrentRuleConfiguration = createSelector(
     selectAvailableRuleConfigurations,
     selectSelectedRuleConfigurationId,
@@ -45,7 +47,13 @@ export const selectShowPreGameControls = createSelector(
 export const selectTargetableSquares = createSelector(
     selectSnapshot,
     selectSelectedSquare,
-    (snapshot, selectedSquare) => (snapshot ? getTargetableSquares(snapshot, selectedSquare) : [])
+    (snapshot, selectedSquare) => {
+        if (!snapshot) {
+            return [];
+        }
+
+        return getTargetableSquares(snapshot, normalizeSelectedSquare(snapshot, selectedSquare));
+    }
 );
 
 export const selectStatusText = createSelector(selectGameState, selectSnapshot, selectIsFinishedGame, (gameState, snapshot, isFinishedGame) => {

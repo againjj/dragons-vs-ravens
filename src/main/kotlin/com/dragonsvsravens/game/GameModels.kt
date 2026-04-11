@@ -55,6 +55,8 @@ data class TurnRecord(
 
 data class GameSnapshot(
     val board: Map<String, Piece>,
+    val boardSize: Int,
+    val specialSquare: String,
     val phase: Phase,
     val activeSide: Side,
     val pendingMove: TurnRecord?,
@@ -73,12 +75,14 @@ data class GameSession(
     val canUndo: Boolean,
     val availableRuleConfigurations: List<RuleConfigurationSummary>,
     val selectedRuleConfigurationId: String,
-    val selectedStartingSide: Side
+    val selectedStartingSide: Side,
+    val selectedBoardSize: Int
 )
 
 data class CreateGameRequest(
     val ruleConfigurationId: String? = null,
-    val startingSide: Side? = null
+    val startingSide: Side? = null,
+    val boardSize: Int? = null
 )
 
 data class CreateGameResponse(
@@ -92,7 +96,8 @@ data class GameCommandRequest(
     val origin: String? = null,
     val destination: String? = null,
     val ruleConfigurationId: String? = null,
-    val side: Side? = null
+    val side: Side? = null,
+    val boardSize: Int? = null
 )
 
 data class ErrorResponse(

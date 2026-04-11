@@ -59,12 +59,27 @@ export const createSession = (
             hasSetupPhase: false,
             hasManualCapture: false,
             hasManualEndGame: false
+        },
+        {
+            id: "sherwood-x-9",
+            name: "Sherwood x 9",
+            descriptionSections: [
+                {
+                    paragraphs: ["Sherwood x 9 description"]
+                }
+            ],
+            hasSetupPhase: false,
+            hasManualCapture: false,
+            hasManualEndGame: false
         }
     ],
     selectedRuleConfigurationId: "free-play",
     selectedStartingSide: "dragons",
+    selectedBoardSize: 7,
     snapshot: {
         board: {},
+        boardSize: 7,
+        specialSquare: "d4",
         phase: "none",
         activeSide: "dragons",
         pendingMove: null,

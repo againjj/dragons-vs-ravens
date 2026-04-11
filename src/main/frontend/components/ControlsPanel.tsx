@@ -4,6 +4,7 @@ import {
     selectCanUndo,
     selectCurrentRuleConfiguration,
     selectIsSubmitting,
+    selectSelectedBoardSize,
     selectSelectedRuleConfigurationId,
     selectSelectedStartingSide,
     selectShowPreGameControls,
@@ -15,6 +16,7 @@ interface ControlsPanelProps {
     onStartGame: () => void;
     onSelectRuleConfiguration: (ruleConfigurationId: string) => void;
     onSelectStartingSide: (side: Side) => void;
+    onSelectBoardSize: (boardSize: number) => void;
     onEndSetup: () => void;
     onEndGame: () => void;
     onUndo: () => void;
@@ -25,6 +27,7 @@ export const ControlsPanel = ({
     onStartGame,
     onSelectRuleConfiguration,
     onSelectStartingSide,
+    onSelectBoardSize,
     onEndSetup,
     onEndGame,
     onUndo,
@@ -38,6 +41,7 @@ export const ControlsPanel = ({
     const currentRuleConfiguration = useAppSelector(selectCurrentRuleConfiguration);
     const selectedRuleConfigurationId = useAppSelector(selectSelectedRuleConfigurationId);
     const selectedStartingSide = useAppSelector(selectSelectedStartingSide);
+    const selectedBoardSize = useAppSelector(selectSelectedBoardSize);
     const disabled = !snapshot || isSubmitting;
     const phase = snapshot?.phase;
     const isActivePlay = phase === "move" || phase === "capture";
@@ -82,24 +86,47 @@ export const ControlsPanel = ({
                         </div>
                     </div>
                     {selectedRuleConfigurationId === "free-play" ? (
-                        <div className="control-row">
-                            <label className="control-label" htmlFor="starting-side-select">
-                                Starting Side
-                            </label>
-                            <div className="select-shell">
-                                <select
-                                    id="starting-side-select"
-                                    value={selectedStartingSide}
-                                    disabled={disabled}
-                                    onChange={(event) => {
-                                        onSelectStartingSide(event.target.value as Side);
-                                    }}
-                                >
-                                    <option value="dragons">Dragons</option>
-                                    <option value="ravens">Ravens</option>
-                                </select>
+                        <>
+                            <div className="control-row">
+                                <label className="control-label" htmlFor="board-size-select">
+                                    Board Size
+                                </label>
+                                <div className="select-shell">
+                                    <select
+                                        id="board-size-select"
+                                        value={String(selectedBoardSize)}
+                                        disabled={disabled}
+                                        onChange={(event) => {
+                                            onSelectBoardSize(Number.parseInt(event.target.value, 10));
+                                        }}
+                                    >
+                                        {Array.from({ length: 24 }, (_, index) => index + 3).map((boardSize) => (
+                                            <option key={boardSize} value={boardSize}>
+                                                {boardSize}x{boardSize}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
-                        </div>
+                            <div className="control-row">
+                                <label className="control-label" htmlFor="starting-side-select">
+                                    Starting Side
+                                </label>
+                                <div className="select-shell">
+                                    <select
+                                        id="starting-side-select"
+                                        value={selectedStartingSide}
+                                        disabled={disabled}
+                                        onChange={(event) => {
+                                            onSelectStartingSide(event.target.value as Side);
+                                        }}
+                                    >
+                                        <option value="dragons">Dragons</option>
+                                        <option value="ravens">Ravens</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </>
                     ) : null}
                     <button
                         id="start-button"

@@ -1,19 +1,21 @@
+import type { CSSProperties } from "react";
+
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 
 import { Board } from "../../main/frontend/components/Board.js";
-import { columnLetters } from "../../main/frontend/game.js";
+import { getColumnLetters } from "../../main/frontend/game.js";
 import { createSession } from "./fixtures.js";
 import { renderWithStore } from "./test-utils.js";
 
-const TestBoardScreen = () => (
-    <div className="board-shell">
+const TestBoardScreen = ({ boardSize = 7 }: { boardSize?: number }) => (
+    <div className="board-shell" style={{ "--board-dimension": String(boardSize) } as CSSProperties}>
         <Board />
         <div className="board-footer">
             <div className="board-footer-spacer" aria-hidden="true"></div>
             <div className="column-labels bottom" id="column-labels-bottom">
-                {columnLetters.map((letter) => (
+                {getColumnLetters(boardSize).map((letter) => (
                     <span key={letter}>{letter}</span>
                 ))}
             </div>
@@ -51,6 +53,38 @@ describe("Board", () => {
         expect(columnLabels).toEqual(["a", "b", "c", "d", "e", "f", "g"]);
         expect(screen.getByRole("button", { name: "Square a1" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Square d4" })).toBeInTheDocument();
+    });
+
+    test("renders row and column labels from the shared board size", () => {
+        renderWithStore(<TestBoardScreen boardSize={9} />, {
+            preloadedState: {
+                game: {
+                    session: createSession({}, {
+                        boardSize: 9,
+                        specialSquare: "e5",
+                        phase: "none",
+                        board: {
+                            a1: "dragon",
+                            e5: "gold"
+                        }
+                    }),
+                    isSubmitting: false,
+                    loadState: "ready",
+                    connectionState: "open",
+                    feedbackMessage: null
+                },
+                ui: {
+                    selectedSquare: null
+                }
+            }
+        });
+
+        const rowLabels = Array.from(document.querySelectorAll("#row-labels-left span")).map((element) => element.textContent);
+        const columnLabels = Array.from(document.querySelectorAll("#column-labels-bottom span")).map((element) => element.textContent);
+
+        expect(rowLabels).toEqual(["9", "8", "7", "6", "5", "4", "3", "2", "1"]);
+        expect(columnLabels).toEqual(["a", "b", "c", "d", "e", "f", "g", "h", "i"]);
+        expect(screen.getByRole("button", { name: "Square e5" })).toBeInTheDocument();
     });
 
     test("does not select pieces when no game is in progress", async () => {

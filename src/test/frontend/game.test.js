@@ -4,8 +4,11 @@ import test from "node:test";
 import {
     boardDimension,
     columnLetters,
+    getBoardDimension,
+    getColumnLetters,
     getCapturableSquares,
     getPieceAtSquare,
+    getRowNumbers,
     getTargetableSquares,
     getSquareName,
     getTurnHistoryRows,
@@ -20,6 +23,8 @@ const snapshot = {
         a1: "dragon",
         b2: "raven"
     },
+    boardSize: 7,
+    specialSquare: "d4",
     phase: "move",
     activeSide: "dragons",
     pendingMove: null,
@@ -49,6 +54,14 @@ test("square names follow column letters and row numbers in letter-number order"
     assert.equal(getSquareName(3, 3), "d4");
     assert.equal(getSquareName(6, 0), "a1");
     assert.equal(getSquareName(6, 6), "g1");
+});
+
+test("board helpers support larger board dimensions", () => {
+    assert.equal(getBoardDimension({ boardSize: 9 }), 9);
+    assert.deepEqual(getColumnLetters(9), ["a", "b", "c", "d", "e", "f", "g", "h", "i"]);
+    assert.deepEqual(getRowNumbers(9), ["9", "8", "7", "6", "5", "4", "3", "2", "1"]);
+    assert.equal(getSquareName(0, 4, 9), "e9");
+    assert.equal(getSquareName(4, 4, 9), "e5");
 });
 
 test("selected square stays local only when it remains valid for the shared snapshot", () => {

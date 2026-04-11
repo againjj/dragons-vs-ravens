@@ -8,6 +8,7 @@ object GameSessionFactory {
         snapshot: GameSnapshot,
         selectedRuleConfigurationId: String,
         selectedStartingSide: Side,
+        selectedBoardSize: Int,
         now: Instant = Instant.now()
     ): StoredGame = createStoredGame(
         gameId = gameId,
@@ -18,7 +19,8 @@ object GameSessionFactory {
         updatedAt = now,
         lifecycle = GameLifecycle.new,
         selectedRuleConfigurationId = selectedRuleConfigurationId,
-        selectedStartingSide = selectedStartingSide
+        selectedStartingSide = selectedStartingSide,
+        selectedBoardSize = selectedBoardSize
     )
 
     fun createStoredGame(
@@ -31,7 +33,8 @@ object GameSessionFactory {
         lastAccessedAt: Instant = updatedAt,
         lifecycle: GameLifecycle,
         selectedRuleConfigurationId: String,
-        selectedStartingSide: Side
+        selectedStartingSide: Side,
+        selectedBoardSize: Int
     ): StoredGame = StoredGame(
         session = GameSession(
             id = gameId,
@@ -43,7 +46,8 @@ object GameSessionFactory {
             canUndo = undoSnapshots.isNotEmpty(),
             availableRuleConfigurations = GameRules.availableRuleConfigurations(),
             selectedRuleConfigurationId = selectedRuleConfigurationId,
-            selectedStartingSide = selectedStartingSide
+            selectedStartingSide = selectedStartingSide,
+            selectedBoardSize = selectedBoardSize
         ),
         undoSnapshots = undoSnapshots,
         lastAccessedAt = lastAccessedAt

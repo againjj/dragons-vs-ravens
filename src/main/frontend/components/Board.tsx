@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react";
+
 import { useAppDispatch, useAppSelector } from "../app/hooks.js";
-import { boardDimension, getPieceAtSquare, getSquareName, rowNumbers, sideOwnsPiece, type Piece } from "../game.js";
+import { getBoardDimension, getPieceAtSquare, getRowNumbers, getSquareName, normalizeSelectedSquare, sideOwnsPiece, type Piece } from "../game.js";
 import { selectCapturableSquares, selectSelectedSquare, selectSnapshot, selectTargetableSquares } from "../features/game/gameSelectors.js";
 import { capturePiece, cycleSetup, movePiece } from "../features/game/gameThunks.js";
 import { uiActions } from "../features/ui/uiSlice.js";
@@ -106,8 +108,12 @@ export const Board = () => {
     const selectedSquare = useAppSelector(selectSelectedSquare);
     const capturableSquares = useAppSelector(selectCapturableSquares);
     const targetableSquares = useAppSelector(selectTargetableSquares);
+    const normalizedSelectedSquare = snapshot ? normalizeSelectedSquare(snapshot, selectedSquare) : null;
     const capturableSquareSet = new Set(capturableSquares);
     const targetableSquareSet = new Set(targetableSquares);
+    const boardDimension = getBoardDimension(snapshot);
+    const rowNumbers = getRowNumbers(boardDimension);
+    const boardStyle = { "--board-dimension": String(boardDimension) } as CSSProperties;
 
     const handleSquareClick = (square: string): void => {
         if (!snapshot) {
@@ -136,15 +142,15 @@ export const Board = () => {
 
     return (
         <div className="board-row">
-            <div className="row-labels left" id="row-labels-left">
+            <div className="row-labels left" id="row-labels-left" style={boardStyle}>
                 {rowNumbers.map((number) => (
                     <span key={number}>{number}</span>
                 ))}
             </div>
-            <div id="board" className="board" aria-label={`${boardDimension} by ${boardDimension} game board`}>
+            <div id="board" className="board" style={boardStyle} aria-label={`${boardDimension} by ${boardDimension} game board`}>
                 {Array.from({ length: boardDimension }, (_, rowIndex) =>
                     Array.from({ length: boardDimension }, (_, colIndex) => {
-                        const squareName = getSquareName(rowIndex, colIndex);
+                        const squareName = getSquareName(rowIndex, colIndex, boardDimension);
                         const piece = snapshot ? getPieceAtSquare(snapshot, squareName) : undefined;
 
                         return (
@@ -152,7 +158,7 @@ export const Board = () => {
                                 key={squareName}
                                 type="button"
                                 className={getSquareClassName(squareName, {
-                                    selectedSquare,
+                                    selectedSquare: normalizedSelectedSquare,
                                     targetableSquares: targetableSquareSet,
                                     capturableSquares: capturableSquareSet,
                                     snapshot,

@@ -1,54 +1,72 @@
 package com.dragonsvsravens.game
 
 object BoardCoordinates {
-    private val filePattern = 'a'..'g'
-    private val rankPattern = '1'..'7'
-    private val files = filePattern.toList()
-    private val ranks = rankPattern.toList()
-    private const val centerSquare = "d4"
-    private val cornerSquares = setOf("a1", "a7", "g1", "g7")
+    private val allFiles = ('a'..'z').toList()
 
-    fun isValidSquare(square: String): Boolean =
-        square.length == 2 && square[0] in filePattern && square[1] in rankPattern
+    fun isValidBoardSize(boardSize: Int): Boolean =
+        boardSize in 3..26
 
-    fun allSquares(): List<String> =
-        ranks.flatMap { rank ->
-            files.map { file -> "$file$rank" }
+    fun isValidSquare(square: String, boardSize: Int): Boolean {
+        val file = square.firstOrNull() ?: return false
+        val rank = square.drop(1).toIntOrNull() ?: return false
+        return isValidBoardSize(boardSize) &&
+            file in files(boardSize) &&
+            rank in 1..boardSize
+    }
+
+    fun allSquares(boardSize: Int): List<String> =
+        ranks(boardSize).flatMap { rank ->
+            files(boardSize).map { file -> "$file$rank" }
         }
 
-    fun isCenter(square: String): Boolean = square == centerSquare
+    fun centerSquare(boardSize: Int): String =
+        "${files(boardSize)[boardSize / 2]}${(boardSize / 2) + 1}"
 
-    fun isCorner(square: String): Boolean = square in cornerSquares
-
-    fun neighbors(square: String): List<String> {
-        val (fileIndex, rankIndex) = indexes(square) ?: return emptyList()
-        return listOfNotNull(
-            squareAt(fileIndex, rankIndex + 1),
-            squareAt(fileIndex + 1, rankIndex),
-            squareAt(fileIndex, rankIndex - 1),
-            squareAt(fileIndex - 1, rankIndex)
+    fun cornerSquares(boardSize: Int): Set<String> {
+        val files = files(boardSize)
+        return setOf(
+            "${files.first()}1",
+            "${files.first()}$boardSize",
+            "${files.last()}1",
+            "${files.last()}$boardSize"
         )
     }
 
-    fun oppositePairs(square: String): List<Pair<String, String>> {
-        val (fileIndex, rankIndex) = indexes(square) ?: return emptyList()
+    fun isCenter(square: String, specialSquare: String): Boolean =
+        square == specialSquare
+
+    fun isCorner(square: String, boardSize: Int): Boolean =
+        square in cornerSquares(boardSize)
+
+    fun neighbors(square: String, boardSize: Int): List<String> {
+        val (fileIndex, rankIndex) = indexes(square, boardSize) ?: return emptyList()
         return listOfNotNull(
-            pairAt(fileIndex, rankIndex + 1, fileIndex, rankIndex - 1),
-            pairAt(fileIndex - 1, rankIndex, fileIndex + 1, rankIndex)
+            squareAt(fileIndex, rankIndex + 1, boardSize),
+            squareAt(fileIndex + 1, rankIndex, boardSize),
+            squareAt(fileIndex, rankIndex - 1, boardSize),
+            squareAt(fileIndex - 1, rankIndex, boardSize)
         )
     }
 
-    fun isOrthogonallyAdjacent(first: String, second: String): Boolean {
-        val firstIndexes = indexes(first) ?: return false
-        val secondIndexes = indexes(second) ?: return false
+    fun oppositePairs(square: String, boardSize: Int): List<Pair<String, String>> {
+        val (fileIndex, rankIndex) = indexes(square, boardSize) ?: return emptyList()
+        return listOfNotNull(
+            pairAt(fileIndex, rankIndex + 1, fileIndex, rankIndex - 1, boardSize),
+            pairAt(fileIndex - 1, rankIndex, fileIndex + 1, rankIndex, boardSize)
+        )
+    }
+
+    fun isOrthogonallyAdjacent(first: String, second: String, boardSize: Int): Boolean {
+        val firstIndexes = indexes(first, boardSize) ?: return false
+        val secondIndexes = indexes(second, boardSize) ?: return false
         val fileDistance = kotlin.math.abs(firstIndexes.first - secondIndexes.first)
         val rankDistance = kotlin.math.abs(firstIndexes.second - secondIndexes.second)
         return fileDistance + rankDistance == 1
     }
 
-    fun pathBetween(origin: String, destination: String): List<String> {
-        val (originFile, originRank) = indexes(origin) ?: return emptyList()
-        val (destinationFile, destinationRank) = indexes(destination) ?: return emptyList()
+    fun pathBetween(origin: String, destination: String, boardSize: Int): List<String> {
+        val (originFile, originRank) = indexes(origin, boardSize) ?: return emptyList()
+        val (destinationFile, destinationRank) = indexes(destination, boardSize) ?: return emptyList()
         if (originFile != destinationFile && originRank != destinationRank) {
             return emptyList()
         }
@@ -60,7 +78,7 @@ object BoardCoordinates {
         var nextRank = originRank + rankStep
 
         while (nextFile != destinationFile || nextRank != destinationRank) {
-            path += squareAt(nextFile, nextRank) ?: return emptyList()
+            path += squareAt(nextFile, nextRank, boardSize) ?: return emptyList()
             nextFile += fileStep
             nextRank += rankStep
         }
@@ -68,30 +86,38 @@ object BoardCoordinates {
         return path
     }
 
-    private fun indexes(square: String): Pair<Int, Int>? {
-        if (!isValidSquare(square)) {
+    private fun files(boardSize: Int): List<Char> =
+        allFiles.take(boardSize)
+
+    private fun ranks(boardSize: Int): List<Int> =
+        (1..boardSize).toList()
+
+    private fun indexes(square: String, boardSize: Int): Pair<Int, Int>? {
+        if (!isValidSquare(square, boardSize)) {
             return null
         }
 
-        return files.indexOf(square[0]) to ranks.indexOf(square[1])
+        return files(boardSize).indexOf(square[0]) to (square.drop(1).toInt() - 1)
     }
 
-    private fun squareAt(fileIndex: Int, rankIndex: Int): String? {
-        if (fileIndex !in files.indices || rankIndex !in ranks.indices) {
+    private fun squareAt(fileIndex: Int, rankIndex: Int, boardSize: Int): String? {
+        val files = files(boardSize)
+        if (fileIndex !in files.indices || rankIndex !in 0 until boardSize) {
             return null
         }
 
-        return "${files[fileIndex]}${ranks[rankIndex]}"
+        return "${files[fileIndex]}${rankIndex + 1}"
     }
 
     private fun pairAt(
         firstFileIndex: Int,
         firstRankIndex: Int,
         secondFileIndex: Int,
-        secondRankIndex: Int
+        secondRankIndex: Int,
+        boardSize: Int
     ): Pair<String, String>? {
-        val first = squareAt(firstFileIndex, firstRankIndex) ?: return null
-        val second = squareAt(secondFileIndex, secondRankIndex) ?: return null
+        val first = squareAt(firstFileIndex, firstRankIndex, boardSize) ?: return null
+        val second = squareAt(secondFileIndex, secondRankIndex, boardSize) ?: return null
         return first to second
     }
 }

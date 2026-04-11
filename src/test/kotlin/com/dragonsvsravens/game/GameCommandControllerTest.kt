@@ -63,6 +63,33 @@ class GameCommandControllerTest : AbstractGameControllerTestSupport() {
     }
 
     @Test
+    fun `selecting sherwood x 9 updates the idle session and start game uses its shifted preset board`() {
+        val game = createGame()
+
+        postGameCommand(game.id, command(game.version, "select-rule-configuration", ruleConfigurationId = "sherwood-x-9")).andExpect {
+            status { isOk() }
+            jsonPath("$.selectedRuleConfigurationId", equalTo("sherwood-x-9"))
+            jsonPath("$.snapshot.ruleConfigurationId", equalTo("sherwood-x-9"))
+            jsonPath("$.snapshot.boardSize", equalTo(9))
+            jsonPath("$.snapshot.specialSquare", equalTo("e5"))
+            jsonPath("$.snapshot.board.e5", equalTo("gold"))
+            jsonPath("$.snapshot.board.e6", equalTo("dragon"))
+            jsonPath("$.snapshot.board.e8", equalTo("raven"))
+        }
+
+        postGameCommand(game.id, command(currentVersion(game.id), "start-game")).andExpect {
+            status { isOk() }
+            jsonPath("$.snapshot.phase", equalTo("move"))
+            jsonPath("$.snapshot.activeSide", equalTo("ravens"))
+            jsonPath("$.snapshot.boardSize", equalTo(9))
+            jsonPath("$.snapshot.specialSquare", equalTo("e5"))
+            jsonPath("$.snapshot.board.e5", equalTo("gold"))
+            jsonPath("$.snapshot.board.e6", equalTo("dragon"))
+            jsonPath("$.snapshot.board.e8", equalTo("raven"))
+        }
+    }
+
+    @Test
     fun `selecting free play starting side updates idle session and setup handoff`() {
         val game = createGame()
 
@@ -86,6 +113,25 @@ class GameCommandControllerTest : AbstractGameControllerTestSupport() {
     }
 
     @Test
+    fun `selecting free play board size updates idle session and setup handoff`() {
+        val game = createGame()
+
+        postGameCommand(game.id, command(game.version, "select-board-size", boardSize = 9)).andExpect {
+            status { isOk() }
+            jsonPath("$.selectedBoardSize", equalTo(9))
+            jsonPath("$.snapshot.boardSize", equalTo(9))
+            jsonPath("$.snapshot.specialSquare", equalTo("e5"))
+        }
+
+        postGameCommand(game.id, command(currentVersion(game.id), "start-game")).andExpect {
+            status { isOk() }
+            jsonPath("$.snapshot.phase", equalTo("setup"))
+            jsonPath("$.snapshot.boardSize", equalTo(9))
+            jsonPath("$.snapshot.specialSquare", equalTo("e5"))
+        }
+    }
+
+    @Test
     fun `original game rejects a move that would leave the moved piece captured`() {
         val game = seedGame(
             gameId = "original-game-test",
@@ -95,6 +141,8 @@ class GameCommandControllerTest : AbstractGameControllerTestSupport() {
                     "c1" to Piece.dragon,
                     "g7" to Piece.gold
                 ),
+                boardSize = GameRules.defaultBoardSize,
+                specialSquare = "d4",
                 phase = Phase.move,
                 activeSide = Side.ravens,
                 pendingMove = null,
@@ -206,6 +254,23 @@ class GameCommandControllerTest : AbstractGameControllerTestSupport() {
             before = before,
             command = command(before.version, "move-piece", origin = "a1", destination = "h1"),
             message = "Square h1 is outside the 7x7 board."
+        )
+    }
+
+    @Test
+    fun `out of bounds square uses the selected free play board size`() {
+        val game = createGame()
+        postGameCommand(game.id, command(game.version, "select-board-size", boardSize = 9)).andExpect {
+            status { isOk() }
+        }
+        startSetup(game.id)
+        val before = currentGame(game.id)
+
+        assertRejectedCommandLeavesGameUnchanged(
+            gameId = game.id,
+            before = before,
+            command = command(before.version, "cycle-setup", square = "j10"),
+            message = "Square j10 is outside the 9x9 board."
         )
     }
 

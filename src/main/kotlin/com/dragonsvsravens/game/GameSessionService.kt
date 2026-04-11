@@ -24,13 +24,16 @@ class GameSessionService(
         val selectedRuleConfigurationId = request.ruleConfigurationId ?: GameRules.freePlayRuleConfigurationId
         GameRules.getRuleConfigurationSummary(selectedRuleConfigurationId)
         val selectedStartingSide = request.startingSide ?: Side.dragons
+        val selectedBoardSize = request.boardSize ?: GameRules.defaultBoardSize
+        GameRules.validateBoardSize(selectedBoardSize)
 
         while (true) {
             val game = GameSessionFactory.createFreshStoredGame(
                 gameId = GameIdGenerator.nextId(),
-                snapshot = createIdleSnapshot(selectedRuleConfigurationId, selectedStartingSide),
+                snapshot = createIdleSnapshot(selectedRuleConfigurationId, selectedStartingSide, selectedBoardSize),
                 selectedRuleConfigurationId = selectedRuleConfigurationId,
                 selectedStartingSide = selectedStartingSide,
+                selectedBoardSize = selectedBoardSize,
                 now = Instant.now(clock)
             )
             if (gameStore.putIfAbsent(game)) {
@@ -57,7 +60,8 @@ class GameSessionService(
                     lifecycle = GameLifecycle.active,
                     snapshot = GameRules.startGame(
                         current.session.selectedRuleConfigurationId,
-                        current.session.selectedStartingSide
+                        current.session.selectedStartingSide,
+                        current.session.selectedBoardSize
                     ),
                     undoSnapshots = emptyList()
                 )
@@ -71,8 +75,12 @@ class GameSessionService(
                 current.withSelectedStartingSide(requireSide(command))
             }
 
+            "select-board-size" -> applyInPhase(current, command, Phase.none) {
+                current.withSelectedBoardSize(requireBoardSize(command))
+            }
+
             "cycle-setup" -> applyInPhase(current, command, Phase.setup) { snapshot ->
-                current.next(snapshot = GameRules.cycleSetupPiece(snapshot, requireSquare(command)))
+                current.next(snapshot = GameRules.cycleSetupPiece(snapshot, requireSquare(command, snapshot.boardSize)))
             }
 
             "end-setup" -> applyInPhase(current, command, Phase.setup) { snapshot ->
@@ -81,7 +89,11 @@ class GameSessionService(
 
             "move-piece" -> applyInPhase(current, command, Phase.move) { snapshot ->
                 current.nextWithUndo(
-                    snapshot = GameRules.movePiece(snapshot, requireOrigin(command), requireDestination(command))
+                    snapshot = GameRules.movePiece(
+                        snapshot,
+                        requireOrigin(command, snapshot.boardSize),
+                        requireDestination(command, snapshot.boardSize)
+                    )
                 )
             }
 
@@ -89,7 +101,7 @@ class GameSessionService(
                 if (!GameRules.isManualCapture(snapshot)) {
                     throw InvalidCommandException("This rule configuration resolves captures automatically.")
                 }
-                current.next(snapshot = GameRules.capturePiece(snapshot, requireSquare(command)))
+                current.next(snapshot = GameRules.capturePiece(snapshot, requireSquare(command, snapshot.boardSize)))
             }
 
             "skip-capture" -> applyInPhase(current, command, Phase.capture) { snapshot ->
@@ -179,15 +191,20 @@ class GameSessionService(
         }
     }
 
-    private fun createIdleSnapshot(ruleConfigurationId: String, selectedStartingSide: Side): GameSnapshot =
-        GameRules.createIdleSnapshot(ruleConfigurationId, selectedStartingSide)
+    private fun createIdleSnapshot(
+        ruleConfigurationId: String,
+        selectedStartingSide: Side,
+        selectedBoardSize: Int
+    ): GameSnapshot =
+        GameRules.createIdleSnapshot(ruleConfigurationId, selectedStartingSide, selectedBoardSize)
 
     private fun StoredGame.next(
         snapshot: GameSnapshot,
         undoSnapshots: List<GameSnapshot> = this.undoSnapshots,
         lifecycle: GameLifecycle = this.session.lifecycle,
         selectedRuleConfigurationId: String = this.session.selectedRuleConfigurationId,
-        selectedStartingSide: Side = this.session.selectedStartingSide
+        selectedStartingSide: Side = this.session.selectedStartingSide,
+        selectedBoardSize: Int = this.session.selectedBoardSize
     ): StoredGame = GameSessionFactory.createStoredGame(
         gameId = session.id,
         snapshot = snapshot,
@@ -197,7 +214,8 @@ class GameSessionService(
         updatedAt = Instant.now(clock),
         lifecycle = resolveLifecycle(snapshot, lifecycle),
         selectedRuleConfigurationId = selectedRuleConfigurationId,
-        selectedStartingSide = selectedStartingSide
+        selectedStartingSide = selectedStartingSide,
+        selectedBoardSize = selectedBoardSize
     )
 
     private fun touchGame(gameId: String, accessedAt: Instant = Instant.now(clock)) {
@@ -287,14 +305,14 @@ class GameSessionService(
         return update(current.session.snapshot)
     }
 
-    private fun requireSquare(command: GameCommandRequest): String =
-        requireBoardSquare(command.square, "square", command.type)
+    private fun requireSquare(command: GameCommandRequest, boardSize: Int): String =
+        requireBoardSquare(command.square, "square", command.type, boardSize)
 
-    private fun requireOrigin(command: GameCommandRequest): String =
-        requireBoardSquare(command.origin, "origin", command.type)
+    private fun requireOrigin(command: GameCommandRequest, boardSize: Int): String =
+        requireBoardSquare(command.origin, "origin", command.type, boardSize)
 
-    private fun requireDestination(command: GameCommandRequest): String =
-        requireBoardSquare(command.destination, "destination", command.type)
+    private fun requireDestination(command: GameCommandRequest, boardSize: Int): String =
+        requireBoardSquare(command.destination, "destination", command.type, boardSize)
 
     private fun requireRuleConfigurationId(command: GameCommandRequest): String {
         val ruleConfigurationId = command.ruleConfigurationId
@@ -306,10 +324,16 @@ class GameSessionService(
     private fun requireSide(command: GameCommandRequest): Side =
         command.side ?: throw InvalidCommandException("Command ${command.type} requires side.")
 
-    private fun requireBoardSquare(square: String?, fieldName: String, commandType: String): String {
+    private fun requireBoardSize(command: GameCommandRequest): Int {
+        val boardSize = command.boardSize ?: throw InvalidCommandException("Command ${command.type} requires boardSize.")
+        GameRules.validateBoardSize(boardSize)
+        return boardSize
+    }
+
+    private fun requireBoardSquare(square: String?, fieldName: String, commandType: String, boardSize: Int): String {
         val value = square ?: throw InvalidCommandException("Command $commandType requires $fieldName.")
-        if (!BoardCoordinates.isValidSquare(value)) {
-            throw InvalidCommandException("Square $value is outside the 7x7 board.")
+        if (!BoardCoordinates.isValidSquare(value, boardSize)) {
+            throw InvalidCommandException("Square $value is outside the ${boardSize}x${boardSize} board.")
         }
         return value
     }
@@ -329,14 +353,20 @@ class GameSessionService(
 
     private fun StoredGame.withSelectedRuleConfiguration(ruleConfigurationId: String): StoredGame =
         next(
-            snapshot = GameRules.createIdleSnapshot(ruleConfigurationId, session.selectedStartingSide),
+            snapshot = GameRules.createIdleSnapshot(ruleConfigurationId, session.selectedStartingSide, session.selectedBoardSize),
             selectedRuleConfigurationId = ruleConfigurationId
         )
 
     private fun StoredGame.withSelectedStartingSide(side: Side): StoredGame =
         next(
-            snapshot = GameRules.createIdleSnapshot(session.selectedRuleConfigurationId, side),
+            snapshot = GameRules.createIdleSnapshot(session.selectedRuleConfigurationId, side, session.selectedBoardSize),
             selectedStartingSide = side
+        )
+
+    private fun StoredGame.withSelectedBoardSize(boardSize: Int): StoredGame =
+        next(
+            snapshot = GameRules.createIdleSnapshot(session.selectedRuleConfigurationId, session.selectedStartingSide, boardSize),
+            selectedBoardSize = boardSize
         )
 
     private fun StoredGame.undo(): StoredGame {

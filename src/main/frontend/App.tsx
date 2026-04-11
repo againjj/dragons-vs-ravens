@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, type CSSProperties } from "react";
 
 import { useAppDispatch, useAppSelector } from "./app/hooks.js";
 import { Board } from "./components/Board.js";
@@ -12,6 +12,7 @@ import {
     selectFeedbackMessage,
     selectGameView,
     selectIsLoadingGame,
+    selectSnapshot,
     selectStatusText
 } from "./features/game/gameSelectors.js";
 import { gameActions } from "./features/game/gameSlice.js";
@@ -21,13 +22,14 @@ import {
     endSetup,
     openGame,
     returnToLobby,
+    selectBoardSize,
     selectRuleConfiguration,
     selectStartingSide,
     skipCapture,
     startGame,
     undoMove
 } from "./features/game/gameThunks.js";
-import { columnLetters } from "./game.js";
+import { getBoardDimension, getColumnLetters } from "./game.js";
 import { useGameSession } from "./features/game/useGameSession.js";
 import { useBoardSizing } from "./hooks/useBoardSizing.js";
 import { useFullscreen } from "./hooks/useFullscreen.js";
@@ -40,7 +42,11 @@ export const App = () => {
     const currentGameId = useAppSelector(selectCurrentGameId);
     const feedbackMessage = useAppSelector(selectFeedbackMessage);
     const isLoadingGame = useAppSelector(selectIsLoadingGame);
+    const snapshot = useAppSelector(selectSnapshot);
     const view = useAppSelector(selectGameView);
+    const boardDimension = getBoardDimension(snapshot);
+    const columnLetters = getColumnLetters(boardDimension);
+    const boardStyle = { "--board-dimension": String(boardDimension) } as CSSProperties;
     const pageRef = useRef<HTMLElement | null>(null);
     const boardShellRef = useRef<HTMLDivElement | null>(null);
     const { toggleFullscreen } = useFullscreen(pageRef);
@@ -115,7 +121,7 @@ export const App = () => {
                             <Board />
                             <div className="board-footer">
                                 <div className="board-footer-spacer" aria-hidden="true"></div>
-                                <div className="column-labels bottom" id="column-labels-bottom">
+                                <div className="column-labels bottom" id="column-labels-bottom" style={boardStyle}>
                                     {columnLetters.map((letter) => (
                                         <span key={letter}>{letter}</span>
                                     ))}
@@ -135,6 +141,9 @@ export const App = () => {
                                 }}
                                 onSelectStartingSide={(side) => {
                                     void dispatch(selectStartingSide(side));
+                                }}
+                                onSelectBoardSize={(boardSize) => {
+                                    void dispatch(selectBoardSize(boardSize));
                                 }}
                                 onEndSetup={() => {
                                     void dispatch(endSetup());

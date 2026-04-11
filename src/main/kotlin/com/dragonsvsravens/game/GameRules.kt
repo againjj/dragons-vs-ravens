@@ -2,6 +2,10 @@ package com.dragonsvsravens.game
 
 object GameRules {
     const val freePlayRuleConfigurationId = "free-play"
+    const val defaultBoardSize = 7
+    const val minBoardSize = 3
+    const val maxBoardSize = 26
+    private const val defaultSpecialSquare = "d4"
     private val setupCycle = listOf(Piece.dragon, Piece.raven, Piece.gold)
     private val originalStylePresetBoard = linkedMapOf(
         "d4" to Piece.gold,
@@ -18,9 +22,12 @@ object GameRules {
         "d2" to Piece.raven,
         "d1" to Piece.raven
     )
+    private val sherwoodX9PresetBoard = shiftPresetBoard(originalStylePresetBoard, fileOffset = 1, rankOffset = 1)
 
     private data class RuleConfiguration(
         val summary: RuleConfigurationSummary,
+        val boardSize: Int,
+        val specialSquare: String,
         val presetBoard: Map<String, Piece>,
         val startingSide: Side,
         val ruleSet: RuleSet
@@ -74,6 +81,8 @@ object GameRules {
             hasManualCapture = true,
             hasManualEndGame = true
         ),
+        boardSize = defaultBoardSize,
+        specialSquare = defaultSpecialSquare,
         presetBoard = emptyMap(),
         startingSide = Side.dragons,
         ruleSet = FreePlayRuleSet
@@ -113,6 +122,8 @@ object GameRules {
             hasManualCapture = false,
             hasManualEndGame = false
         ),
+        boardSize = defaultBoardSize,
+        specialSquare = defaultSpecialSquare,
         presetBoard = linkedMapOf(
             "a1" to Piece.dragon,
             "g7" to Piece.dragon,
@@ -135,6 +146,8 @@ object GameRules {
                 "You may not make a move that causes any of your own pieces to be captured.",
             )
         ),
+        boardSize = defaultBoardSize,
+        specialSquare = defaultSpecialSquare,
         presetBoard = originalStylePresetBoard,
         startingSide = Side.ravens,
         ruleSet = OriginalStyleRuleSet()
@@ -151,12 +164,32 @@ object GameRules {
                 "You may not make a move that causes any of your own pieces to be captured.",
             )
         ),
+        boardSize = defaultBoardSize,
+        specialSquare = defaultSpecialSquare,
         presetBoard = originalStylePresetBoard,
         startingSide = Side.ravens,
         ruleSet = OriginalStyleRuleSet(goldMovesOneSquareAtATime = true)
     )
 
-    private val ruleConfigurations = listOf(freePlay, trivial, originalGame, sherwoodRules)
+    private val sherwoodX9Rules = RuleConfiguration(
+        summary = createOriginalStyleSummary(
+            id = "sherwood-x-9",
+            name = "Sherwood x 9",
+            moveParagraphs = listOf(
+                "Ravens move first.",
+                "Dragons and ravens move any distance orthogonally without jumping. The gold may move only one square orthogonally at a time.",
+                "No piece may land on the center square after the gold leaves it, and only the gold may land on the corner squares.",
+                "You may not make a move that causes any of your own pieces to be captured.",
+            )
+        ),
+        boardSize = 9,
+        specialSquare = "e5",
+        presetBoard = sherwoodX9PresetBoard,
+        startingSide = Side.ravens,
+        ruleSet = OriginalStyleRuleSet(goldMovesOneSquareAtATime = true)
+    )
+
+    private val ruleConfigurations = listOf(freePlay, trivial, originalGame, sherwoodRules, sherwoodX9Rules)
     private val ruleConfigurationsById = ruleConfigurations.associateBy { it.summary.id }
 
     fun availableRuleConfigurations(): List<RuleConfigurationSummary> =
@@ -164,21 +197,28 @@ object GameRules {
 
     fun createInitialSnapshot(
         ruleConfigurationId: String = freePlayRuleConfigurationId,
-        selectedStartingSide: Side = Side.dragons
-    ): GameSnapshot = createBaseSnapshot(ruleConfigurationId, Phase.none, selectedStartingSide)
+        selectedStartingSide: Side = Side.dragons,
+        selectedBoardSize: Int = defaultBoardSize
+    ): GameSnapshot = createBaseSnapshot(ruleConfigurationId, Phase.none, selectedStartingSide, selectedBoardSize)
 
-    fun createIdleSnapshot(ruleConfigurationId: String, selectedStartingSide: Side = Side.dragons): GameSnapshot =
-        createBaseSnapshot(ruleConfigurationId, Phase.none, selectedStartingSide)
+    fun createIdleSnapshot(
+        ruleConfigurationId: String,
+        selectedStartingSide: Side = Side.dragons,
+        selectedBoardSize: Int = defaultBoardSize
+    ): GameSnapshot =
+        createBaseSnapshot(ruleConfigurationId, Phase.none, selectedStartingSide, selectedBoardSize)
 
     fun startGame(
         ruleConfigurationId: String = freePlayRuleConfigurationId,
-        selectedStartingSide: Side = Side.dragons
+        selectedStartingSide: Side = Side.dragons,
+        selectedBoardSize: Int = defaultBoardSize
     ): GameSnapshot {
         val configuration = getRuleConfiguration(ruleConfigurationId)
         val initialSnapshot = createBaseSnapshot(
             configuration.summary.id,
             configuration.ruleSet.startPhase(),
-            selectedStartingSide
+            selectedStartingSide,
+            selectedBoardSize
         )
         return initializePositionHistory(initialSnapshot)
     }
@@ -246,6 +286,12 @@ object GameRules {
     fun getRuleConfigurationSummary(ruleConfigurationId: String): RuleConfigurationSummary =
         getRuleConfiguration(ruleConfigurationId).summary
 
+    fun validateBoardSize(boardSize: Int) {
+        require(BoardCoordinates.isValidBoardSize(boardSize)) {
+            "Board size must be between ${minBoardSize}x${minBoardSize} and ${maxBoardSize}x${maxBoardSize}."
+        }
+    }
+
     fun sideOwnsPiece(side: Side, piece: Piece): Boolean =
         when (piece) {
             Piece.gold -> side == Side.dragons
@@ -270,11 +316,21 @@ object GameRules {
     private fun createBaseSnapshot(
         ruleConfigurationId: String,
         phase: Phase,
-        selectedStartingSide: Side
+        selectedStartingSide: Side,
+        selectedBoardSize: Int
     ): GameSnapshot {
         val configuration = getRuleConfiguration(ruleConfigurationId)
+        validateBoardSize(selectedBoardSize)
+        val boardSize = if (ruleConfigurationId == freePlayRuleConfigurationId) selectedBoardSize else configuration.boardSize
+        val specialSquare = if (ruleConfigurationId == freePlayRuleConfigurationId) {
+            BoardCoordinates.centerSquare(boardSize)
+        } else {
+            configuration.specialSquare
+        }
         return GameSnapshot(
             board = LinkedHashMap(configuration.presetBoard),
+            boardSize = boardSize,
+            specialSquare = specialSquare,
             phase = phase,
             activeSide = resolveStartingSide(ruleConfigurationId, selectedStartingSide),
             pendingMove = null,
@@ -396,6 +452,22 @@ object GameRules {
         hasManualEndGame = false
     )
 
+    private fun shiftPresetBoard(
+        presetBoard: Map<String, Piece>,
+        fileOffset: Int,
+        rankOffset: Int
+    ): Map<String, Piece> {
+        val shiftedBoard = LinkedHashMap<String, Piece>()
+
+        presetBoard.forEach { (square, piece) ->
+            val shiftedFile = square[0] + fileOffset
+            val shiftedRank = square.drop(1).toInt() + rankOffset
+            shiftedBoard["$shiftedFile$shiftedRank"] = piece
+        }
+
+        return shiftedBoard
+    }
+
     private object FreePlayRuleSet : RuleSet {
         override fun startPhase(): Phase = Phase.setup
 
@@ -459,7 +531,7 @@ object GameRules {
                 destination,
                 piece,
                 capturedSquares = { movedSnapshot ->
-                    BoardCoordinates.neighbors(destination)
+                    BoardCoordinates.neighbors(destination, snapshot.boardSize)
                         .filter { neighbor ->
                             val targetPiece = movedSnapshot.board[neighbor] ?: return@filter false
                             !sideOwnsPiece(snapshot.activeSide, targetPiece)
@@ -472,7 +544,7 @@ object GameRules {
         private fun determineTrivialOutcome(snapshot: GameSnapshot, destination: String): GameSnapshot {
             val goldReachedCenter = snapshot.turns.lastOrNull()?.to == destination &&
                 snapshot.board[destination] == Piece.gold &&
-                BoardCoordinates.isCenter(destination)
+                BoardCoordinates.isCenter(destination, snapshot.specialSquare)
             if (goldReachedCenter || snapshot.board.values.none { it == Piece.raven }) {
                 return endGame(snapshot, "Dragons win")
             }
@@ -491,22 +563,22 @@ object GameRules {
         override fun startPhase(): Phase = Phase.move
 
         override fun validateMove(snapshot: GameSnapshot, origin: String, destination: String, piece: Piece) {
-            val path = BoardCoordinates.pathBetween(origin, destination)
-            require(path.isNotEmpty() || origin[0] == destination[0] || origin[1] == destination[1]) {
+            val path = BoardCoordinates.pathBetween(origin, destination, snapshot.boardSize)
+            require(path.isNotEmpty() || origin[0] == destination[0] || origin.drop(1) == destination.drop(1)) {
                 "Pieces must move vertically or horizontally."
             }
             if (goldMovesOneSquareAtATime && piece == Piece.gold) {
-                require(isSingleOrthogonalStep(origin, destination)) {
+                require(isSingleOrthogonalStep(origin, destination, snapshot.boardSize)) {
                     "The gold may move only one square at a time."
                 }
             }
             require(path.none { snapshot.board.containsKey(it) }) {
                 "Pieces may not jump over other pieces."
             }
-            require(!BoardCoordinates.isCenter(destination)) {
+            require(!BoardCoordinates.isCenter(destination, snapshot.specialSquare)) {
                 "No piece may land on the center square."
             }
-            require(piece == Piece.gold || !BoardCoordinates.isCorner(destination)) {
+            require(piece == Piece.gold || !BoardCoordinates.isCorner(destination, snapshot.boardSize)) {
                 "Only the gold may land on a corner square."
             }
             require(!isIllegalEnemySandwich(snapshot, destination, piece)) {
@@ -558,7 +630,7 @@ object GameRules {
             snapshot.board.entries
                 .filter { (_, piece) -> sideOwnsPiece(snapshot.activeSide, piece) }
                 .any { (origin, piece) ->
-                    BoardCoordinates.allSquares()
+                    BoardCoordinates.allSquares(snapshot.boardSize)
                         .filter { it != origin && !snapshot.board.containsKey(it) }
                         .any { destination ->
                             try {
@@ -572,8 +644,8 @@ object GameRules {
                         }
                 }
 
-        private fun isSingleOrthogonalStep(origin: String, destination: String): Boolean {
-            return BoardCoordinates.isOrthogonallyAdjacent(origin, destination)
+        private fun isSingleOrthogonalStep(origin: String, destination: String, boardSize: Int): Boolean {
+            return BoardCoordinates.isOrthogonallyAdjacent(origin, destination, boardSize)
         }
 
         private fun wouldExposeFriendlyPieceToCapture(
@@ -585,10 +657,10 @@ object GameRules {
             val movedSnapshot = createMovedSnapshot(snapshot, origin, destination, piece)
             val opposingSide = oppositeSide(snapshot.activeSide)
             if (piece == Piece.gold) {
-                if (isGoldCaptured(movedSnapshot.board, destination)) {
+                if (isGoldCaptured(movedSnapshot, destination)) {
                     return true
                 }
-            } else if (isRegularPieceCaptured(movedSnapshot.board, destination, opposingSide)) {
+            } else if (isRegularPieceCaptured(movedSnapshot, destination, opposingSide)) {
                 return true
             }
             val capturedByMover = getAutomaticallyCapturedSquares(movedSnapshot, snapshot.activeSide)
@@ -599,15 +671,15 @@ object GameRules {
                 .filter { (square, _) -> square != destination }
                 .any { (square, remainingPiece) ->
                     if (remainingPiece == Piece.gold) {
-                        isGoldCaptured(boardAfterMoverCaptures, square)
+                        isGoldCaptured(movedSnapshot.copy(board = boardAfterMoverCaptures), square)
                     } else {
-                        isRegularPieceCaptured(boardAfterMoverCaptures, square, opposingSide)
+                        isRegularPieceCaptured(movedSnapshot.copy(board = boardAfterMoverCaptures), square, opposingSide)
                     }
                 }
         }
 
         private fun determineOriginalGameOutcome(snapshot: GameSnapshot, destination: String): GameSnapshot {
-            if (snapshot.board[destination] == Piece.gold && BoardCoordinates.isCorner(destination)) {
+            if (snapshot.board[destination] == Piece.gold && BoardCoordinates.isCorner(destination, snapshot.boardSize)) {
                 return endGame(snapshot, "Dragons win")
             }
 
@@ -619,7 +691,7 @@ object GameRules {
         }
 
         private fun isIllegalEnemySandwich(snapshot: GameSnapshot, destination: String, movedPiece: Piece): Boolean =
-            BoardCoordinates.oppositePairs(destination).any { (first, second) ->
+            BoardCoordinates.oppositePairs(destination, snapshot.boardSize).any { (first, second) ->
                 isEnemy(snapshot.board[first], movedPiece) && isEnemy(snapshot.board[second], movedPiece)
             }
 
@@ -639,43 +711,44 @@ object GameRules {
                 .filter { (_, piece) -> !sideOwnsPiece(capturingSide, piece) }
                 .filter { (square, piece) ->
                     if (piece == Piece.gold) {
-                        isGoldCaptured(snapshot.board, square)
+                        isGoldCaptured(snapshot, square)
                     } else {
-                        isRegularPieceCaptured(snapshot.board, square, capturingSide)
+                        isRegularPieceCaptured(snapshot, square, capturingSide)
                     }
                 }
                 .map { (square) -> square }
                 .sorted()
 
-        private fun isGoldCaptured(board: Map<String, Piece>, square: String): Boolean {
-            if (BoardCoordinates.isCenter(square)) {
-                return BoardCoordinates.neighbors(square).all { board[it] == Piece.raven }
+        private fun isGoldCaptured(snapshot: GameSnapshot, square: String): Boolean {
+            if (BoardCoordinates.isCenter(square, snapshot.specialSquare)) {
+                return BoardCoordinates.neighbors(square, snapshot.boardSize).all { snapshot.board[it] == Piece.raven }
             }
 
-            if (BoardCoordinates.isOrthogonallyAdjacent(square, "d4")) {
-                return BoardCoordinates.neighbors(square)
-                    .filter { it != "d4" }
-                    .all { board[it] == Piece.raven }
+            if (BoardCoordinates.isOrthogonallyAdjacent(square, snapshot.specialSquare, snapshot.boardSize)) {
+                return BoardCoordinates.neighbors(square, snapshot.boardSize)
+                    .filter { it != snapshot.specialSquare }
+                    .all { snapshot.board[it] == Piece.raven }
             }
 
-            return isRegularPieceCaptured(board, square, Side.ravens)
+            return isRegularPieceCaptured(snapshot, square, Side.ravens)
         }
 
         private fun isRegularPieceCaptured(
-            board: Map<String, Piece>,
+            snapshot: GameSnapshot,
             square: String,
             capturingSide: Side
-        ): Boolean = BoardCoordinates.oppositePairs(square).any { (first, second) ->
-            isHostileSquare(board, first, capturingSide) && isHostileSquare(board, second, capturingSide)
+        ): Boolean = BoardCoordinates.oppositePairs(square, snapshot.boardSize).any { (first, second) ->
+            isHostileSquare(snapshot, first, capturingSide) && isHostileSquare(snapshot, second, capturingSide)
         }
 
-        private fun isHostileSquare(board: Map<String, Piece>, square: String, capturingSide: Side): Boolean {
-            val piece = board[square]
+        private fun isHostileSquare(snapshot: GameSnapshot, square: String, capturingSide: Side): Boolean {
+            val piece = snapshot.board[square]
             if (piece != null) {
                 return sideOwnsPiece(capturingSide, piece)
             }
 
-            return BoardCoordinates.isCorner(square) || BoardCoordinates.isCenter(square)
+            return BoardCoordinates.isCorner(square, snapshot.boardSize) ||
+                BoardCoordinates.isCenter(square, snapshot.specialSquare)
         }
     }
 

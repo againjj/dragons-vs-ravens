@@ -215,6 +215,30 @@ class GameRulesTest {
     }
 
     @Test
+    fun `sherwood x 9 starts from the shifted setup on a 9x9 board with ravens to move`() {
+        val snapshot = GameRules.startGame("sherwood-x-9")
+
+        assertEquals(Phase.move, snapshot.phase)
+        assertEquals(Side.ravens, snapshot.activeSide)
+        assertEquals(9, snapshot.boardSize)
+        assertEquals("e5", snapshot.specialSquare)
+        assertEquals(Piece.gold, snapshot.board["e5"])
+        assertEquals(Piece.dragon, snapshot.board["e6"])
+        assertEquals(Piece.dragon, snapshot.board["d5"])
+        assertEquals(Piece.dragon, snapshot.board["f5"])
+        assertEquals(Piece.dragon, snapshot.board["e4"])
+        assertEquals(Piece.raven, snapshot.board["e8"])
+        assertEquals(Piece.raven, snapshot.board["e7"])
+        assertEquals(Piece.raven, snapshot.board["b5"])
+        assertEquals(Piece.raven, snapshot.board["c5"])
+        assertEquals(Piece.raven, snapshot.board["g5"])
+        assertEquals(Piece.raven, snapshot.board["h5"])
+        assertEquals(Piece.raven, snapshot.board["e3"])
+        assertEquals(Piece.raven, snapshot.board["e2"])
+        assertEquals(1, snapshot.positionKeys.size)
+    }
+
+    @Test
     fun `original game captures a dragon against the empty center`() {
         val moved = GameRules.movePiece(
             createSnapshot(
@@ -360,6 +384,28 @@ class GameRulesTest {
     }
 
     @Test
+    fun `sherwood x 9 rejects multi-square gold moves`() {
+        val exception = org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
+            GameRules.movePiece(
+                createSnapshot(
+                    board = linkedMapOf(
+                        "e6" to Piece.gold,
+                        "a9" to Piece.raven
+                    ),
+                    boardSize = 9,
+                    specialSquare = "e5",
+                    activeSide = Side.dragons,
+                    ruleConfigurationId = "sherwood-x-9"
+                ),
+                "e6",
+                "e9"
+            )
+        }
+
+        assertEquals("The gold may move only one square at a time.", exception.message)
+    }
+
+    @Test
     fun `sherwood rules keep the game going after dragons move f3 to f4 in the pictured position`() {
         val moved = GameRules.movePiece(
             createSnapshot(
@@ -455,6 +501,8 @@ class GameRulesTest {
 
     private fun createSnapshot(
         board: Map<String, Piece> = emptyMap(),
+        boardSize: Int = GameRules.defaultBoardSize,
+        specialSquare: String = "d4",
         phase: Phase = Phase.move,
         activeSide: Side = Side.dragons,
         pendingMove: TurnRecord? = null,
@@ -463,6 +511,8 @@ class GameRulesTest {
         positionKeys: List<String> = emptyList()
     ): GameSnapshot = GameSnapshot(
         board = LinkedHashMap(board),
+        boardSize = boardSize,
+        specialSquare = specialSquare,
         phase = phase,
         activeSide = activeSide,
         pendingMove = pendingMove,

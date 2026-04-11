@@ -179,6 +179,27 @@ class GameSessionServiceTest {
     }
 
     @Test
+    fun `selecting a board size updates free play in the no game state`() {
+        val service = createService()
+        val gameId = createGameId(service)
+
+        val updated = service.applyCommand(
+            gameId,
+            GameCommandRequest(
+                expectedVersion = 0,
+                type = "select-board-size",
+                boardSize = 9
+            )
+        )
+
+        assertEquals(9, updated.selectedBoardSize)
+        assertEquals(GameLifecycle.new, updated.lifecycle)
+        assertEquals(9, updated.snapshot.boardSize)
+        assertEquals("e5", updated.snapshot.specialSquare)
+        assertEquals(GameRules.freePlayRuleConfigurationId, updated.snapshot.ruleConfigurationId)
+    }
+
+    @Test
     fun `undo restores the previous snapshot and updates can undo`() {
         val service = createService()
         val gameId = createGameId(service)
@@ -344,6 +365,32 @@ class GameSessionServiceTest {
     }
 
     @Test
+    fun `starting sherwood x 9 uses the shifted setup and opening side`() {
+        val service = createService()
+        val gameId = createGameId(service)
+
+        service.applyCommand(
+            gameId,
+            GameCommandRequest(
+                expectedVersion = 0,
+                type = "select-rule-configuration",
+                ruleConfigurationId = "sherwood-x-9"
+            )
+        )
+
+        val started = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 1, type = "start-game"))
+
+        assertEquals("sherwood-x-9", started.snapshot.ruleConfigurationId)
+        assertEquals(Phase.move, started.snapshot.phase)
+        assertEquals(Side.ravens, started.snapshot.activeSide)
+        assertEquals(9, started.snapshot.boardSize)
+        assertEquals("e5", started.snapshot.specialSquare)
+        assertEquals(Piece.gold, started.snapshot.board["e5"])
+        assertEquals(Piece.dragon, started.snapshot.board["e6"])
+        assertEquals(Piece.raven, started.snapshot.board["e8"])
+    }
+
+    @Test
     fun `starting free play honors the selected starting side through setup`() {
         val service = createService()
         val gameId = createGameId(service)
@@ -504,6 +551,7 @@ class GameSessionServiceTest {
             snapshot = GameRules.createIdleSnapshot(GameRules.freePlayRuleConfigurationId, Side.dragons),
             selectedRuleConfigurationId = GameRules.freePlayRuleConfigurationId,
             selectedStartingSide = Side.dragons,
+            selectedBoardSize = GameRules.defaultBoardSize,
             now = lastAccessedAt
         )
         store.put(storedGame)

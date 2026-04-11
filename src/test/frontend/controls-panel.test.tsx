@@ -12,6 +12,7 @@ const renderPanel = (session = createSession()) =>
             onStartGame={vi.fn()}
             onSelectRuleConfiguration={vi.fn()}
             onSelectStartingSide={vi.fn()}
+            onSelectBoardSize={vi.fn()}
             onEndSetup={vi.fn()}
             onEndGame={vi.fn()}
             onUndo={vi.fn()}
@@ -43,6 +44,7 @@ describe("ControlsPanel", () => {
                 onStartGame={onStartGame}
                 onSelectRuleConfiguration={vi.fn()}
                 onSelectStartingSide={vi.fn()}
+                onSelectBoardSize={vi.fn()}
                 onEndSetup={vi.fn()}
                 onEndGame={vi.fn()}
                 onUndo={vi.fn()}
@@ -66,6 +68,7 @@ describe("ControlsPanel", () => {
 
         expect(screen.getByLabelText("Play Style")).toHaveValue("free-play");
         expect(screen.getByLabelText("Starting Side")).toHaveValue("dragons");
+        expect(screen.getByLabelText("Board Size")).toHaveValue("7");
         expect(screen.getByRole("button", { name: "Start Game" })).toBeEnabled();
         expect(screen.queryByRole("button", { name: "End Setup" })).toBeNull();
         expect(screen.queryByRole("button", { name: "End Game" })).toBeNull();
@@ -86,6 +89,7 @@ describe("ControlsPanel", () => {
                 onStartGame={vi.fn()}
                 onSelectRuleConfiguration={vi.fn()}
                 onSelectStartingSide={vi.fn()}
+                onSelectBoardSize={vi.fn()}
                 onEndSetup={onEndSetup}
                 onEndGame={vi.fn()}
                 onUndo={vi.fn()}
@@ -166,6 +170,7 @@ describe("ControlsPanel", () => {
                 onStartGame={vi.fn()}
                 onSelectRuleConfiguration={onSelectRuleConfiguration}
                 onSelectStartingSide={vi.fn()}
+                onSelectBoardSize={vi.fn()}
                 onEndSetup={vi.fn()}
                 onEndGame={vi.fn()}
                 onUndo={vi.fn()}
@@ -201,6 +206,7 @@ describe("ControlsPanel", () => {
                 onStartGame={vi.fn()}
                 onSelectRuleConfiguration={vi.fn()}
                 onSelectStartingSide={onSelectStartingSide}
+                onSelectBoardSize={vi.fn()}
                 onEndSetup={vi.fn()}
                 onEndGame={vi.fn()}
                 onUndo={vi.fn()}
@@ -227,6 +233,42 @@ describe("ControlsPanel", () => {
         expect(onSelectStartingSide).toHaveBeenCalledWith("ravens");
     });
 
+    test("changes the selected board size in free play", async () => {
+        const user = userEvent.setup();
+        const onSelectBoardSize = vi.fn();
+
+        renderWithStore(
+            <ControlsPanel
+                onStartGame={vi.fn()}
+                onSelectRuleConfiguration={vi.fn()}
+                onSelectStartingSide={vi.fn()}
+                onSelectBoardSize={onSelectBoardSize}
+                onEndSetup={vi.fn()}
+                onEndGame={vi.fn()}
+                onUndo={vi.fn()}
+                onSkipCapture={vi.fn()}
+            />,
+            {
+                preloadedState: {
+                    game: {
+                        session: createSession(),
+                        isSubmitting: false,
+                        loadState: "ready",
+                        connectionState: "open",
+                        feedbackMessage: null
+                    },
+                    ui: {
+                        selectedSquare: null
+                    }
+                }
+            }
+        );
+
+        await user.selectOptions(screen.getByLabelText("Board Size"), "9");
+
+        expect(onSelectBoardSize).toHaveBeenCalledWith(9);
+    });
+
     test("hides manual capture and manual end controls for automatic configurations", () => {
         renderPanel(
             createSession(
@@ -244,6 +286,7 @@ describe("ControlsPanel", () => {
         expect(screen.queryByRole("button", { name: "Skip Capture" })).toBeNull();
         expect(screen.queryByRole("button", { name: "End Game" })).toBeNull();
         expect(screen.queryByLabelText("Starting Side")).toBeNull();
+        expect(screen.queryByLabelText("Board Size")).toBeNull();
         expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
     });
 
