@@ -95,6 +95,8 @@ If a requested change would alter one of those rules, implement it only when tha
 - When the user asks to deploy to Railway, do not say the deploy is complete until you have confirmed that the latest intended changes were included in the deployment.
 - Treat a Railway deploy as incomplete while the latest deployment is still building or otherwise not yet successful.
 - Only report a Railway deploy as complete after verifying that the latest deployment finished successfully.
+- Railway deploys for this service typically take about 3 minutes from `railway up` to `SUCCESS`.
+- If a deployment is still in `BUILDING` or `DEPLOYING` after about 5 minutes, treat that as unusually long and stop polling.
 
 ## Review Rules
 
