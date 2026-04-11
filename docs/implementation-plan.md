@@ -279,7 +279,11 @@ This order fits the current codebase because the app is still modeled as a share
   - The backend now exposes only per-game routes under `/api/games`.
   - The server evicts in-memory games that have not been accessed for more than one hour, except for games that still have active viewers.
 - Milestone D: tickets 16-23
-  - Multi-game plus persistence.
+  - Status: complete.
+  - Game sessions now persist in the configured database instead of existing only in server memory.
+  - Flyway migrations now create the initial `games` schema on startup.
+  - The backend preserves optimistic locking and undo history through the DB-backed `GameStore`.
+  - SSE emitter tracking remains in memory per app instance, while game state persists across restarts and reconnects.
 - Milestone E: tickets 24-30
   - Auth and backend player ownership.
 - Milestone F: tickets 31-34
