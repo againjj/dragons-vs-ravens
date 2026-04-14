@@ -5,7 +5,6 @@ import type {
     CreateGameResponse,
     GameCommandRequest,
     GameViewResponse,
-    GuestLoginResponse,
     LoginRequest,
     ServerGameSession,
     SignupRequest
@@ -32,7 +31,14 @@ export type FetchLike = typeof fetch;
 export type EventSourceFactory = (url: string) => EventSourceLike;
 export const defaultCommandErrorMessage = "Unable to apply that action right now.";
 const getGameUrl = (gameId: string): string => `/api/games/${encodeURIComponent(gameId)}`;
-export const getOAuthLoginUrl = (provider: string): string => `/oauth2/authorization/${encodeURIComponent(provider)}`;
+export const getOAuthLoginUrl = (provider: string, nextPath?: string): string => {
+    const baseUrl = `/oauth2/authorization/${encodeURIComponent(provider)}`;
+    if (!nextPath) {
+        return baseUrl;
+    }
+    const search = new URLSearchParams({ next: nextPath });
+    return `${baseUrl}?${search.toString()}`;
+};
 
 const parseJson = async <T>(response: { json(): Promise<unknown> }): Promise<T> =>
     await response.json() as T;
@@ -107,11 +113,7 @@ export const loginAsGuest = async (fetchImpl: FetchLike = fetch): Promise<AuthSe
         throw new Error(`Failed to continue as guest: ${response.status}`);
     }
 
-    const result = await parseJson<GuestLoginResponse>(response);
-    return {
-        authenticated: true,
-        user: result.user
-    };
+    return parseJson<AuthSessionResponse>(response);
 };
 
 export const signupRequest = async (

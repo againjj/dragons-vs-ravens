@@ -22,7 +22,7 @@ export const loadAuthSession = (): AppThunk<Promise<void>> => async (dispatch) =
     }
 };
 
-export const continueAsGuest = (): AppThunk<Promise<void>> => async (dispatch) => {
+export const continueAsGuest = (): AppThunk<Promise<void>> => async (dispatch, getState) => {
     dispatch(authActions.authRequestStarted());
 
     try {
@@ -64,7 +64,7 @@ export const login = (request: LoginRequest): AppThunk<Promise<void>> => async (
     }
 };
 
-export const logout = (): AppThunk<Promise<void>> => async (dispatch) => {
+export const logout = (): AppThunk<Promise<void>> => async (dispatch, getState) => {
     dispatch(authActions.authRequestStarted());
 
     try {
@@ -72,7 +72,8 @@ export const logout = (): AppThunk<Promise<void>> => async (dispatch) => {
         dispatch(
             authActions.authSessionSet({
                 authenticated: false,
-                user: null
+                user: null,
+                oauthProviders: getState().auth.session.oauthProviders
             })
         );
     } catch {

@@ -3,9 +3,11 @@ package com.dragonsvsravens.auth
 import jakarta.servlet.DispatcherType
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpSession
 import jakarta.servlet.http.HttpSessionEvent
 import jakarta.servlet.http.HttpSessionListener
 import org.springframework.beans.factory.ObjectProvider
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.boot.web.servlet.ServletListenerRegistrationBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -15,10 +17,13 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
@@ -34,6 +39,7 @@ class SecurityConfig {
         http: HttpSecurity,
         oauth2UserService: OAuth2UserService<OAuth2UserRequest, OAuth2User>,
         oauthLoginSuccessHandler: OAuthLoginSuccessHandler,
+        oauthAuthorizationRequestResolverProvider: ObjectProvider<OAuth2AuthorizationRequestResolver>,
         clientRegistrationRepositoryProvider: ObjectProvider<ClientRegistrationRepository>
     ): SecurityFilterChain {
         val builder = http
@@ -61,6 +67,9 @@ class SecurityConfig {
             .rememberMe { it.disable() }
         if (clientRegistrationRepositoryProvider.ifAvailable != null) {
             builder.oauth2Login {
+                oauthAuthorizationRequestResolverProvider.ifAvailable?.let { resolver ->
+                    it.authorizationEndpoint { endpoint -> endpoint.authorizationRequestResolver(resolver) }
+                }
                 it.userInfoEndpoint { endpoint -> endpoint.userService(oauth2UserService) }
                 it.successHandler(oauthLoginSuccessHandler)
             }
@@ -93,6 +102,13 @@ class SecurityConfig {
     ): OAuthLoginSuccessHandler = OAuthLoginSuccessHandler(userAccountService, authSessionSupport)
 
     @Bean
+    @ConditionalOnBean(ClientRegistrationRepository::class)
+    fun oauthAuthorizationRequestResolver(
+        clientRegistrationRepository: ClientRegistrationRepository
+    ): OAuth2AuthorizationRequestResolver =
+        NextAwareAuthorizationRequestResolver(clientRegistrationRepository)
+
+    @Bean
     fun guestSessionCleanupListener(
         userAccountService: UserAccountService
     ): ServletListenerRegistrationBean<HttpSessionListener> =
@@ -105,6 +121,10 @@ class OAuthLoginSuccessHandler(
     private val userAccountService: UserAccountService,
     private val authSessionSupport: AuthSessionSupport
 ) : SimpleUrlAuthenticationSuccessHandler("/") {
+    companion object {
+        const val oauthNextPathSessionAttribute = "auth.oauth.nextPath"
+    }
+
     override fun onAuthenticationSuccess(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -125,8 +145,41 @@ class OAuthLoginSuccessHandler(
             email = email
         )
         authSessionSupport.signIn(request, response, user)
-        super.onAuthenticationSuccess(request, response, authentication)
+        clearAuthenticationAttributes(request)
+        redirectStrategy.sendRedirect(request, response, consumeNextPath(request.getSession(false)) ?: "/")
     }
+
+    private fun consumeNextPath(session: HttpSession?): String? {
+        val nextPath = session?.getAttribute(oauthNextPathSessionAttribute) as? String
+        session?.removeAttribute(oauthNextPathSessionAttribute)
+        return nextPath
+    }
+}
+
+class NextAwareAuthorizationRequestResolver(
+    clientRegistrationRepository: ClientRegistrationRepository
+) : OAuth2AuthorizationRequestResolver {
+    private val delegate = DefaultOAuth2AuthorizationRequestResolver(clientRegistrationRepository, "/oauth2/authorization")
+
+    override fun resolve(request: HttpServletRequest): OAuth2AuthorizationRequest? =
+        delegate.resolve(request)?.also {
+            storeNextPath(request)
+        }
+
+    override fun resolve(request: HttpServletRequest, clientRegistrationId: String): OAuth2AuthorizationRequest? =
+        delegate.resolve(request, clientRegistrationId)?.also {
+            storeNextPath(request)
+        }
+
+    private fun storeNextPath(request: HttpServletRequest) {
+        request.getSession(false)?.removeAttribute(OAuthLoginSuccessHandler.oauthNextPathSessionAttribute)
+        request.getParameter("next")
+            ?.takeIf(::isSafeLocalPath)
+            ?.let { request.getSession(true).setAttribute(OAuthLoginSuccessHandler.oauthNextPathSessionAttribute, it) }
+    }
+
+    private fun isSafeLocalPath(path: String): Boolean =
+        path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\")
 }
 
 class GuestSessionCleanupListener(

@@ -55,6 +55,42 @@ Games may track claimed `dragons` and `ravens` seats, and the auth-aware game vi
 Guest accounts are session-only: logging out or losing the session deletes the guest user and releases any seats they held without ending the game.
 On the game screen, the browser now shows claimed seats, hides pre-game setup controls until a side is claimed, hides the claim buttons after a seat is claimed, and only shows actionable board and control affordances to the player who can act. Undo is reserved for the player who made the last undoable move.
 
+## Google OAuth Setup
+
+Google sign-in appears automatically when the app sees a configured `google` OAuth client registration at startup. If those settings are missing, the login screen hides the Google button.
+
+This repo does not check in a real or placeholder Google OAuth registration. Enable Google sign-in by setting:
+
+```text
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE=openid,profile,email
+```
+
+For local development with a real secret, copy [.env.local.example](/Users/jrayazian/code/dragons-vs-ravens/.env.local.example) to `.env.local`, replace the secret value, and load it before starting the app:
+
+```bash
+source .env.local
+./gradlew bootRun
+```
+
+`.env.local` is ignored by git so your real secret stays local to your machine.
+
+Create a Google OAuth 2.0 web application in Google Cloud Console and add these authorized redirect URIs:
+
+- Local: `http://localhost:8080/login/oauth2/code/google`
+- Production: `https://<your-domain>/login/oauth2/code/google`
+
+Example local run:
+
+```bash
+./gradlew bootRun
+```
+
+Then open [http://localhost:8080](http://localhost:8080). If the Google OAuth client is valid for your current hostname and redirect URI, the login screen will show `Sign in with Google`.
+
+This app does not link Google accounts to existing local accounts by email. A Google login creates or reuses a user only by the OAuth provider id plus the provider subject returned by Google.
+
 ## Run Tests
 
 ```bash
@@ -94,6 +130,14 @@ SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
 ```
 
 Do not embed `username:password@` inside `SPRING_DATASOURCE_URL`. This app expects a JDBC URL plus separate username and password variables.
+
+If you want Google sign-in on Railway, make sure the Google Cloud OAuth client includes this exact callback URL:
+
+```text
+https://dragons-vs-ravens-production.up.railway.app/login/oauth2/code/google
+```
+
+If Railway uses a different public domain, update the Google OAuth redirect URI to match that exact deployed domain.
 
 Flyway runs the schema migration automatically on startup for both local H2 and deployed PostgreSQL databases. The build also pins Flyway to a Railway-compatible version and includes the PostgreSQL Flyway database module so Railway's managed Postgres startup can migrate successfully.
 

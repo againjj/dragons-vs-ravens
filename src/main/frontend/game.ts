@@ -78,10 +78,7 @@ export interface AuthUserSummary {
 export interface AuthSessionResponse {
     authenticated: boolean;
     user: AuthUserSummary | null;
-}
-
-export interface GuestLoginResponse {
-    user: AuthUserSummary;
+    oauthProviders: string[];
 }
 
 export interface LoginRequest {

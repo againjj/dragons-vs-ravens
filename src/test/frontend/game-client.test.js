@@ -146,11 +146,13 @@ test("loginAsGuest returns an authenticated session shape", async () => {
     const result = await loginAsGuest(async (_url, init) => ({
         ok: true,
         json: async () => ({
+            authenticated: true,
             user: {
                 id: "guest-1",
                 displayName: "Guest 1",
                 authType: "guest"
-            }
+            },
+            oauthProviders: ["google"]
         }),
         status: 200,
         init
@@ -158,6 +160,7 @@ test("loginAsGuest returns an authenticated session shape", async () => {
 
     assert.equal(result.authenticated, true);
     assert.equal(result.user.id, "guest-1");
+    assert.deepEqual(result.oauthProviders, ["google"]);
 });
 
 test("sendGameCommandRequest includes the expected version and returns the next game", async () => {

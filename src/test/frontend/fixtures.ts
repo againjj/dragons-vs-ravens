@@ -102,6 +102,7 @@ export const createAuthSession = (overrides: Partial<AuthSessionResponse> = {}):
         displayName: "Dragon Player",
         authType: "local"
     },
+    oauthProviders: [],
     ...overrides
 });
 

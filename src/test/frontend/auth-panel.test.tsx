@@ -7,7 +7,7 @@ import { createAuthSession } from "./fixtures.js";
 import { renderWithStore } from "./test-utils.js";
 
 describe("AuthPanel", () => {
-    test("shows two sign-in panels with local, guest, oauth, and signup options when signed out", async () => {
+    test("shows two sign-in panels with local, guest, oauth, and signup options when google auth is available", async () => {
         const user = userEvent.setup();
         const onContinueAsGuest = vi.fn();
         const onLogin = vi.fn();
@@ -19,7 +19,18 @@ describe("AuthPanel", () => {
                 onLogin={onLogin}
                 onSignup={onSignup}
                 onLogout={vi.fn()}
-            />
+            />,
+            {
+                preloadedState: {
+                    auth: {
+                        session: {
+                            authenticated: false,
+                            user: null,
+                            oauthProviders: ["google"]
+                        }
+                    }
+                }
+            }
         );
 
         expect(screen.getByRole("region", { name: "Sign in options" })).toBeInTheDocument();
@@ -53,6 +64,19 @@ describe("AuthPanel", () => {
             password: "password123",
             displayName: "New Player"
         });
+    });
+
+    test("hides the google sign-in button when oauth is not configured", () => {
+        renderWithStore(
+            <AuthPanel
+                onContinueAsGuest={vi.fn()}
+                onLogin={vi.fn()}
+                onSignup={vi.fn()}
+                onLogout={vi.fn()}
+            />
+        );
+
+        expect(screen.queryByRole("button", { name: "Sign in with Google" })).not.toBeInTheDocument();
     });
 
     test("shows the current user and logout when signed in", async () => {

@@ -13,24 +13,31 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class AuthController(
     private val userAccountService: UserAccountService,
-    private val authSessionSupport: AuthSessionSupport
+    private val authSessionSupport: AuthSessionSupport,
+    private val oauthProviderCatalog: OAuthProviderCatalog
 ) {
     @GetMapping("/api/auth/session")
     fun session(request: HttpServletRequest): AuthSessionResponse {
         val user = userAccountService.currentUserSummary(authSessionSupport.currentUserId(request.getSession(false)))
-        return AuthSessionResponse(authenticated = user != null, user = user)
+        return AuthSessionResponse(
+            authenticated = user != null,
+            user = user,
+            oauthProviders = oauthProviderCatalog.availableProviders()
+        )
     }
 
     @PostMapping("/api/auth/guest")
-    fun guestLogin(request: HttpServletRequest, response: HttpServletResponse): GuestLoginResponse {
+    fun guestLogin(request: HttpServletRequest, response: HttpServletResponse): AuthSessionResponse {
         val user = userAccountService.createGuestUser()
         authSessionSupport.signIn(request, response, user)
-        return GuestLoginResponse(
+        return AuthSessionResponse(
+            authenticated = true,
             user = AuthUserSummary(
                 id = user.id,
                 displayName = user.displayName,
                 authType = user.authType
-            )
+            ),
+            oauthProviders = oauthProviderCatalog.availableProviders()
         )
     }
 
@@ -42,7 +49,11 @@ class AuthController(
     ): AuthSessionResponse {
         val user = userAccountService.signup(signupRequest)
         authSessionSupport.signIn(request, response, user)
-        return AuthSessionResponse(authenticated = true, user = AuthUserSummary(user.id, user.displayName, user.authType))
+        return AuthSessionResponse(
+            authenticated = true,
+            user = AuthUserSummary(user.id, user.displayName, user.authType),
+            oauthProviders = oauthProviderCatalog.availableProviders()
+        )
     }
 
     @PostMapping("/api/auth/login")
@@ -53,7 +64,11 @@ class AuthController(
     ): AuthSessionResponse {
         val user = userAccountService.authenticateLocal(loginRequest)
         authSessionSupport.signIn(request, response, user)
-        return AuthSessionResponse(authenticated = true, user = AuthUserSummary(user.id, user.displayName, user.authType))
+        return AuthSessionResponse(
+            authenticated = true,
+            user = AuthUserSummary(user.id, user.displayName, user.authType),
+            oauthProviders = oauthProviderCatalog.availableProviders()
+        )
     }
 
     @PostMapping("/api/auth/logout")

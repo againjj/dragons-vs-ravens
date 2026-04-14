@@ -4,7 +4,7 @@
 
 This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, creates or opens games by id, and then talks to the per-game backend API for the active session.
 
-The backend now also includes session-cookie authentication for guest and local users, optional OAuth login wiring, persisted seat ownership on games, and request-scoped game-view metadata. The frontend now consumes that auth-aware view data, surfaces guest/local auth controls, requires authentication before entering the lobby or a game, and gates gameplay actions by claimed side and active turn.
+The backend now also includes session-cookie authentication for guest and local users, optional OAuth login wiring, persisted seat ownership on games, and request-scoped game-view metadata. The frontend now consumes that auth-aware view data, surfaces guest/local auth controls, requires authentication before entering the lobby or a game, and gates gameplay actions by claimed side and active turn. Google OAuth availability is now configuration-aware, and successful Google login returns to the original `/login?next=...` destination.
 
 ## Current Architecture
 
@@ -86,6 +86,8 @@ The backend now also includes session-cookie authentication for guest and local 
 - Runtime configuration:
   - `server.port` reads `${PORT:8080}` so the app keeps its local default while also working on Railway-style platforms that inject the listen port at runtime.
   - `spring.datasource.*` defaults to an H2 file database for local persistence and may be overridden for PostgreSQL deploys.
+  - Google OAuth is enabled only when the environment defines a `google` Spring client registration through `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID`, `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET`, and typically `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE=openid,profile,email`.
+  - Google callback URLs should use `/login/oauth2/code/google`, such as `http://localhost:8080/login/oauth2/code/google` locally or `https://<deploy-host>/login/oauth2/code/google` in production.
   - Railway deploys should set `SPRING_DATASOURCE_URL` to a JDBC host-only URL such as `jdbc:postgresql://<host>:<port>/<db>` and pass username/password separately through `SPRING_DATASOURCE_USERNAME` and `SPRING_DATASOURCE_PASSWORD`.
   - `railway up` uploads the current local workspace, while `railway service redeploy` only restarts the latest already-uploaded deployment.
   - Flyway runs startup migrations from `classpath:db/migration`, and the Gradle build now pins Flyway to `10.22.0` plus `flyway-database-postgresql` so Railway's PostgreSQL 18 startup is accepted.
@@ -134,6 +136,7 @@ The backend also now exposes auth-oriented DTOs outside the canonical session pa
 - `GameViewResponse`
 - `viewerRole`
 - player summaries for the claimed dragons and ravens seats
+- configured OAuth provider ids for the login UI
 
 Important implication: game state is now persisted in the configured database, so clients can reopen the same game after server restart. SSE subscriptions and live fanout remain in memory per app instance, so persistence does not by itself add cross-instance push delivery.
 

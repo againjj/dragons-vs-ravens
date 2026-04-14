@@ -56,7 +56,8 @@ describe("authThunks", () => {
                 id: "guest-1",
                 displayName: "Guest 1",
                 authType: "guest"
-            }
+            },
+            oauthProviders: ["google"]
         });
         fetchGameViewMock.mockResolvedValue(
             createGameView({ id: "game-101" }, {}, {
@@ -69,6 +70,13 @@ describe("authThunks", () => {
             })
         );
         const store = createAppStore({
+            auth: {
+                session: {
+                    authenticated: false,
+                    user: null,
+                    oauthProviders: ["google"]
+                }
+            },
             game: {
                 view: "game",
                 currentGameId: "game-101",
@@ -79,6 +87,7 @@ describe("authThunks", () => {
         await store.dispatch(continueAsGuest());
 
         expect(store.getState().auth.session.user?.authType).toBe("guest");
+        expect(store.getState().auth.session.oauthProviders).toEqual(["google"]);
         expect(fetchGameViewMock).toHaveBeenCalledWith("game-101");
     });
 
@@ -111,6 +120,22 @@ describe("authThunks", () => {
 
         expect(store.getState().auth.session.authenticated).toBe(false);
         expect(store.getState().auth.session.user).toBeNull();
+        expect(store.getState().auth.session.oauthProviders).toEqual([]);
         expect(fetchGameViewMock).not.toHaveBeenCalled();
+    });
+
+    test("logout preserves the configured oauth providers for the signed-out screen", async () => {
+        logoutRequestMock.mockResolvedValue(undefined);
+        const store = createAppStore({
+            auth: {
+                session: createAuthSession({
+                    oauthProviders: ["google"]
+                })
+            }
+        });
+
+        await store.dispatch(logout());
+
+        expect(store.getState().auth.session.oauthProviders).toEqual(["google"]);
     });
 });

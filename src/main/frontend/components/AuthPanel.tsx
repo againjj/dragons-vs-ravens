@@ -21,8 +21,10 @@ export const AuthPanel = ({
     const dispatch = useAppDispatch();
     const isAuthenticated = useAppSelector(selectIsAuthenticated);
     const currentUser = useAppSelector(selectCurrentUser);
+    const oauthProviders = useAppSelector((state) => state.auth.session.oauthProviders ?? []);
     const isSubmitting = useAppSelector(selectIsAuthSubmitting);
     const feedbackMessage = useAppSelector(selectAuthFeedbackMessage);
+    const googleOauthEnabled = oauthProviders.includes("google");
     const [loginUsername, setLoginUsername] = useState("");
     const [loginPassword, setLoginPassword] = useState("");
     const [signupUsername, setSignupUsername] = useState("");
@@ -110,15 +112,18 @@ export const AuthPanel = ({
                             <button type="button" disabled={isSubmitting} onClick={onContinueAsGuest}>
                                 Continue as Guest
                             </button>
-                            <button
-                                type="button"
-                                disabled={isSubmitting}
-                                onClick={() => {
-                                    window.location.assign(getOAuthLoginUrl("google"));
-                                }}
-                            >
-                                Sign in with Google
-                            </button>
+                            {googleOauthEnabled ? (
+                                <button
+                                    type="button"
+                                    disabled={isSubmitting}
+                                    onClick={() => {
+                                        const nextPath = new URLSearchParams(window.location.search).get("next") ?? "/lobby";
+                                        window.location.assign(getOAuthLoginUrl("google", nextPath));
+                                    }}
+                                >
+                                    Sign in with Google
+                                </button>
+                            ) : null}
                         </div>
                     </section>
 

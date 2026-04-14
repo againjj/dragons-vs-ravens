@@ -34,11 +34,8 @@ data class AuthUserSummary(
 
 data class AuthSessionResponse(
     val authenticated: Boolean,
-    val user: AuthUserSummary? = null
-)
-
-data class GuestLoginResponse(
-    val user: AuthUserSummary
+    val user: AuthUserSummary? = null,
+    val oauthProviders: List<String> = emptyList()
 )
 
 data class SignupRequest(

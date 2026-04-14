@@ -12,7 +12,8 @@ export interface AuthState {
 export const initialAuthState: AuthState = {
     session: {
         authenticated: false,
-        user: null
+        user: null,
+        oauthProviders: []
     },
     isSubmitting: false,
     loadState: "idle",

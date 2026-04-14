@@ -42,14 +42,15 @@ export const createGame = (): AppThunk<Promise<string | null>> => async (dispatc
     }
 };
 
-export const loadGameView = (gameId: string): AppThunk<Promise<boolean>> => async (dispatch) => {
+export const loadGameView = (gameId: string): AppThunk<Promise<boolean>> => async (dispatch, getState) => {
     try {
         const view = await fetchGameView(gameId);
         dispatch(gameActions.gameViewUpdated(view));
         dispatch(
             authActions.authSessionSet({
                 authenticated: view.currentUser != null,
-                user: view.currentUser
+                user: view.currentUser,
+                oauthProviders: getState().auth.session.oauthProviders
             })
         );
         dispatch(syncSelectedSquare());
@@ -99,7 +100,8 @@ export const refreshCurrentGameView = (): AppThunk<Promise<void>> => async (disp
         dispatch(
             authActions.authSessionSet({
                 authenticated: view.currentUser != null,
-                user: view.currentUser
+                user: view.currentUser,
+                oauthProviders: getState().auth.session.oauthProviders
             })
         );
         dispatch(syncSelectedSquare());
@@ -130,7 +132,8 @@ export const sendCommand = (
             dispatch(
                 authActions.authSessionSet({
                     authenticated: false,
-                    user: null
+                    user: null,
+                    oauthProviders: getState().auth.session.oauthProviders
                 })
             );
             await dispatch(refreshCurrentGameView());
@@ -163,7 +166,8 @@ export const claimSide = (side: import("../../game.js").Side): AppThunk<Promise<
             dispatch(
                 authActions.authSessionSet({
                     authenticated: false,
-                    user: null
+                    user: null,
+                    oauthProviders: getState().auth.session.oauthProviders
                 })
             );
         }
