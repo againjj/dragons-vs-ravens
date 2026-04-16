@@ -61,7 +61,7 @@ Games may track claimed `dragons` and `ravens` seats, and the auth-aware game vi
 Guest accounts are session-only: logging out or losing the session deletes the guest user and releases any seats they held without ending the game.
 The `/profile` page is available only to local password accounts. It lets a user update their display name using the same validation as signup, and delete their own account only after confirming their password again.
 Deleting a local account signs that session out, releases any claimed seats, clears nullable ownership references such as the game creator id, and leaves the game itself intact and readable.
-On the game screen, the browser now shows claimed seats, hides pre-game setup controls until a side is claimed, hides the claim buttons after a seat is claimed, and only shows actionable board and control affordances to the player who can act. Undo is reserved for the player who made the last undoable move.
+On the game screen, the browser now shows claimed seats, hides pre-game setup controls until a side is claimed, hides the claim buttons after a seat is claimed, and only shows actionable board and control affordances to the player who can act, except that both claimed players may participate during `Free Play` setup. Undo is reserved for the player who made the last undoable move.
 
 ## Google OAuth Setup
 

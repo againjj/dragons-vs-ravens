@@ -156,6 +156,9 @@ class GameCommandService(
         if (phase == Phase.none) {
             return
         }
+        if (phase == Phase.setup) {
+            return
+        }
         if (assignedSide != current.session.snapshot.activeSide) {
             throw ForbiddenActionException("It is not your turn.")
         }

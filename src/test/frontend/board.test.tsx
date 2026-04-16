@@ -354,6 +354,60 @@ describe("Board", () => {
         expect(store.getState().ui.selectedSquare).toBeNull();
     });
 
+    test("shows setup affordances to both claimed players", () => {
+        const baseGameState = {
+            session: createSession({}, {
+                phase: "setup",
+                activeSide: "dragons",
+                board: {
+                    a1: "dragon"
+                }
+            }),
+            dragonsPlayer: { id: "player-dragons", displayName: "Dragon Player" },
+            ravensPlayer: { id: "player-ravens", displayName: "Raven Player" },
+            isSubmitting: false,
+            loadState: "ready" as const,
+            connectionState: "open" as const,
+            feedbackMessage: null
+        };
+
+        const dragonsView = renderWithStore(<Board />, {
+            preloadedState: {
+                auth: {
+                    session: createAuthSession({ user: { id: "player-dragons", displayName: "Dragon Player", authType: "local" } })
+                },
+                game: {
+                    ...baseGameState,
+                    viewerRole: "dragons"
+                },
+                ui: {
+                    selectedSquare: null
+                }
+            }
+        });
+
+        expect(screen.getByRole("button", { name: "Square b2" })).toHaveClass("is-clickable");
+
+        dragonsView.unmount();
+
+        renderWithStore(<Board />, {
+            preloadedState: {
+                auth: {
+                    session: createAuthSession({ user: { id: "player-ravens", displayName: "Raven Player", authType: "local" } })
+                },
+                game: {
+                    ...baseGameState,
+                    viewerRole: "ravens"
+                },
+                ui: {
+                    selectedSquare: null
+                }
+            }
+        });
+
+        expect(screen.getByRole("button", { name: "Square b2" })).toHaveClass("is-clickable");
+    });
+
     test("does not show capture affordances to spectators", async () => {
         const user = userEvent.setup();
         const { store } = renderWithStore(<Board />, {

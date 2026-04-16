@@ -51,7 +51,7 @@ export const selectCanViewerAct = createSelector(
             return false;
         }
 
-        if (snapshot.phase === "none") {
+        if (snapshot.phase === "none" || snapshot.phase === "setup") {
             return true;
         }
 

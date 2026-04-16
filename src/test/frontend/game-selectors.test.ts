@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { createAppStore } from "../../main/frontend/app/store.js";
 import { gameActions } from "../../main/frontend/features/game/gameSlice.js";
-import { selectStatusText, selectTargetableSquares } from "../../main/frontend/features/game/gameSelectors.js";
+import { selectCanViewerAct, selectStatusText, selectTargetableSquares } from "../../main/frontend/features/game/gameSelectors.js";
 import { uiActions } from "../../main/frontend/features/ui/uiSlice.js";
 import { createSession } from "./fixtures.js";
 
@@ -72,6 +72,44 @@ describe("game selectors", () => {
         });
 
         expect(selectStatusText(store.getState())).toBe("Setup phase: place the pieces on the board.");
+    });
+
+    test("setup allows both claimed players to act", () => {
+        const dragonsStore = createAppStore({
+            game: {
+                session: createSession({}, {
+                    phase: "setup",
+                    activeSide: "dragons"
+                }),
+                viewerRole: "dragons",
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: null
+            }
+        });
+        const ravensStore = createAppStore({
+            game: {
+                session: createSession({}, {
+                    phase: "setup",
+                    activeSide: "dragons"
+                }),
+                viewerRole: "ravens",
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: null
+            }
+        });
+
+        expect(selectCanViewerAct(dragonsStore.getState())).toBe(true);
+        expect(selectCanViewerAct(ravensStore.getState())).toBe(true);
     });
 
     test("status text uses the no game copy before a game starts", () => {

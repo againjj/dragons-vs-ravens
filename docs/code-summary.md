@@ -4,7 +4,7 @@
 
 This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, creates or opens games by id, and then talks to the per-game backend API for the active session.
 
-The backend now also includes session-cookie authentication for guest and local users, optional OAuth login wiring, persisted seat ownership on games, request-scoped game-view metadata, and self-service local-account profile management. The frontend now consumes that auth-aware view data, surfaces guest/local auth controls, requires authentication before entering the lobby or a game, gates gameplay actions by claimed side and active turn, and exposes a local-only profile page for display-name updates plus account deletion. Google OAuth availability is now configuration-aware, and successful Google login returns to the original `/login?next=...` destination.
+The backend now also includes session-cookie authentication for guest and local users, optional OAuth login wiring, persisted seat ownership on games, request-scoped game-view metadata, and self-service local-account profile management. The frontend now consumes that auth-aware view data, surfaces guest/local auth controls, requires authentication before entering the lobby or a game, gates gameplay actions by claimed side and active turn while still allowing both claimed players to participate during free-play setup, and exposes a local-only profile page for display-name updates plus account deletion. Google OAuth availability is now configuration-aware, and successful Google login returns to the original `/login?next=...` destination.
 
 The repository now also includes `docs/refactor-plan.md`, which captures a phased plan for the next round of code-organization improvements without changing gameplay behavior. Phase 1 of that plan is now complete on the frontend: the old `game.ts` helper module has been split into focused files for shared types, board geometry, client-side rules helpers, and move-history formatting. Phase 2 is now complete on the backend: the oversized `GameRules.kt` module has been split into a rule catalog, snapshot factory, shared rule-engine contract, and dedicated free-play, trivial, and original-style rule-engine files while preserving the existing `GameRules` facade for callers. Phase 3 is now complete on the frontend: repeated game-view fetch, auth-session patching, selection normalization, and `401`/`403` recovery logic in `gameThunks.ts` has been consolidated into shared thunk helpers so open, refresh, command, and seat-claim flows stay aligned. Phase 4 is now complete on the frontend: the game-only layout and wiring have been extracted from `App.tsx` into a dedicated `GameScreen.tsx` container so the app shell stays focused on auth bootstrap, shared chrome, and route selection. Phase 5 is now complete on the backend: command authorization, validation, undo transitions, and side-claim logic have been extracted into `GameCommandService.kt`, leaving `GameSessionService.kt` focused on store orchestration, SSE lifecycle, and stale-game cleanup.
 
@@ -176,7 +176,7 @@ The Kotlin game module is now the source of truth for game rules and state trans
 - Broadcasts updated snapshots to SSE clients scoped by game id.
 - Tracks last access time server-side for stale-game eviction.
 - Persists which local user, if any, currently owns each side.
-- Enforces that only the authenticated player on the active side may submit commands on the web API path.
+- Enforces that only authenticated claimed players may submit commands, with shared access during free-play setup and active-side enforcement once turn-based play begins.
 - Splits command-transition logic into `GameCommandService.kt` and session/store orchestration into `GameSessionService.kt`.
 
 Most gameplay changes should start on the backend here.
@@ -209,7 +209,7 @@ The React frontend is now split by responsibility.
 - `authThunks.ts` coordinates current-session loading plus guest/local login and logout flows.
 - `gameStream.ts` plus `useGameSession.ts` open and maintain the SSE subscription only for the active game screen.
 - `useGameRoute.ts` maps browser URLs to lobby or game state and keeps the address bar in sync with the active game id.
-- `Board.tsx`, `ControlsPanel.tsx`, `MoveList.tsx`, and `StatusBanner.tsx` render the current UI from Redux state.
+- `Board.tsx`, `ControlsPanel.tsx`, `MoveList.tsx`, and `StatusBanner.tsx` render the current UI from Redux state, including shared free-play setup affordances for both claimed players.
 - `LobbyScreen.tsx` renders the create-or-open entry flow before a game is active.
 - `useBoardSizing.ts` and `useFullscreen.ts` wrap browser-specific layout and fullscreen behavior.
 
@@ -238,6 +238,7 @@ Most UI-only changes should start in the relevant component, selector, or browse
 - `Free Play` preserves the original setup flow:
   - starting the game enters `setup`
   - clicking a square cycles `empty -> dragon -> raven -> gold -> empty`
+  - both claimed players may place pieces and end setup
   - any square, including `d4`, can be changed during setup
   - any number of gold pieces may be placed during setup
 - Ending setup switches to `move`, the selected starting side moves first, dragons may move dragons or gold, ravens may move ravens, and movement allows any owned piece to move to any empty square.
@@ -292,7 +293,7 @@ Most UI-only changes should start in the relevant component, selector, or browse
 - Opening the lobby, loading a game, and SSE subscription now require an authenticated session.
 - Command submission and seat claiming also require an authenticated session.
 - Authenticated users may claim one open side on a game; unclaimed viewers remain spectators.
-- The game screen now shows current seat ownership, hides pre-game setup controls until the viewer claims a side, hides claim buttons after a seat is claimed, and suppresses gameplay affordances when the viewer is spectating or on the wrong side for the active turn.
+- The game screen now shows current seat ownership, hides pre-game setup controls until the viewer claims a side, hides claim buttons after a seat is claimed, allows both claimed players to place pieces and end setup in free play, and suppresses gameplay affordances when the viewer is spectating or on the wrong side once turn-based play begins.
 - If a guest session ends, that guest user is deleted and any seats they held become unclaimed while the game itself stays active and viewable.
 - Generated game ids now use 7 characters from the Open Location Code ("PLUS code") alphabet `23456789CFGHJMPQRVWX`, which is the shortest fixed width that still covers more than 1,000,000,000 possible games.
 - Mutation requests include an expected version.

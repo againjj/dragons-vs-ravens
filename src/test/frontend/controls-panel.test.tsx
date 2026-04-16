@@ -146,6 +146,81 @@ describe("ControlsPanel", () => {
         expect(onEndSetup).toHaveBeenCalledTimes(1);
     });
 
+    test("enables end setup for both claimed players during setup", () => {
+        const baseState = {
+            session: createSession({}, {
+                phase: "setup",
+                activeSide: "dragons"
+            }),
+            dragonsPlayer: { id: "player-dragons", displayName: "Dragon Player" },
+            ravensPlayer: { id: "player-ravens", displayName: "Raven Player" },
+            isSubmitting: false,
+            loadState: "ready" as const,
+            connectionState: "open" as const,
+            feedbackMessage: null
+        };
+
+        const dragonsView = renderWithStore(
+            <ControlsPanel
+                onStartGame={vi.fn()}
+                onSelectRuleConfiguration={vi.fn()}
+                onSelectStartingSide={vi.fn()}
+                onSelectBoardSize={vi.fn()}
+                onEndSetup={vi.fn()}
+                onEndGame={vi.fn()}
+                onUndo={vi.fn()}
+                onSkipCapture={vi.fn()}
+            />,
+            {
+                preloadedState: {
+                    auth: {
+                        session: createAuthSession({ user: { id: "player-dragons", displayName: "Dragon Player", authType: "local" } })
+                    },
+                    game: {
+                        ...baseState,
+                        viewerRole: "dragons"
+                    },
+                    ui: {
+                        selectedSquare: null
+                    }
+                }
+            }
+        );
+
+        expect(screen.getByRole("button", { name: "End Setup" })).toBeEnabled();
+
+        dragonsView.unmount();
+
+        renderWithStore(
+            <ControlsPanel
+                onStartGame={vi.fn()}
+                onSelectRuleConfiguration={vi.fn()}
+                onSelectStartingSide={vi.fn()}
+                onSelectBoardSize={vi.fn()}
+                onEndSetup={vi.fn()}
+                onEndGame={vi.fn()}
+                onUndo={vi.fn()}
+                onSkipCapture={vi.fn()}
+            />,
+            {
+                preloadedState: {
+                    auth: {
+                        session: createAuthSession({ user: { id: "player-ravens", displayName: "Raven Player", authType: "local" } })
+                    },
+                    game: {
+                        ...baseState,
+                        viewerRole: "ravens"
+                    },
+                    ui: {
+                        selectedSquare: null
+                    }
+                }
+            }
+        );
+
+        expect(screen.getByRole("button", { name: "End Setup" })).toBeEnabled();
+    });
+
     test("shows end game, skip capture, and undo during active play", () => {
         renderPanel(
             createSession(

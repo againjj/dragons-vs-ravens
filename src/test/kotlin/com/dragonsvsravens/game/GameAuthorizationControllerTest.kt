@@ -94,11 +94,93 @@ class GameAuthorizationControllerTest : AbstractGameControllerTestSupport() {
 
         authenticatedPostGameCommand(
             game.id,
-            command(1, "cycle-setup", square = "a1"),
+            command(1, "end-setup"),
+            userId = defaultTestUserId
+        ).andExpect {
+            status { isOk() }
+        }
+
+        authenticatedPostGameCommand(
+            game.id,
+            command(2, "move-piece", origin = "a1", destination = "a2"),
             userId = alternateTestUserId
         ).andExpect {
             status { isForbidden() }
             jsonPath("$.message", equalTo("It is not your turn."))
+        }
+    }
+
+    @Test
+    fun `free play setup allows both players to place pieces when dragons start`() {
+        val game = createGame()
+        assignSides(game.id, defaultTestUserId, alternateTestUserId)
+
+        authenticatedPostGameCommand(
+            game.id,
+            command(game.version, "start-game"),
+            userId = defaultTestUserId
+        ).andExpect {
+            status { isOk() }
+        }
+
+        authenticatedPostGameCommand(
+            game.id,
+            command(1, "cycle-setup", square = "a1"),
+            userId = defaultTestUserId
+        ).andExpect {
+            status { isOk() }
+            jsonPath("$.snapshot.board.a1", equalTo("dragon"))
+        }
+
+        authenticatedPostGameCommand(
+            game.id,
+            command(2, "cycle-setup", square = "b1"),
+            userId = alternateTestUserId
+        ).andExpect {
+            status { isOk() }
+            jsonPath("$.snapshot.board.a1", equalTo("dragon"))
+            jsonPath("$.snapshot.board.b1", equalTo("dragon"))
+        }
+    }
+
+    @Test
+    fun `free play setup allows both players to place pieces when ravens start`() {
+        val game = createGame()
+        assignSides(game.id, defaultTestUserId, alternateTestUserId)
+
+        authenticatedPostGameCommand(
+            game.id,
+            command(game.version, "select-starting-side", side = Side.ravens),
+            userId = defaultTestUserId
+        ).andExpect {
+            status { isOk() }
+        }
+
+        authenticatedPostGameCommand(
+            game.id,
+            command(1, "start-game"),
+            userId = alternateTestUserId
+        ).andExpect {
+            status { isOk() }
+        }
+
+        authenticatedPostGameCommand(
+            game.id,
+            command(2, "cycle-setup", square = "a1"),
+            userId = alternateTestUserId
+        ).andExpect {
+            status { isOk() }
+            jsonPath("$.snapshot.board.a1", equalTo("dragon"))
+        }
+
+        authenticatedPostGameCommand(
+            game.id,
+            command(3, "cycle-setup", square = "b1"),
+            userId = defaultTestUserId
+        ).andExpect {
+            status { isOk() }
+            jsonPath("$.snapshot.board.a1", equalTo("dragon"))
+            jsonPath("$.snapshot.board.b1", equalTo("dragon"))
         }
     }
 
