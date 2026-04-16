@@ -175,6 +175,7 @@ The current Railway production URL is [https://dragons-vs-ravens-production.up.r
   - React UI components for board, controls, status, and move list
 - `src/main/kotlin/com/dragonsvsravens/game`
   - backend game state, rules, and API endpoints
+  - includes a thin `GameRules.kt` facade plus focused rule catalog, snapshot factory, and per-ruleset engine files
 - `src/main/resources/static/styles.css`
   - layout and styling
 - `docs/code-summary.md`
@@ -203,6 +204,7 @@ Read docs/code-summary.md and AGENTS.md before making changes. Follow those inst
 - Turn history now includes both completed moves and a terminal `Game Over` entry when a game is ended.
 - Original-style automatic draws now report whether they happened by repetition or by no legal move.
 - Original-style terminal win checks now take precedence over the post-turn no-legal-move draw check when the gold is captured.
+- Backend rule metadata and execution are now split into focused Kotlin files so future rules changes do not all land in one oversized `GameRules.kt`.
 - The shared session now exposes available rule configurations plus the currently selected configuration so all clients stay in sync on the next play style.
 - `Original Game` follows the published Ravens and Dragons setup and movement/capture rules, including automatic wins and draws.
 - `Sherwood Rules` reuses the `Original Game` setup, capture, and win/draw conditions, but limits the gold to one-square orthogonal movement.
