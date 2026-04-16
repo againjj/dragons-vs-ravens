@@ -6,6 +6,8 @@ This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a brows
 
 The backend now also includes session-cookie authentication for guest and local users, optional OAuth login wiring, persisted seat ownership on games, request-scoped game-view metadata, and self-service local-account profile management. The frontend now consumes that auth-aware view data, surfaces guest/local auth controls, requires authentication before entering the lobby or a game, gates gameplay actions by claimed side and active turn, and exposes a local-only profile page for display-name updates plus account deletion. Google OAuth availability is now configuration-aware, and successful Google login returns to the original `/login?next=...` destination.
 
+The repository now also includes `docs/refactor-plan.md`, which captures a phased plan for the next round of code-organization improvements without changing gameplay behavior.
+
 ## Current Architecture
 
 - `src/main/kotlin/com/dragonsvsravens/DragonsVsRavensApplication.kt`
