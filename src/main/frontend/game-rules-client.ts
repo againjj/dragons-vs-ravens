@@ -62,8 +62,19 @@ const isCornerSquare = (square: string, boardSize: number): boolean => {
     ].includes(square);
 };
 
-const originalStyleRuleConfigurationIds = new Set(["original-game", "sherwood-rules", "sherwood-x-9"]);
-const sherwoodStyleRuleConfigurationIds = new Set(["sherwood-rules", "sherwood-x-9"]);
+const originalStyleRuleConfigurationIds = new Set([
+    "original-game",
+    "sherwood-rules",
+    "square-one",
+    "sherwood-x-9",
+    "square-one-x-9"
+]);
+const sherwoodStyleRuleConfigurationIds = new Set([
+    "sherwood-rules",
+    "square-one",
+    "sherwood-x-9",
+    "square-one-x-9"
+]);
 
 const isOriginalStyleRuleConfiguration = (ruleConfigurationId: string): boolean =>
     originalStyleRuleConfigurationIds.has(ruleConfigurationId);

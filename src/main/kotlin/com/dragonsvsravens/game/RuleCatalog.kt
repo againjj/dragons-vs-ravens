@@ -17,7 +17,23 @@ internal object RuleCatalog {
         "d2" to Piece.raven,
         "d1" to Piece.raven
     )
+    private val squareOnePresetBoard = linkedMapOf(
+        "d4" to Piece.gold,
+        "d5" to Piece.dragon,
+        "c4" to Piece.dragon,
+        "e4" to Piece.dragon,
+        "d3" to Piece.dragon,
+        "b6" to Piece.raven,
+        "d6" to Piece.raven,
+        "f6" to Piece.raven,
+        "b4" to Piece.raven,
+        "f4" to Piece.raven,
+        "b2" to Piece.raven,
+        "d2" to Piece.raven,
+        "f2" to Piece.raven
+    )
     private val sherwoodX9PresetBoard = shiftPresetBoard(originalStylePresetBoard, fileOffset = 1, rankOffset = 1)
+    private val squareOneX9PresetBoard = shiftPresetBoard(squareOnePresetBoard, fileOffset = 1, rankOffset = 1)
 
     private val freePlay = RuleConfiguration(
         summary = RuleConfigurationSummary(
@@ -108,9 +124,10 @@ internal object RuleCatalog {
             name = "Original Game",
             moveParagraphs = listOf(
                 "Ravens move first.",
-                "Pieces move any distance orthogonally without jumping. No piece may land on the center square after the gold leaves it, and only the gold may land on the corner squares.",
+                "Pieces move any distance orthogonally without jumping. The gold is moved by the dragons. No piece may land on the center square after the gold leaves it, and only the gold may land on the corner squares.",
                 "You may not make a move that causes any of your own pieces to be captured.",
-            )
+            ),
+            setupParagraph = "The game starts in a cross formation: gold in the center with dragons surrounding it, and two ravens behind each dragon."
         ),
         boardSize = GameRules.defaultBoardSize,
         specialSquare = defaultSpecialSquare,
@@ -125,14 +142,34 @@ internal object RuleCatalog {
             name = "Sherwood Rules",
             moveParagraphs = listOf(
                 "Ravens move first.",
-                "Dragons and ravens move any distance orthogonally without jumping. The gold may move only one square orthogonally at a time.",
+                "Dragons and ravens move any distance orthogonally without jumping. The gold is moved by the dragons and may move only one square orthogonally at a time.",
                 "No piece may land on the center square after the gold leaves it, and only the gold may land on the corner squares.",
                 "You may not make a move that causes any of your own pieces to be captured.",
-            )
+            ),
+            setupParagraph = "The game starts in a cross formation: gold in the center with dragons surrounding it, and two ravens behind each dragon."
         ),
         boardSize = GameRules.defaultBoardSize,
         specialSquare = defaultSpecialSquare,
         presetBoard = originalStylePresetBoard,
+        startingSide = Side.ravens,
+        ruleSet = OriginalStyleRuleEngine(goldMovesOneSquareAtATime = true)
+    )
+
+    private val squareOneRules = RuleConfiguration(
+        summary = createOriginalStyleSummary(
+            id = "square-one",
+            name = "Square One",
+            moveParagraphs = listOf(
+                "Ravens move first.",
+                "Dragons and ravens move any distance orthogonally without jumping. The gold is moved by the dragons and may move only one square orthogonally at a time.",
+                "No piece may land on the center square after the gold leaves it, and only the gold may land on the corner squares.",
+                "You may not make a move that causes any of your own pieces to be captured.",
+            ),
+            setupParagraph = "The game starts in a cross formation: gold in the center with dragons surrounding it, and eight ravens around the dragons."
+        ),
+        boardSize = GameRules.defaultBoardSize,
+        specialSquare = defaultSpecialSquare,
+        presetBoard = squareOnePresetBoard,
         startingSide = Side.ravens,
         ruleSet = OriginalStyleRuleEngine(goldMovesOneSquareAtATime = true)
     )
@@ -143,10 +180,11 @@ internal object RuleCatalog {
             name = "Sherwood x 9",
             moveParagraphs = listOf(
                 "Ravens move first.",
-                "Dragons and ravens move any distance orthogonally without jumping. The gold may move only one square orthogonally at a time.",
+                "Dragons and ravens move any distance orthogonally without jumping. The gold is moved by the dragons and may move only one square orthogonally at a time.",
                 "No piece may land on the center square after the gold leaves it, and only the gold may land on the corner squares.",
                 "You may not make a move that causes any of your own pieces to be captured.",
-            )
+            ),
+            setupParagraph = "The game starts in a cross formation: gold in the center with dragons surrounding it, and two ravens behind each dragon."
         ),
         boardSize = 9,
         specialSquare = "e5",
@@ -155,7 +193,34 @@ internal object RuleCatalog {
         ruleSet = OriginalStyleRuleEngine(goldMovesOneSquareAtATime = true)
     )
 
-    private val ruleConfigurations = listOf(freePlay, trivial, originalGame, sherwoodRules, sherwoodX9Rules)
+    private val squareOneX9Rules = RuleConfiguration(
+        summary = createOriginalStyleSummary(
+            id = "square-one-x-9",
+            name = "Square One x 9",
+            moveParagraphs = listOf(
+                "Ravens move first.",
+                "Dragons and ravens move any distance orthogonally without jumping. The gold is moved by the dragons and may move only one square orthogonally at a time.",
+                "No piece may land on the center square after the gold leaves it, and only the gold may land on the corner squares.",
+                "You may not make a move that causes any of your own pieces to be captured.",
+            ),
+            setupParagraph = "The game starts in a cross formation: gold in the center with dragons surrounding it, and eight ravens around the dragons."
+        ),
+        boardSize = 9,
+        specialSquare = "e5",
+        presetBoard = squareOneX9PresetBoard,
+        startingSide = Side.ravens,
+        ruleSet = OriginalStyleRuleEngine(goldMovesOneSquareAtATime = true)
+    )
+
+    private val ruleConfigurations = listOf(
+        freePlay,
+        trivial,
+        originalGame,
+        sherwoodRules,
+        squareOneRules,
+        sherwoodX9Rules,
+        squareOneX9Rules
+    )
     private val ruleConfigurationsById = ruleConfigurations.associateBy { it.summary.id }
 
     fun availableRuleConfigurations(): List<RuleConfigurationSummary> =
@@ -168,7 +233,8 @@ internal object RuleCatalog {
     private fun createOriginalStyleSummary(
         id: String,
         name: String,
-        moveParagraphs: List<String>
+        moveParagraphs: List<String>,
+        setupParagraph: String
     ): RuleConfigurationSummary = RuleConfigurationSummary(
         id = id,
         name = name,
@@ -182,7 +248,7 @@ internal object RuleCatalog {
             RuleDescriptionSection(
                 heading = "Setup",
                 paragraphs = listOf(
-                    "The game starts in a cross formation: gold in the center with dragons surrounding it, and two ravens behind each dragon.",
+                    setupParagraph,
                 )
             ),
             RuleDescriptionSection(

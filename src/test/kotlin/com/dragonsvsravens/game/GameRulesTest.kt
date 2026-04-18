@@ -227,6 +227,28 @@ class GameRulesTest {
     }
 
     @Test
+    fun `square one starts from the square one setup with ravens to move`() {
+        val snapshot = GameRules.startGame("square-one")
+
+        assertEquals(Phase.move, snapshot.phase)
+        assertEquals(Side.ravens, snapshot.activeSide)
+        assertEquals(Piece.gold, snapshot.board["d4"])
+        assertEquals(Piece.dragon, snapshot.board["d5"])
+        assertEquals(Piece.dragon, snapshot.board["c4"])
+        assertEquals(Piece.dragon, snapshot.board["e4"])
+        assertEquals(Piece.dragon, snapshot.board["d3"])
+        assertEquals(Piece.raven, snapshot.board["b6"])
+        assertEquals(Piece.raven, snapshot.board["d6"])
+        assertEquals(Piece.raven, snapshot.board["f6"])
+        assertEquals(Piece.raven, snapshot.board["b4"])
+        assertEquals(Piece.raven, snapshot.board["f4"])
+        assertEquals(Piece.raven, snapshot.board["b2"])
+        assertEquals(Piece.raven, snapshot.board["d2"])
+        assertEquals(Piece.raven, snapshot.board["f2"])
+        assertEquals(1, snapshot.positionKeys.size)
+    }
+
+    @Test
     fun `sherwood x 9 starts from the shifted setup on a 9x9 board with ravens to move`() {
         val snapshot = GameRules.startGame("sherwood-x-9")
 
@@ -247,6 +269,30 @@ class GameRulesTest {
         assertEquals(Piece.raven, snapshot.board["h5"])
         assertEquals(Piece.raven, snapshot.board["e3"])
         assertEquals(Piece.raven, snapshot.board["e2"])
+        assertEquals(1, snapshot.positionKeys.size)
+    }
+
+    @Test
+    fun `square one x 9 starts from the shifted square one setup on a 9x9 board with ravens to move`() {
+        val snapshot = GameRules.startGame("square-one-x-9")
+
+        assertEquals(Phase.move, snapshot.phase)
+        assertEquals(Side.ravens, snapshot.activeSide)
+        assertEquals(9, snapshot.boardSize)
+        assertEquals("e5", snapshot.specialSquare)
+        assertEquals(Piece.gold, snapshot.board["e5"])
+        assertEquals(Piece.dragon, snapshot.board["e6"])
+        assertEquals(Piece.dragon, snapshot.board["d5"])
+        assertEquals(Piece.dragon, snapshot.board["f5"])
+        assertEquals(Piece.dragon, snapshot.board["e4"])
+        assertEquals(Piece.raven, snapshot.board["c7"])
+        assertEquals(Piece.raven, snapshot.board["e7"])
+        assertEquals(Piece.raven, snapshot.board["g7"])
+        assertEquals(Piece.raven, snapshot.board["c5"])
+        assertEquals(Piece.raven, snapshot.board["g5"])
+        assertEquals(Piece.raven, snapshot.board["c3"])
+        assertEquals(Piece.raven, snapshot.board["e3"])
+        assertEquals(Piece.raven, snapshot.board["g3"])
         assertEquals(1, snapshot.positionKeys.size)
     }
 
@@ -408,6 +454,48 @@ class GameRulesTest {
                     specialSquare = "e5",
                     activeSide = Side.dragons,
                     ruleConfigurationId = "sherwood-x-9"
+                ),
+                "e6",
+                "e9"
+            )
+        }
+
+        assertEquals("The gold may move only one square at a time.", exception.message)
+    }
+
+    @Test
+    fun `square one rejects multi-square gold moves`() {
+        val exception = org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
+            GameRules.movePiece(
+                createSnapshot(
+                    board = linkedMapOf(
+                        "d5" to Piece.gold,
+                        "a7" to Piece.raven
+                    ),
+                    activeSide = Side.dragons,
+                    ruleConfigurationId = "square-one"
+                ),
+                "d5",
+                "d7"
+            )
+        }
+
+        assertEquals("The gold may move only one square at a time.", exception.message)
+    }
+
+    @Test
+    fun `square one x 9 rejects multi-square gold moves`() {
+        val exception = org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
+            GameRules.movePiece(
+                createSnapshot(
+                    board = linkedMapOf(
+                        "e6" to Piece.gold,
+                        "a9" to Piece.raven
+                    ),
+                    boardSize = 9,
+                    specialSquare = "e5",
+                    activeSide = Side.dragons,
+                    ruleConfigurationId = "square-one-x-9"
                 ),
                 "e6",
                 "e9"

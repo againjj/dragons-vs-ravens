@@ -442,6 +442,80 @@ describe("game selectors", () => {
         expect(targetableSquares).not.toContain("a6");
     });
 
+    test("square one only allows one-step gold targets", () => {
+        const store = createAppStore({
+            game: {
+                session: createSession(
+                    {
+                        selectedRuleConfigurationId: "square-one"
+                    },
+                    {
+                        phase: "move",
+                        ruleConfigurationId: "square-one",
+                        activeSide: "dragons",
+                        board: {
+                            d5: "gold",
+                            a7: "raven"
+                        }
+                    }
+                ),
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: "d5"
+            }
+        });
+
+        const targetableSquares = selectTargetableSquares(store.getState());
+
+        expect(targetableSquares).toContain("c5");
+        expect(targetableSquares).toContain("e5");
+        expect(targetableSquares).toContain("d6");
+        expect(targetableSquares).not.toContain("d7");
+        expect(targetableSquares).not.toContain("a5");
+    });
+
+    test("square one x 9 only allows one-step gold targets on a 9x9 board", () => {
+        const store = createAppStore({
+            game: {
+                session: createSession(
+                    {
+                        selectedRuleConfigurationId: "square-one-x-9"
+                    },
+                    {
+                        boardSize: 9,
+                        specialSquare: "e5",
+                        phase: "move",
+                        ruleConfigurationId: "square-one-x-9",
+                        activeSide: "dragons",
+                        board: {
+                            e6: "gold",
+                            a9: "raven"
+                        }
+                    }
+                ),
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: "e6"
+            }
+        });
+
+        const targetableSquares = selectTargetableSquares(store.getState());
+
+        expect(targetableSquares).toContain("d6");
+        expect(targetableSquares).toContain("f6");
+        expect(targetableSquares).toContain("e7");
+        expect(targetableSquares).not.toContain("e9");
+        expect(targetableSquares).not.toContain("a6");
+    });
+
     test("sherwood x 9 does not show targets for a stale gold selection when ravens are to move", () => {
         const store = createAppStore({
             game: {

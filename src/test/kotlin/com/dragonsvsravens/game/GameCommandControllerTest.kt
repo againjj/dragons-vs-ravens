@@ -92,6 +92,56 @@ class GameCommandControllerTest : AbstractGameControllerTestSupport() {
     }
 
     @Test
+    fun `selecting square one updates the idle session and start game uses its preset board`() {
+        val game = createGame()
+
+        postGameCommand(game.id, command(game.version, "select-rule-configuration", ruleConfigurationId = "square-one")).andExpect {
+            status { isOk() }
+            jsonPath("$.selectedRuleConfigurationId", equalTo("square-one"))
+            jsonPath("$.snapshot.ruleConfigurationId", equalTo("square-one"))
+            jsonPath("$.snapshot.board.d4", equalTo("gold"))
+            jsonPath("$.snapshot.board.d5", equalTo("dragon"))
+            jsonPath("$.snapshot.board.b6", equalTo("raven"))
+        }
+
+        postGameCommand(game.id, command(currentVersion(game.id), "start-game")).andExpect {
+            status { isOk() }
+            jsonPath("$.snapshot.phase", equalTo("move"))
+            jsonPath("$.snapshot.activeSide", equalTo("ravens"))
+            jsonPath("$.snapshot.board.d4", equalTo("gold"))
+            jsonPath("$.snapshot.board.d5", equalTo("dragon"))
+            jsonPath("$.snapshot.board.b6", equalTo("raven"))
+        }
+    }
+
+    @Test
+    fun `selecting square one x 9 updates the idle session and start game uses its shifted preset board`() {
+        val game = createGame()
+
+        postGameCommand(game.id, command(game.version, "select-rule-configuration", ruleConfigurationId = "square-one-x-9")).andExpect {
+            status { isOk() }
+            jsonPath("$.selectedRuleConfigurationId", equalTo("square-one-x-9"))
+            jsonPath("$.snapshot.ruleConfigurationId", equalTo("square-one-x-9"))
+            jsonPath("$.snapshot.boardSize", equalTo(9))
+            jsonPath("$.snapshot.specialSquare", equalTo("e5"))
+            jsonPath("$.snapshot.board.e5", equalTo("gold"))
+            jsonPath("$.snapshot.board.e6", equalTo("dragon"))
+            jsonPath("$.snapshot.board.c7", equalTo("raven"))
+        }
+
+        postGameCommand(game.id, command(currentVersion(game.id), "start-game")).andExpect {
+            status { isOk() }
+            jsonPath("$.snapshot.phase", equalTo("move"))
+            jsonPath("$.snapshot.activeSide", equalTo("ravens"))
+            jsonPath("$.snapshot.boardSize", equalTo(9))
+            jsonPath("$.snapshot.specialSquare", equalTo("e5"))
+            jsonPath("$.snapshot.board.e5", equalTo("gold"))
+            jsonPath("$.snapshot.board.e6", equalTo("dragon"))
+            jsonPath("$.snapshot.board.c7", equalTo("raven"))
+        }
+    }
+
+    @Test
     fun `selecting free play starting side updates idle session and setup handoff`() {
         val game = createGame()
 

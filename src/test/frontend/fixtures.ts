@@ -62,11 +62,35 @@ export const createSession = (
             hasManualEndGame: false
         },
         {
+            id: "square-one",
+            name: "Square One",
+            descriptionSections: [
+                {
+                    paragraphs: ["Square One description"]
+                }
+            ],
+            hasSetupPhase: false,
+            hasManualCapture: false,
+            hasManualEndGame: false
+        },
+        {
             id: "sherwood-x-9",
             name: "Sherwood x 9",
             descriptionSections: [
                 {
                     paragraphs: ["Sherwood x 9 description"]
+                }
+            ],
+            hasSetupPhase: false,
+            hasManualCapture: false,
+            hasManualEndGame: false
+        },
+        {
+            id: "square-one-x-9",
+            name: "Square One x 9",
+            descriptionSections: [
+                {
+                    paragraphs: ["Square One x 9 description"]
                 }
             ],
             hasSetupPhase: false,

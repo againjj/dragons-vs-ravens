@@ -40,11 +40,11 @@ The active game screen shows the current game ID plus a `Back to Lobby` button.
 The game board now resumes responsive resizing correctly after entering a game from the lobby.
 Once a game is open, the controls include the play-style dropdown plus the usual gameplay actions.
 `Free Play` preserves the original behavior: before starting, you can choose whether dragons or ravens move first; starting a game then enters setup with an empty board, setup clicks cycle `empty -> dragon -> raven -> gold -> empty`, capture is manual, and the game is ended manually.
-`Trivial Configuration`, `Original Game`, and `Sherwood Rules` start from preset boards with no setup phase, resolve captures automatically, and end automatically based on their own rules.
-`Sherwood Rules` matches `Original Game` except the gold may move only one orthogonal square at a time.
+`Trivial Configuration`, `Original Game`, `Sherwood Rules`, `Square One`, `Sherwood x 9`, and `Square One x 9` start from preset boards with no setup phase, resolve captures automatically, and end automatically based on their own rules.
+`Sherwood Rules`, `Square One`, `Sherwood x 9`, and `Square One x 9` match the original-style capture and win/draw rules, but the gold is moved by the dragons and may move only one orthogonal square at a time.
 Original-style games now award `Ravens win` immediately when the gold is captured, even if the dragons would otherwise have no legal reply.
 Game over returns the session to a finished no-game state while preserving the final board position and full completed history, including a terminal `Game Over: ...` entry.
-`Original Game` and `Sherwood Rules` now label draws by cause in turn history, such as `Game Over: Draw by repetition` and `Game Over: Draw by no legal move`.
+`Original Game`, `Sherwood Rules`, `Square One`, `Sherwood x 9`, and `Square One x 9` now label draws by cause in turn history, such as `Game Over: Draw by repetition` and `Game Over: Draw by no legal move`.
 When `Free Play` is ended manually, the terminal history entry is rendered as `Game Over`.
 Finished games stay viewable on their existing game IDs, and if the session still has undo history the player who made the last undoable move can undo the terminal game-over state to resume play from the previous snapshot.
 You still cannot restart or reconfigure a finished game on that same ID while it remains finished; creating another game gives you a fresh ID.
@@ -217,7 +217,10 @@ Read docs/code-summary.md and AGENTS.md before making changes. Follow those inst
 - `App.tsx` now stays focused on shared shell and route selection, while `GameScreen.tsx` owns the active board screen layout and wiring.
 - The shared session now exposes available rule configurations plus the currently selected configuration so all clients stay in sync on the next play style.
 - `Original Game` follows the published Ravens and Dragons setup and movement/capture rules, including automatic wins and draws.
-- `Sherwood Rules` reuses the `Original Game` setup, capture, and win/draw conditions, but limits the gold to one-square orthogonal movement.
+- `Sherwood Rules` reuses the `Original Game` setup, capture, and win/draw conditions, but the gold is moved by the dragons and may move only one square orthogonally at a time.
+- `Square One` reuses the Sherwood-style movement, capture, and win/draw conditions on a `7x7` board, but starts with eight ravens surrounding the dragons at `b6`, `d6`, `f6`, `b4`, `f4`, `b2`, `d2`, and `f2`.
+- `Sherwood x 9` uses the Sherwood Rules movement, capture, win, and draw behavior on a `9x9` board.
+- `Square One x 9` uses the Square One setup on a `9x9` board, shifting the ravens to `c7`, `e7`, `g7`, `c5`, `g5`, `c3`, `e3`, and `g3`.
 - The browser client now uses the per-game routes under `/api/games` for create, load, command, and stream behavior.
 - Move-list autoscroll now updates the move-list container without nudging the page scroll position.
 - Board sizing now measures the padded board panel correctly and can expand again after the window grows.

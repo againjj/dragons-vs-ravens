@@ -392,6 +392,56 @@ class GameSessionServiceTest {
     }
 
     @Test
+    fun `starting square one uses the square one setup and opening side`() {
+        val service = createService()
+        val gameId = createGameId(service)
+
+        service.applyCommand(
+            gameId,
+            GameCommandRequest(
+                expectedVersion = 0,
+                type = "select-rule-configuration",
+                ruleConfigurationId = "square-one"
+            )
+        )
+
+        val started = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 1, type = "start-game"))
+
+        assertEquals("square-one", started.snapshot.ruleConfigurationId)
+        assertEquals(Phase.move, started.snapshot.phase)
+        assertEquals(Side.ravens, started.snapshot.activeSide)
+        assertEquals(Piece.gold, started.snapshot.board["d4"])
+        assertEquals(Piece.dragon, started.snapshot.board["d5"])
+        assertEquals(Piece.raven, started.snapshot.board["b6"])
+    }
+
+    @Test
+    fun `starting square one x 9 uses the shifted square one setup and opening side`() {
+        val service = createService()
+        val gameId = createGameId(service)
+
+        service.applyCommand(
+            gameId,
+            GameCommandRequest(
+                expectedVersion = 0,
+                type = "select-rule-configuration",
+                ruleConfigurationId = "square-one-x-9"
+            )
+        )
+
+        val started = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 1, type = "start-game"))
+
+        assertEquals("square-one-x-9", started.snapshot.ruleConfigurationId)
+        assertEquals(Phase.move, started.snapshot.phase)
+        assertEquals(Side.ravens, started.snapshot.activeSide)
+        assertEquals(9, started.snapshot.boardSize)
+        assertEquals("e5", started.snapshot.specialSquare)
+        assertEquals(Piece.gold, started.snapshot.board["e5"])
+        assertEquals(Piece.dragon, started.snapshot.board["e6"])
+        assertEquals(Piece.raven, started.snapshot.board["c7"])
+    }
+
+    @Test
     fun `starting free play honors the selected starting side through setup`() {
         val service = createService()
         val gameId = createGameId(service)
