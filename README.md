@@ -59,6 +59,7 @@ The backend now also exposes session-cookie auth APIs for guest and local login,
 Opening a game, subscribing to its SSE stream, claiming a side, and submitting commands now all require an authenticated session.
 Games may track claimed `dragons` and `ravens` seats, and the auth-aware game view endpoint lives at `GET /api/games/{gameId}/view`.
 Guest accounts are session-only: logging out or losing the session deletes the guest user and releases any seats they held without ending the game.
+Expected SSE disconnects during logout are now treated as normal disconnected-client events, so the server no longer logs noisy `Broken pipe` errors when a browser closes its game stream during sign-out.
 The `/profile` page is available only to local password accounts. It lets a user update their display name using the same validation as signup, and delete their own account only after confirming their password again.
 Deleting a local account signs that session out, releases any claimed seats, clears nullable ownership references such as the game creator id, and leaves the game itself intact and readable.
 On the game screen, the browser now shows claimed seats, hides pre-game setup controls until a side is claimed, hides the claim buttons after a seat is claimed, and only shows actionable board and control affordances to the player who can act, except that both claimed players may participate during `Free Play` setup. Undo is reserved for the player who made the last undoable move.
@@ -180,6 +181,8 @@ The current Railway production URL is [https://dragons-vs-ravens-production.up.r
   - backend game state, rules, and API endpoints
   - includes a thin `GameRules.kt` facade plus focused rule catalog, snapshot factory, and per-ruleset engine files
   - splits command and side-claim transitions into `GameCommandService.kt`, while `GameSessionService.kt` handles store orchestration, SSE management, and stale cleanup
+- `src/main/kotlin/com/dragonsvsravens/web`
+  - shared web-layer exception handling, including suppression of expected disconnected-client SSE write failures
 - `src/main/resources/static/styles.css`
   - layout and styling
 - `docs/code-summary.md`
