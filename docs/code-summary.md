@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, can route into a client-only `/create` draft flow backed by local Redux draft state or open games by id, and then talks to the per-game backend API for the active session. The `/create` page now has a dedicated three-panel draft layout with the board on the left, configuration controls in the middle, and the rules panel on the right, and its Start Game action submits the draft payload to `POST /api/games` so the backend can seed the stored session from the drafted setup before opening `/g/{gameId}`. The live `/g/{gameId}` screen now uses a three-column layout with the board on the left, the move list and its controls in the center, and the rules panel on the right, while seat ownership now lives in the page header beneath the game title and status.
+This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, can route into a client-only `/create` draft flow backed by local Redux draft state or open games by id, and then talks to the per-game backend API for the active session. The `/create` page now has a dedicated three-panel draft layout with the board on the left, configuration controls in the middle, and the rules panel on the right, and its Start Game action submits the draft payload to `POST /api/games` so the backend can seed the stored session from the drafted setup before opening `/g/{gameId}`. The live `/g/{gameId}` screen now uses a three-column layout with the board on the left, the move list and its controls in the center, and the rules panel on the right, while seat ownership now lives in the page header beneath the game title and status. Finished-game status messaging now mirrors the terminal outcome, so the header explains who won, why a game was drawn, or that it ended manually.
 
 The `docs` folder now also includes a Sherwood-focused bot planning document at `docs/bot-implementation-plan.md`, which now locks in first-release decisions, adopts release-two-ready bot-id persistence from the start, and sketches a second release with named `Simple`, `Random`, and `Minimax` bots plus grouped undo and expanded ruleset support. It also includes `docs/create-and-play-redesign.md`, a detailed implementation plan for moving game creation into a client-only `/create` draft flow and reshaping the live `/g/{gameId}` play screen.
 
@@ -160,7 +160,7 @@ The canonical board is represented on the server as `Map<String, Piece>` and on 
 - `ruleConfigurationId`
 - `positionKeys`
 
-`turns` now stores typed turn history entries, so the shared history can include both completed moves and a terminal `gameOver` marker.
+`turns` now stores typed turn history entries, so the shared history can include both completed moves and a terminal `gameOver` marker. The frontend reuses that terminal turn to format both the final move-list row and the finished-game header status text.
 
 `GameSession` currently also contains:
 

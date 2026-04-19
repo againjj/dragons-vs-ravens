@@ -2,13 +2,14 @@ import { useEffect, useRef } from "react";
 
 import { useAppSelector } from "../app/hooks.js";
 import { selectSnapshot } from "../features/game/gameSelectors.js";
-import { getGroupedMoveHistoryRows, getTurnHistoryRows } from "../move-history.js";
+import { getGroupedMoveHistoryRows, getGameOverHistoryLabel, getLatestGameOverTurn, getTurnHistoryRows } from "../move-history.js";
 
 export const MoveList = () => {
     const snapshot = useAppSelector(selectSnapshot);
     const turnHistoryRows = getTurnHistoryRows(snapshot?.turns ?? []);
     const moveRows = getGroupedMoveHistoryRows(turnHistoryRows);
-    const gameOverRow = turnHistoryRows.find((row) => row.type === "gameOver");
+    const gameOverTurn = snapshot ? getLatestGameOverTurn(snapshot.turns) : null;
+    const gameOverRow = gameOverTurn ? getGameOverHistoryLabel(gameOverTurn.outcome) : null;
     const hasHistory = moveRows.length > 0 || !!gameOverRow;
     const historyContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -40,7 +41,7 @@ export const MoveList = () => {
             ) : (
                 <p className="turns-empty">Moves will appear here once play begins.</p>
             )}
-            {gameOverRow ? <div id="game-over-entry">{gameOverRow.label}</div> : null}
+            {gameOverRow ? <div id="game-over-entry">{gameOverRow}</div> : null}
             <div className={`turns-spacer${hasHistory ? "" : " is-empty"}`} aria-hidden="true"></div>
         </div>
     );

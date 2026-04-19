@@ -11,7 +11,13 @@ import {
     rowNumbers
 } from "../../../build/generated/frontend-test/board-geometry.js";
 import { getCapturableSquares, getPieceAtSquare, getTargetableSquares, normalizeSelectedSquare } from "../../../build/generated/frontend-test/game-rules-client.js";
-import { getGroupedMoveHistoryRows, getTurnHistoryRows, turnToNotation } from "../../../build/generated/frontend-test/move-history.js";
+import {
+    getGameOverHistoryLabel,
+    getGameOverStatusText,
+    getGroupedMoveHistoryRows,
+    getTurnHistoryRows,
+    turnToNotation
+} from "../../../build/generated/frontend-test/move-history.js";
 
 const snapshot = {
     board: {
@@ -76,6 +82,17 @@ test("turn notation includes captures only when present and supports game over",
     assert.equal(turnToNotation({ type: "move", from: "a1", to: "a2", capturedSquares: ["b2"] }), "a1-a2xb2");
     assert.equal(turnToNotation({ type: "gameOver" }), "Game Over");
     assert.equal(turnToNotation({ type: "gameOver", outcome: "Game ended" }), "Game Over");
+    assert.equal(getGameOverHistoryLabel("Dragons win"), "Game Over: Dragons win");
+    assert.equal(getGameOverHistoryLabel("Draw by repetition"), "Game Over: Draw by repetition");
+    assert.equal(getGameOverStatusText("Dragons win"), "Dragons win. Go back to the lobby to create a new game.");
+    assert.equal(
+        getGameOverStatusText("Draw by no legal move"),
+        "This game ended in a draw by no legal move. Go back to the lobby to create a new game."
+    );
+    assert.equal(
+        getGameOverStatusText("Game ended"),
+        "This game was ended manually. Go back to the lobby to create a new game."
+    );
 });
 
 test("turn history rows provide render-ready labels for moves and game over", () => {

@@ -204,7 +204,31 @@ describe("game selectors", () => {
         );
     });
 
-    test("status text uses the game over copy after ending a game", () => {
+    test("status text uses manual-end wording after a free-play game ends", () => {
+        const store = createAppStore({
+            game: {
+                session: createSession(
+                    {
+                        lifecycle: "finished"
+                    },
+                    {
+                        turns: [{ type: "move", from: "a1", to: "a2" }, { type: "gameOver", outcome: "Game ended" }]
+                    }
+                ),
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: null
+            }
+        });
+
+        expect(selectStatusText(store.getState())).toBe("This game was ended manually. Go back to the lobby to create a new game.");
+    });
+
+    test("status text uses winner messaging when dragons win", () => {
         const store = createAppStore({
             game: {
                 session: createSession(
@@ -225,7 +249,33 @@ describe("game selectors", () => {
             }
         });
 
-        expect(selectStatusText(store.getState())).toBe("This game is finished. Go back to the lobby to create a new game.");
+        expect(selectStatusText(store.getState())).toBe("Dragons win. Go back to the lobby to create a new game.");
+    });
+
+    test("status text uses explicit draw messaging when a game ends in a draw", () => {
+        const store = createAppStore({
+            game: {
+                session: createSession(
+                    {
+                        lifecycle: "finished"
+                    },
+                    {
+                        turns: [{ type: "move", from: "a1", to: "a2" }, { type: "gameOver", outcome: "Draw by no legal move" }]
+                    }
+                ),
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: null
+            }
+        });
+
+        expect(selectStatusText(store.getState())).toBe(
+            "This game ended in a draw by no legal move. Go back to the lobby to create a new game."
+        );
     });
 
     test("status text omits the extra gold reminder during move phase", () => {

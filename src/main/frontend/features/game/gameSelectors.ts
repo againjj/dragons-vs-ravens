@@ -3,6 +3,7 @@ import { createSelector } from "@reduxjs/toolkit";
 import type { RootState } from "../../app/store.js";
 import { getCapturableSquares, getTargetableSquares, normalizeSelectedSquare } from "../../game-rules-client.js";
 import type { RuleConfigurationSummary } from "../../game-types.js";
+import { getGameOverStatusText, getLatestGameOverTurn } from "../../move-history.js";
 import { selectCurrentUser, selectIsAuthenticated } from "../auth/authSelectors.js";
 
 const emptyRuleConfigurations: RuleConfigurationSummary[] = [];
@@ -144,36 +145,40 @@ export const selectStatusText = createSelector(
     selectIsFinishedGame,
     selectViewerOwnsASeat,
     (gameState, snapshot, isFinishedGame, viewerOwnsASeat) => {
-    if (gameState.feedbackMessage) {
-        return gameState.feedbackMessage;
-    }
-
-    if (!snapshot) {
-        if (gameState.loadState === "error") {
-            return "Unable to load game.";
+        if (gameState.feedbackMessage) {
+            return gameState.feedbackMessage;
         }
 
-        return gameState.connectionState === "reconnecting"
-            ? "Connection lost. Trying to reconnect..."
-            : "Loading game...";
-    }
+        if (!snapshot) {
+            if (gameState.loadState === "error") {
+                return "Unable to load game.";
+            }
 
-    if (snapshot.phase === "setup") {
-        return "Setup phase: place the pieces on the board.";
-    }
+            return gameState.connectionState === "reconnecting"
+                ? "Connection lost. Trying to reconnect..."
+                : "Loading game...";
+        }
 
-    if (snapshot.phase === "none") {
-        return isFinishedGame
-            ? "This game is finished. Go back to the lobby to create a new game."
-            : viewerOwnsASeat
+        if (snapshot.phase === "setup") {
+            return "Setup phase: place the pieces on the board.";
+        }
+
+        if (snapshot.phase === "none") {
+            if (isFinishedGame) {
+                const gameOverTurn = getLatestGameOverTurn(snapshot.turns);
+                return gameOverTurn ? getGameOverStatusText(gameOverTurn.outcome) : "This game is finished. Go back to the lobby to create a new game.";
+            }
+
+            return viewerOwnsASeat
                 ? "No game in progress. Select a play style and start the game."
                 : "No game in progress. Claim a side or wait for someone else to start the game.";
-    }
+        }
 
-    if (snapshot.phase === "capture") {
-        return `${snapshot.activeSide === "dragons" ? "Dragons" : "Ravens"} moved. Capture a piece, or skip the capture.`;
-    }
+        if (snapshot.phase === "capture") {
+            return `${snapshot.activeSide === "dragons" ? "Dragons" : "Ravens"} moved. Capture a piece, or skip the capture.`;
+        }
 
-    const moverLabel = snapshot.activeSide === "dragons" ? "Dragons" : "Ravens";
-    return `${moverLabel} to move.`;
-});
+        const moverLabel = snapshot.activeSide === "dragons" ? "Dragons" : "Ravens";
+        return `${moverLabel} to move.`;
+    }
+);
