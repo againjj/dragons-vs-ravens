@@ -11,7 +11,6 @@ import {
     selectIsLoadingGame
 } from "./features/game/gameSelectors.js";
 import { gameActions } from "./features/game/gameSlice.js";
-import { createGame } from "./features/game/gameThunks.js";
 import { continueAsGuest, loadAuthSession, login, logout, signup } from "./features/auth/authThunks.js";
 import { useGameSession } from "./features/game/useGameSession.js";
 import { useFullscreen } from "./hooks/useFullscreen.js";
@@ -27,7 +26,7 @@ export const App = () => {
     const pageRef = useRef<HTMLElement | null>(null);
     const { toggleFullscreen } = useFullscreen(pageRef);
 
-    const { page, navigateToGame, navigateToLobby, navigateToProfile } = useGameRoute();
+    const { page, navigateToCreate, navigateToGame, navigateToLobby, navigateToProfile } = useGameRoute();
     const showProfileButton = isAuthenticated && currentUser?.authType === "local" && page !== "profile";
     const showLobbyButton = isAuthenticated && page !== "lobby";
     const showLogoutButton = isAuthenticated && currentUser != null;
@@ -50,11 +49,7 @@ export const App = () => {
     };
 
     const handleCreateGame = () => {
-        void dispatch(createGame()).then((createdGameId) => {
-            if (createdGameId) {
-                navigateToGame(createdGameId, { loadGame: false });
-            }
-        });
+        navigateToCreate();
     };
 
     return (
@@ -137,6 +132,13 @@ export const App = () => {
                         navigateToGame(gameId);
                     }}
                 />
+            ) : page === "create" ? (
+                <section className="panel page-header-panel">
+                    <div className="page-header-copy">
+                        <h2>Create Game</h2>
+                        <p>The dedicated create flow will live here before a game exists.</p>
+                    </div>
+                </section>
             ) : page === "profile" ? (
                 <section className="auth-layout">
                     <ProfileScreen />

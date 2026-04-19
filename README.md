@@ -27,13 +27,13 @@ The server also respects the `PORT` environment variable, so the same app can ru
 By default, the backend uses an H2 file database at `build/db/dragons-vs-ravens`, so created games survive local app restarts.
 
 Open the app in two browser tabs to see the shared game stay in sync through server-sent events.
-The browser now opens on a lobby screen at `/`, where you can create a new game or open an existing one by ID.
+The browser now opens on a lobby screen at `/`, where you can open an existing game by ID or jump into the new `/create` draft route scaffold.
 The page now also includes auth controls for guest play, local signup/login/logout, and a Google OAuth entry link for deployments that configure that provider.
 Users must authenticate before opening the lobby or viewing a game.
 Local password accounts now also get a `Profile` button in the upper-right app chrome that opens `/profile`.
-The lobby now presents separate `Start Fresh` and `Rejoin Game` cards, normalizes typed game IDs to uppercase, and disables `Open Game` until an ID is entered.
+The lobby now presents separate `Start Fresh` and `Rejoin Game` cards, normalizes typed game IDs to uppercase, and disables `Open Game` until an ID is entered. Clicking `Start Fresh` now opens `/create` instead of immediately creating a persisted game.
 Each game has its own URL at `/g/{gameId}`.
-Loading a game URL directly opens that game, and after you create or open a game from the lobby the browser updates the address bar to that game's `/g/{gameId}` URL.
+Loading a game URL directly opens that game, and after you open a game from the lobby the browser updates the address bar to that game's `/g/{gameId}` URL.
 If you load a game URL directly and then return to the lobby, the app now replaces that direct-entry history slot instead of trapping the browser Back button inside the app.
 The browser stays subscribed to that game's SSE stream until you go back to the lobby.
 The active game screen shows the current game ID plus a `Back to Lobby` button.
@@ -232,7 +232,7 @@ Read docs/code-summary.md and AGENTS.md before making changes. Follow those inst
 - Move-list autoscroll now updates the move-list container without nudging the page scroll position.
 - Board sizing now measures the padded board panel correctly and can expand again after the window grows.
 - Missing SSE subscriptions for unknown game IDs now return a plain `404` response instead of logging a media-type exception on the server.
-- Browser navigation now uses `/` for the lobby and `/g/{gameId}` for an active game view.
+- Browser navigation now uses `/` for the lobby, `/create` for the draft scaffold, and `/g/{gameId}` for an active game view.
 - Newly created games now use 7-character IDs drawn from the Open Location Code ("PLUS code") alphabet: `23456789CFGHJMPQRVWX`.
 - Game sessions are stored durably in the configured database, while SSE emitter tracking remains in memory per app instance.
 - The database now also stores local users, optional OAuth identity links, and claimed game-seat ownership.

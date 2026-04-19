@@ -3,11 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { App } from "../../main/frontend/App.js";
-import { createGameView, createSession } from "./fixtures.js";
+import { createGameView } from "./fixtures.js";
 import { renderWithStore } from "./test-utils.js";
 
 const {
-    createGameSessionMock,
     fetchAuthSessionMock,
     fetchGameViewMock,
     fetchLocalProfileMock,
@@ -15,7 +14,6 @@ const {
     logoutRequestMock,
     sendGameCommandRequestMock
 } = vi.hoisted(() => ({
-    createGameSessionMock: vi.fn(),
     fetchAuthSessionMock: vi.fn(),
     fetchGameViewMock: vi.fn(),
     fetchLocalProfileMock: vi.fn(),
@@ -25,7 +23,6 @@ const {
 }));
 
 vi.mock("../../main/frontend/game-client.js", () => ({
-    createGameSession: createGameSessionMock,
     fetchAuthSession: fetchAuthSessionMock,
     fetchGameView: fetchGameViewMock,
     fetchLocalProfile: fetchLocalProfileMock,
@@ -55,7 +52,6 @@ vi.mock("../../main/frontend/hooks/useFullscreen.js", () => ({
 
 describe("App routing", () => {
     beforeEach(() => {
-        createGameSessionMock.mockReset();
         fetchAuthSessionMock.mockReset();
         fetchGameViewMock.mockReset();
         fetchLocalProfileMock.mockReset();
@@ -115,6 +111,23 @@ describe("App routing", () => {
         pushStateSpy.mockRestore();
     });
 
+    test("unauthenticated users loading /create are redirected to /login and then back after login", async () => {
+        const user = userEvent.setup();
+        window.history.pushState({}, "", "/create");
+
+        renderWithStore(<App />);
+
+        await screen.findByRole("button", { name: "Continue as Guest" });
+        expect(window.location.pathname).toBe("/login");
+        expect(new URLSearchParams(window.location.search).get("next")).toBe("/create");
+
+        await user.click(screen.getByRole("button", { name: "Continue as Guest" }));
+        await waitFor(() => {
+            expect(window.location.pathname).toBe("/create");
+        });
+        expect(await screen.findByRole("heading", { name: "Create Game" })).toBeInTheDocument();
+    });
+
     test("logged in users loading / are redirected to /lobby", async () => {
         fetchAuthSessionMock.mockResolvedValue({
             authenticated: true,
@@ -133,6 +146,24 @@ describe("App routing", () => {
         expect(screen.queryByRole("button", { name: "Lobby" })).not.toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Profile" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Log Out" })).toBeInTheDocument();
+    });
+
+    test("logged in users loading /create are shown the create page scaffold", async () => {
+        fetchAuthSessionMock.mockResolvedValue({
+            authenticated: true,
+            user: {
+                id: "player-dragons",
+                displayName: "Dragon Player",
+                authType: "local"
+            }
+        });
+        window.history.pushState({}, "", "/create");
+
+        renderWithStore(<App />);
+
+        expect(await screen.findByRole("heading", { name: "Create Game" })).toBeInTheDocument();
+        expect(window.location.pathname).toBe("/create");
+        expect(screen.getByText("The dedicated create flow will live here before a game exists.")).toBeInTheDocument();
     });
 
     test("signed out users loading / are redirected to /login with a return target", async () => {
@@ -314,6 +345,29 @@ describe("App routing", () => {
 
         expect(await screen.findByRole("heading", { name: "Profile" })).toBeInTheDocument();
         expect(fetchLocalProfileMock).toHaveBeenCalled();
+    });
+
+    test("clicking Create Game from the lobby updates the URL to /create", async () => {
+        const user = userEvent.setup();
+        fetchAuthSessionMock.mockResolvedValue({
+            authenticated: true,
+            user: {
+                id: "player-dragons",
+                displayName: "Dragon Player",
+                authType: "local"
+            }
+        });
+        window.history.pushState({}, "", "/lobby");
+
+        renderWithStore(<App />);
+
+        await screen.findByRole("heading", { name: "Game Lobby" });
+        await user.click(screen.getByRole("button", { name: "Create Game" }));
+
+        await waitFor(() => {
+            expect(window.location.pathname).toBe("/create");
+        });
+        expect(await screen.findByRole("heading", { name: "Create Game" })).toBeInTheDocument();
     });
 
     test("browser back from a lobby-opened game returns to /lobby", async () => {

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, creates or opens games by id, and then talks to the per-game backend API for the active session.
+This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, can route into a client-only `/create` draft page scaffold or open games by id, and then talks to the per-game backend API for the active session.
 
 The `docs` folder now also includes a Sherwood-focused bot planning document at `docs/bot-implementation-plan.md`, which now locks in first-release decisions, adopts release-two-ready bot-id persistence from the start, and sketches a second release with named `Simple`, `Random`, and `Minimax` bots plus grouped undo and expanded ruleset support. It also includes `docs/create-and-play-redesign.md`, a detailed implementation plan for moving game creation into a client-only `/create` draft flow and reshaping the live `/g/{gameId}` play screen.
 
@@ -42,7 +42,7 @@ The web layer now also includes a dedicated controller advice that recognizes ex
   - Transport helpers for REST commands and SSE subscription setup.
 - `src/main/frontend/App.tsx`
   - Top-level React layout and shell composition.
-  - Handles auth bootstrap plus switching between the login, lobby, profile, and active game screens.
+  - Handles auth bootstrap plus switching between the login, lobby, create, profile, and active game screens.
 - `src/main/frontend/components/GameScreen.tsx`
   - Owns the active game screen layout, board sizing hookup, controls wiring, seat panel, rules legend, move list composition, and game-specific feedback dialog.
 - `src/main/frontend/app/*.ts`
@@ -57,7 +57,7 @@ The web layer now also includes a dedicated controller advice that recognizes ex
 - `src/main/frontend/components/*.tsx`
   - React components for the lobby screen, auth panel, local profile screen, seat display, board rendering, controls, move list, and status text.
 - `src/main/frontend/hooks/*.ts`
-  - Browser hooks for responsive sizing, fullscreen behavior, and URL-to-game routing.
+  - Browser hooks for responsive sizing, fullscreen behavior, and URL-to-page routing.
   - `useBoardSizing.ts` now measures the padded board panel so the board can shrink and grow without overflowing the panel.
 - `src/test/frontend/game.test.js`
   - Frontend helper tests for server-backed snapshots and local-only selection behavior.
@@ -91,8 +91,8 @@ The web layer now also includes a dedicated controller advice that recognizes ex
   - `./gradlew test` runs both the frontend tests and the Kotlin/Spring test task.
 - Runtime flow:
   - The browser lobby lives at `/`.
-  - The browser treats `/g/{gameId}` as the canonical active-game URL.
-  - Loading `/g/{gameId}` directly opens that game in the browser.
+  - The browser treats `/create` as a draft-entry route scaffold and `/g/{gameId}` as the canonical active-game URL.
+  - Loading `/create` or `/g/{gameId}` directly opens that page in the browser.
   - Session inspection uses `GET /api/auth/session`.
   - Guest login uses `POST /api/auth/guest`.
   - Local signup and login use `POST /api/auth/signup` and `POST /api/auth/login`.
@@ -211,12 +211,12 @@ The React frontend is now split by responsibility.
 - `move-history.ts` owns turn-label and grouped-history formatting helpers.
 - `GameScreen.tsx` owns the active game view container and connects that layout to Redux thunks and selectors.
 - Redux owns shared client state such as the latest server session, auth session, loading/submission state, connection state, feedback messages, and local selection.
-- Redux also owns the current browser view (`lobby` or `game`) plus the current game id.
+- Redux also owns the persisted game/session view state plus the current game id, while the route hook derives the separate `/create` page state from the browser URL.
 - `gameThunks.ts` coordinates lobby create/open actions, game-view refreshes, seat claiming, and command submission against the backend API.
 - `gameThunks.ts` also translates network failures from user-triggered game requests into friendly feedback messages for the shared game UI.
 - `authThunks.ts` coordinates current-session loading plus guest/local login and logout flows.
 - `gameStream.ts` plus `useGameSession.ts` open and maintain the SSE subscription only for the active game screen.
-- `useGameRoute.ts` maps browser URLs to lobby or game state and keeps the address bar in sync with the active game id.
+- `useGameRoute.ts` maps browser URLs to lobby, create, or game state and keeps the address bar in sync with the active game id.
 - `Board.tsx`, `ControlsPanel.tsx`, `MoveList.tsx`, and `StatusBanner.tsx` render the current UI from Redux state, including shared free-play setup affordances for both claimed players.
 - `LobbyScreen.tsx` renders the create-or-open entry flow before a game is active.
 - `useBoardSizing.ts` and `useFullscreen.ts` wrap browser-specific layout and fullscreen behavior.
@@ -228,12 +228,12 @@ Most UI-only changes should start in the relevant component, selector, or browse
 ### Lobby and game entry
 
 - The browser initially loads into a lobby screen.
-- The lobby can create a new persisted game or open an existing game by id.
+- The lobby can open an existing game by id or route to the client-only `/create` draft scaffold.
 - The page shell now also shows auth controls for guest access, local signup/login, logout, and an OAuth sign-in link for supported deployments.
 - Local password accounts now also see a `Profile` button in the upper-right app chrome that opens `/profile`.
-- The lobby presents separate create and rejoin cards, uppercases typed game ids locally, and keeps `Open Game` disabled until an id is present.
-- Once a game is created or opened, the browser enters that game's board screen and updates the URL to `/g/{gameId}`.
-- Loading `/g/{gameId}` directly also enters that game's board screen.
+- The lobby presents separate create and rejoin cards, uppercases typed game ids locally, and keeps `Open Game` disabled until an id is present. Clicking `Start Fresh` now opens `/create` instead of immediately creating a persisted game.
+- Loading `/create` shows the draft scaffold, and loading `/g/{gameId}` directly enters that game's board screen.
+- Once a game is opened, the browser enters that game's board screen and updates the URL to `/g/{gameId}`.
 - The game screen shows the current game id and includes a `Back to Lobby` button.
 - The `/profile` page is available only to local password accounts, prefills the current display name, allows display-name updates, and requires password confirmation before deleting the account.
 - Returning to the lobby closes the active SSE stream, clears browser-local selection, and returns the URL to `/`.
@@ -311,7 +311,7 @@ Most UI-only changes should start in the relevant component, selector, or browse
 
 - Clients connected to the same game id see the same server-owned game session.
 - The backend can create additional persisted games with generated ids.
-- Opening the lobby, loading a game, and SSE subscription now require an authenticated session.
+- Opening the lobby, loading `/create` or a game, and SSE subscription now require an authenticated session.
 - Command submission and seat claiming also require an authenticated session.
 - Authenticated users may claim one open side on a game; unclaimed viewers remain spectators.
 - The game screen now shows current seat ownership, hides pre-game setup controls until the viewer claims a side, hides claim buttons after a seat is claimed, allows both claimed players to place pieces and end setup in free play, and suppresses gameplay affordances when the viewer is spectating or on the wrong side once turn-based play begins.
@@ -388,7 +388,7 @@ Future UI changes should preserve the split of transport logic, Redux state, ren
   - Redux-backed status and target derivation
   - controls enablement, play-style selection, and config-specific control visibility
   - lobby create/open interactions
-  - browser route handling for `/` and `/g/{gameId}`
+  - browser route handling for `/`, `/create`, and `/g/{gameId}`
   - visible row and column labels on the rendered board
   - board selection behavior, idle-board no-op handling, and capture highlighting
   - stream connection and cleanup when entering or leaving a game screen

@@ -8,7 +8,7 @@ import { generatedGameIdPattern } from "../game-types.js";
 
 const gameRoutePattern = /^\/g\/([23456789CFGHJMPQRVWX]{7})$/;
 
-export type AppPage = "login" | "lobby" | "game" | "profile" | "loading";
+export type AppPage = "login" | "lobby" | "create" | "game" | "profile" | "loading";
 
 type NavigationMode = "push" | "replace";
 
@@ -42,6 +42,7 @@ const writeHistory = (path: string, mode: NavigationMode) => {
 export const useGameRoute = (): {
     page: AppPage;
     navigateToLobby: (mode?: NavigationMode) => void;
+    navigateToCreate: (mode?: NavigationMode) => void;
     navigateToProfile: (mode?: NavigationMode) => void;
     navigateToGame: (gameId: string, options?: { mode?: NavigationMode; loadGame?: boolean }) => void;
 } => {
@@ -59,6 +60,12 @@ export const useGameRoute = (): {
     const navigateToLobby = (mode: NavigationMode = "push") => {
         writeHistory("/lobby", mode);
         setLocationPath("/lobby");
+        clearActiveGameView();
+    };
+
+    const navigateToCreate = (mode: NavigationMode = "push") => {
+        writeHistory("/create", mode);
+        setLocationPath("/create");
         clearActiveGameView();
     };
 
@@ -109,13 +116,21 @@ export const useGameRoute = (): {
 
             if (pathname === "/login") {
                 const targetPath = getLoginRedirectPath();
-                if (getRouteGameId(targetPath)) {
-                    navigateToGame(getRouteGameId(targetPath)!, { mode: "push" });
+                const targetGameId = getRouteGameId(targetPath);
+                if (targetGameId) {
+                    navigateToGame(targetGameId, { mode: "push" });
+                } else if (targetPath === "/create") {
+                    navigateToCreate("push");
                 } else if (targetPath === "/profile") {
                     navigateToProfile("push");
                 } else {
                     navigateToLobby("push");
                 }
+                return;
+            }
+
+            if (pathname === "/create") {
+                clearActiveGameView();
                 return;
             }
 
@@ -161,8 +176,11 @@ export const useGameRoute = (): {
         if (locationPath === "/profile") {
             return "profile";
         }
+        if (locationPath === "/create") {
+            return "create";
+        }
         return view === "game" ? "game" : "lobby";
     }, [authLoadState, isAuthenticated, locationPath, view]);
 
-    return { page, navigateToLobby, navigateToProfile, navigateToGame };
+    return { page, navigateToLobby, navigateToCreate, navigateToProfile, navigateToGame };
 };
