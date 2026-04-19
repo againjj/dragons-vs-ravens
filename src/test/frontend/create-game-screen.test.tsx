@@ -1,0 +1,50 @@
+import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, test, vi } from "vitest";
+
+import { createAppStore } from "../../main/frontend/app/store.js";
+import { CreateGameScreen } from "../../main/frontend/components/CreateGameScreen.js";
+import { createGameDraftActions } from "../../main/frontend/features/game/createGameSlice.js";
+import { renderWithStore } from "./test-utils.js";
+
+vi.mock("../../main/frontend/hooks/useBoardSizing.js", () => ({
+    useBoardSizing: () => undefined
+}));
+
+describe("CreateGameScreen", () => {
+    test("shows the draft board, configuration controls, and rules panel", () => {
+        const store = createAppStore();
+        store.dispatch(createGameDraftActions.createModeEntered());
+
+        renderWithStore(<CreateGameScreen />, { store });
+
+        expect(screen.getByRole("heading", { name: "Create Game" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Configuration" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Rules" })).toBeInTheDocument();
+        expect(screen.getByLabelText("Play Style")).toHaveValue("free-play");
+        expect(screen.getByLabelText("Board Size")).toHaveValue("7");
+        expect(screen.getByLabelText("Starting Side")).toHaveValue("dragons");
+        expect(screen.getByRole("button", { name: "Start Game" })).toBeDisabled();
+    });
+
+    test("keeps the board editable in free play and swaps to preset rules when selected", async () => {
+        const user = userEvent.setup();
+        const store = createAppStore();
+        store.dispatch(createGameDraftActions.createModeEntered());
+
+        renderWithStore(<CreateGameScreen />, { store });
+
+        await user.click(screen.getByRole("button", { name: "Square a1" }));
+        expect(store.getState().createGame.draftBoard).toMatchObject({
+            a1: "dragon"
+        });
+
+        await user.selectOptions(screen.getByLabelText("Play Style"), "trivial");
+
+        expect(screen.getByLabelText("Play Style")).toHaveValue("trivial");
+        expect(screen.queryByLabelText("Board Size")).toBeNull();
+        expect(screen.queryByLabelText("Starting Side")).toBeNull();
+        expect(screen.getByText("The dragons need to move the gold to the center.")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Square a1" })).toHaveTextContent("D");
+    });
+});

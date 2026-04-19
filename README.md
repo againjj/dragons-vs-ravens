@@ -32,7 +32,7 @@ The page now also includes auth controls for guest play, local signup/login/logo
 Users must authenticate before opening the lobby or viewing a game.
 Local password accounts now also get a `Profile` button in the upper-right app chrome that opens `/profile`.
 The lobby now presents separate `Start Fresh` and `Rejoin Game` cards, normalizes typed game IDs to uppercase, and disables `Open Game` until an ID is entered. Clicking `Start Fresh` now opens `/create` instead of immediately creating a persisted game.
-The create draft keeps its board and configuration state local while you stay on `/create`, and leaving that route clears the draft before you return to the lobby or open a game.
+The create screen now uses a three-panel layout with the draft board on the left, configuration controls in the middle, and rules on the right. The create draft keeps its board and configuration state local while you stay on `/create`, and leaving that route clears the draft before you return to the lobby or open a game.
 Each game has its own URL at `/g/{gameId}`.
 Loading a game URL directly opens that game, and after you open a game from the lobby the browser updates the address bar to that game's `/g/{gameId}` URL.
 If you load a game URL directly and then return to the lobby, the app now replaces that direct-entry history slot instead of trapping the browser Back button inside the app.
@@ -174,12 +174,20 @@ The current Railway production URL is [https://dragons-vs-ravens-production.up.r
   - top-level React layout
 - `src/main/frontend/components/GameScreen.tsx`
   - active game-screen container and layout wiring
+- `src/main/frontend/components/CreateGameScreen.tsx`
+  - local `/create` draft screen with the board, configuration controls, and rules panel
+- `src/main/frontend/components/Board.tsx`
+  - shared board rendering plus connected and controlled click handling
+- `src/main/frontend/components/ControlsPanel.tsx`
+  - live-game controls plus shared draft setup controls
+- `src/main/frontend/components/RulesPanel.tsx`
+  - shared rules-description renderer
 - `src/main/frontend/app`
   - Redux store setup and typed hooks
 - `src/main/frontend/features`
   - Redux slices, selectors, thunks, draft-state helpers, stream lifecycle helpers, and shared game-view/auth-refresh orchestration
 - `src/main/frontend/components`
-  - React UI components for board, controls, status, and move list
+  - React UI components for the live game screen, the `/create` draft screen, board rendering, controls, rules, status, and move list
 - `src/main/kotlin/com/dragonsvsravens/game`
   - backend game state, rules, and API endpoints
   - includes a thin `GameRules.kt` facade plus focused rule catalog, snapshot factory, and per-ruleset engine files

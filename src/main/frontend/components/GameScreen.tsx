@@ -26,6 +26,7 @@ import { Board } from "./Board.js";
 import { ControlsPanel } from "./ControlsPanel.js";
 import { MoveList } from "./MoveList.js";
 import { SeatPanel } from "./SeatPanel.js";
+import { RulesPanel } from "./RulesPanel.js";
 import { StatusBanner } from "./StatusBanner.js";
 
 export const GameScreen = () => {
@@ -105,17 +106,7 @@ export const GameScreen = () => {
                         }}
                     />
 
-                    <section className="legend">
-                        <h2>Rules</h2>
-                        {(currentRuleConfiguration?.descriptionSections ?? []).map((section, index) => (
-                            <div key={`${section.heading ?? "section"}-${index}`} className="legend-section">
-                                {section.heading ? <h3>{section.heading}</h3> : null}
-                                {section.paragraphs.map((paragraph) => (
-                                    <p key={paragraph}>{paragraph}</p>
-                                ))}
-                            </div>
-                        ))}
-                    </section>
+                    <RulesPanel sections={currentRuleConfiguration?.descriptionSections ?? []} />
                 </section>
 
                 <section className="panel side-panel bottom-panel">

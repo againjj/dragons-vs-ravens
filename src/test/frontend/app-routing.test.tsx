@@ -163,7 +163,9 @@ describe("App routing", () => {
 
         expect(await screen.findByRole("heading", { name: "Create Game" })).toBeInTheDocument();
         expect(window.location.pathname).toBe("/create");
-        expect(screen.getByText("The local create flow will live here before a game exists.")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Configuration" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Rules" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Start Game" })).toBeDisabled();
     });
 
     test("loading /create initializes the draft and leaving the route clears it", async () => {

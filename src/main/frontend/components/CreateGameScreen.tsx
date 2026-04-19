@@ -1,0 +1,117 @@
+import { useRef, type CSSProperties } from "react";
+
+import { getBoardDimension, getColumnLetters } from "../board-geometry.js";
+import { useAppDispatch, useAppSelector } from "../app/hooks.js";
+import { BoardView } from "./Board.js";
+import { GameSetupControls } from "./ControlsPanel.js";
+import { RulesPanel } from "./RulesPanel.js";
+import {
+    selectCreateGameAvailableRuleConfigurations,
+    selectCreateGameBoard,
+    selectCreateGameCanEditBoard,
+    selectCreateGameCurrentRuleConfiguration,
+    selectCreateGameSelectedBoardSize,
+    selectCreateGameSelectedRuleConfigurationId,
+    selectCreateGameSelectedStartingSide,
+    selectCreateGameSnapshot
+} from "../features/game/createGameSelectors.js";
+import { createGameDraftActions } from "../features/game/createGameSlice.js";
+import { useBoardSizing } from "../hooks/useBoardSizing.js";
+
+interface CreateGameScreenProps {
+    onStartGame?: () => void;
+}
+
+export const CreateGameScreen = ({ onStartGame }: CreateGameScreenProps = {}) => {
+    const dispatch = useAppDispatch();
+    const currentRuleConfiguration = useAppSelector(selectCreateGameCurrentRuleConfiguration);
+    const availableRuleConfigurations = useAppSelector(selectCreateGameAvailableRuleConfigurations);
+    const selectedRuleConfigurationId = useAppSelector(selectCreateGameSelectedRuleConfigurationId);
+    const selectedStartingSide = useAppSelector(selectCreateGameSelectedStartingSide);
+    const selectedBoardSize = useAppSelector(selectCreateGameSelectedBoardSize);
+    const snapshot = useAppSelector(selectCreateGameSnapshot);
+    const canEditBoard = useAppSelector(selectCreateGameCanEditBoard);
+    const draftBoard = useAppSelector(selectCreateGameBoard);
+    const boardShellRef = useRef<HTMLDivElement | null>(null);
+    const boardDimension = getBoardDimension(snapshot);
+    const columnLetters = getColumnLetters(boardDimension);
+    const boardStyle = { "--board-dimension": String(boardDimension) } as CSSProperties;
+
+    useBoardSizing(boardShellRef, true);
+
+    return (
+        <section className="game-page create-game-page">
+            <section className="panel page-header-panel game-header-panel create-header-panel">
+                <div className="page-header-copy">
+                    <h2>Create Game</h2>
+                    <p>Build a local draft, choose a ruleset, and start the shared game from this screen.</p>
+                </div>
+            </section>
+
+            <section className="game-layout create-layout">
+                <section className="panel board-panel">
+                    <div className="board-shell" ref={boardShellRef}>
+                        <BoardView
+                            snapshot={snapshot}
+                            selectedSquare={null}
+                            canViewerAct={canEditBoard}
+                            capturableSquares={[]}
+                            targetableSquares={[]}
+                            onCycleSetupSquare={(square) => {
+                                void dispatch(createGameDraftActions.setupSquareCycled(square));
+                            }}
+                        />
+                        <div className="board-footer">
+                            <div className="board-footer-spacer" aria-hidden="true"></div>
+                            <div className="column-labels bottom" id="column-labels-bottom" style={boardStyle}>
+                                {columnLetters.map((letter) => (
+                                    <span key={letter}>{letter}</span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="panel side-panel top-panel create-config-panel">
+                    <div className="page-header-copy">
+                        <h2>Configuration</h2>
+                        <p>Adjust the draft settings before you start the game.</p>
+                    </div>
+                    <GameSetupControls
+                        availableRuleConfigurations={availableRuleConfigurations}
+                        selectedRuleConfigurationId={selectedRuleConfigurationId}
+                        selectedStartingSide={selectedStartingSide}
+                        selectedBoardSize={selectedBoardSize}
+                        isDisabled={false}
+                        onSelectRuleConfiguration={(ruleConfigurationId) => {
+                            void dispatch(createGameDraftActions.ruleConfigurationSelected(ruleConfigurationId));
+                        }}
+                        onSelectStartingSide={(side) => {
+                            dispatch(createGameDraftActions.startingSideSelected(side));
+                        }}
+                        onSelectBoardSize={(boardSize) => {
+                            dispatch(createGameDraftActions.boardSizeSelected(boardSize));
+                        }}
+                        onStartGame={onStartGame}
+                    />
+                    <p className="create-draft-note">
+                        {selectedRuleConfigurationId === "free-play"
+                            ? "Free Play keeps the board editable."
+                            : "Preset rules use their built-in starting position."}
+                    </p>
+                    <p className="create-draft-summary">
+                        {draftBoard && selectedRuleConfigurationId === "free-play"
+                            ? `${Object.keys(draftBoard).length} pieces placed in the draft.`
+                            : " "}
+                    </p>
+                </section>
+
+                <RulesPanel
+                    title="Rules"
+                    sections={currentRuleConfiguration?.descriptionSections ?? []}
+                    className="side-panel top-panel create-rules-panel"
+                />
+            </section>
+        </section>
+    );
+};

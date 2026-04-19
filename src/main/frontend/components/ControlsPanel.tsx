@@ -12,7 +12,113 @@ import {
     selectShowOwnedPreGameControls,
     selectSnapshot
 } from "../features/game/gameSelectors.js";
-import type { Side } from "../game-types.js";
+import type { RuleConfigurationSummary, Side } from "../game-types.js";
+
+interface GameSetupControlsProps {
+    availableRuleConfigurations: RuleConfigurationSummary[];
+    selectedRuleConfigurationId: string;
+    selectedStartingSide: Side;
+    selectedBoardSize: number;
+    isDisabled: boolean;
+    onSelectRuleConfiguration: (ruleConfigurationId: string) => void;
+    onSelectStartingSide: (side: Side) => void;
+    onSelectBoardSize: (boardSize: number) => void;
+    onStartGame?: () => void;
+}
+
+export const GameSetupControls = ({
+    availableRuleConfigurations,
+    selectedRuleConfigurationId,
+    selectedStartingSide,
+    selectedBoardSize,
+    isDisabled,
+    onSelectRuleConfiguration,
+    onSelectStartingSide,
+    onSelectBoardSize,
+    onStartGame
+}: GameSetupControlsProps) => {
+    const showSizeAndSideSelectors = selectedRuleConfigurationId === "free-play";
+    const startButtonDisabled = isDisabled || !onStartGame;
+
+    return (
+        <>
+            <div className="control-row">
+                <label className="control-label" htmlFor="rule-configuration-select">
+                    Play Style
+                </label>
+                <div className="select-shell">
+                    <select
+                        id="rule-configuration-select"
+                        value={selectedRuleConfigurationId}
+                        disabled={isDisabled}
+                        onChange={(event) => {
+                            onSelectRuleConfiguration(event.target.value);
+                        }}
+                    >
+                        {availableRuleConfigurations.map((ruleConfiguration) => (
+                            <option key={ruleConfiguration.id} value={ruleConfiguration.id}>
+                                {ruleConfiguration.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            {showSizeAndSideSelectors ? (
+                <>
+                    <div className="control-row">
+                        <label className="control-label" htmlFor="board-size-select">
+                            Board Size
+                        </label>
+                        <div className="select-shell">
+                            <select
+                                id="board-size-select"
+                                value={String(selectedBoardSize)}
+                                disabled={isDisabled}
+                                onChange={(event) => {
+                                    onSelectBoardSize(Number.parseInt(event.target.value, 10));
+                                }}
+                            >
+                                {Array.from({ length: 24 }, (_, index) => index + 3).map((boardSize) => (
+                                    <option key={boardSize} value={boardSize}>
+                                        {boardSize}x{boardSize}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    <div className="control-row">
+                        <label className="control-label" htmlFor="starting-side-select">
+                            Starting Side
+                        </label>
+                        <div className="select-shell">
+                            <select
+                                id="starting-side-select"
+                                value={selectedStartingSide}
+                                disabled={isDisabled}
+                                onChange={(event) => {
+                                    onSelectStartingSide(event.target.value as Side);
+                                }}
+                            >
+                                <option value="dragons">Dragons</option>
+                                <option value="ravens">Ravens</option>
+                            </select>
+                        </div>
+                    </div>
+                </>
+            ) : null}
+            <button
+                id="start-button"
+                type="button"
+                disabled={startButtonDisabled}
+                onClick={() => {
+                    onStartGame?.();
+                }}
+            >
+                Start Game
+            </button>
+        </>
+    );
+};
 
 interface ControlsPanelProps {
     onStartGame: () => void;
@@ -66,80 +172,17 @@ export const ControlsPanel = ({
     return (
         <div className="controls controls-sidebar">
             {showPreGameControls ? (
-                <>
-                    <div className="control-row">
-                        <label className="control-label" htmlFor="rule-configuration-select">
-                            Play Style
-                        </label>
-                        <div className="select-shell">
-                            <select
-                                id="rule-configuration-select"
-                                value={selectedRuleConfigurationId ?? ""}
-                                disabled={disabled}
-                                onChange={(event) => {
-                                    onSelectRuleConfiguration(event.target.value);
-                                }}
-                            >
-                                {availableRuleConfigurations.map((ruleConfiguration) => (
-                                    <option key={ruleConfiguration.id} value={ruleConfiguration.id}>
-                                        {ruleConfiguration.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-                    {selectedRuleConfigurationId === "free-play" ? (
-                        <>
-                            <div className="control-row">
-                                <label className="control-label" htmlFor="board-size-select">
-                                    Board Size
-                                </label>
-                                <div className="select-shell">
-                                    <select
-                                        id="board-size-select"
-                                        value={String(selectedBoardSize)}
-                                        disabled={disabled}
-                                        onChange={(event) => {
-                                            onSelectBoardSize(Number.parseInt(event.target.value, 10));
-                                        }}
-                                    >
-                                        {Array.from({ length: 24 }, (_, index) => index + 3).map((boardSize) => (
-                                            <option key={boardSize} value={boardSize}>
-                                                {boardSize}x{boardSize}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="control-row">
-                                <label className="control-label" htmlFor="starting-side-select">
-                                    Starting Side
-                                </label>
-                                <div className="select-shell">
-                                    <select
-                                        id="starting-side-select"
-                                        value={selectedStartingSide}
-                                        disabled={disabled}
-                                        onChange={(event) => {
-                                            onSelectStartingSide(event.target.value as Side);
-                                        }}
-                                    >
-                                        <option value="dragons">Dragons</option>
-                                        <option value="ravens">Ravens</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </>
-                    ) : null}
-                    <button
-                        id="start-button"
-                        type="button"
-                        disabled={disabled}
-                        onClick={onStartGame}
-                    >
-                        Start Game
-                    </button>
-                </>
+                <GameSetupControls
+                    availableRuleConfigurations={availableRuleConfigurations}
+                    selectedRuleConfigurationId={selectedRuleConfigurationId ?? "free-play"}
+                    selectedStartingSide={selectedStartingSide}
+                    selectedBoardSize={selectedBoardSize}
+                    isDisabled={disabled}
+                    onSelectRuleConfiguration={onSelectRuleConfiguration}
+                    onSelectStartingSide={onSelectStartingSide}
+                    onSelectBoardSize={onSelectBoardSize}
+                    onStartGame={onStartGame}
+                />
             ) : null}
             {phase === "setup" ? (
                 <button
@@ -176,9 +219,7 @@ export const ControlsPanel = ({
                     ) : null}
                 </>
             ) : null}
-            {showUndo && !isActivePlay ? (
-                undoButton
-            ) : null}
+            {showUndo && !isActivePlay ? undoButton : null}
         </div>
     );
 };

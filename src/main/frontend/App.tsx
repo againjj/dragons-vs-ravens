@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { useAppDispatch, useAppSelector } from "./app/hooks.js";
 import { AuthPanel } from "./components/AuthPanel.js";
+import { CreateGameScreen } from "./components/CreateGameScreen.js";
 import { GameScreen } from "./components/GameScreen.js";
 import { LobbyScreen } from "./components/LobbyScreen.js";
 import { ProfileScreen } from "./components/ProfileScreen.js";
@@ -133,12 +134,7 @@ export const App = () => {
                     }}
                 />
             ) : page === "create" ? (
-                <section className="panel page-header-panel">
-                    <div className="page-header-copy">
-                        <h2>Create Game</h2>
-                        <p>The local create flow will live here before a game exists.</p>
-                    </div>
-                </section>
+                <CreateGameScreen />
             ) : page === "profile" ? (
                 <section className="auth-layout">
                     <ProfileScreen />

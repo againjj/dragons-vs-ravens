@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, can route into a client-only `/create` draft flow backed by local Redux draft state or open games by id, and then talks to the per-game backend API for the active session.
+This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, can route into a client-only `/create` draft flow backed by local Redux draft state or open games by id, and then talks to the per-game backend API for the active session. The `/create` page now has a dedicated three-panel draft layout with the board on the left, configuration controls in the middle, and the rules panel on the right.
 
 The `docs` folder now also includes a Sherwood-focused bot planning document at `docs/bot-implementation-plan.md`, which now locks in first-release decisions, adopts release-two-ready bot-id persistence from the start, and sketches a second release with named `Simple`, `Random`, and `Minimax` bots plus grouped undo and expanded ruleset support. It also includes `docs/create-and-play-redesign.md`, a detailed implementation plan for moving game creation into a client-only `/create` draft flow and reshaping the live `/g/{gameId}` play screen.
 
@@ -47,6 +47,14 @@ The web layer now also includes a dedicated controller advice that recognizes ex
   - Handles auth bootstrap plus switching between the login, lobby, create, profile, and active game screens.
 - `src/main/frontend/components/GameScreen.tsx`
   - Owns the active game screen layout, board sizing hookup, controls wiring, seat panel, rules legend, move list composition, and game-specific feedback dialog.
+- `src/main/frontend/components/CreateGameScreen.tsx`
+  - Owns the local `/create` draft layout and composes the draft board, configuration controls, and rules panel.
+- `src/main/frontend/components/Board.tsx`
+  - Shared board rendering plus connected and controlled click handling.
+- `src/main/frontend/components/ControlsPanel.tsx`
+  - Live-game control wiring plus the shared draft setup control block.
+- `src/main/frontend/components/RulesPanel.tsx`
+  - Shared rules-description renderer for live and draft screens.
 - `src/main/frontend/app/*.ts`
   - Redux store setup and typed hooks.
 - `src/main/frontend/features/game/*.ts`
@@ -57,7 +65,7 @@ The web layer now also includes a dedicated controller advice that recognizes ex
 - `src/main/frontend/features/ui/*.ts`
   - Local-only UI state such as selected square.
 - `src/main/frontend/components/*.tsx`
-  - React components for the lobby screen, auth panel, local profile screen, seat display, board rendering, controls, move list, and status text.
+  - React components for the lobby screen, auth panel, local profile screen, live game screen, create screen, seat display, board rendering, setup controls, rules panels, move list, and status text.
 - `src/main/frontend/hooks/*.ts`
   - Browser hooks for responsive sizing, fullscreen behavior, and URL-to-page routing.
   - `useBoardSizing.ts` now measures the padded board panel so the board can shrink and grow without overflowing the panel.
@@ -237,7 +245,7 @@ Most UI-only changes should start in the relevant component, selector, or browse
 - The page shell now also shows auth controls for guest access, local signup/login, logout, and an OAuth sign-in link for supported deployments.
 - Local password accounts now also see a `Profile` button in the upper-right app chrome that opens `/profile`.
 - The lobby presents separate create and rejoin cards, uppercases typed game ids locally, and keeps `Open Game` disabled until an id is present. Clicking `Start Fresh` now opens `/create` instead of immediately creating a persisted game.
-- Loading `/create` shows the local draft flow, and loading `/g/{gameId}` directly enters that game's board screen.
+- Loading `/create` shows the local three-panel draft screen, and loading `/g/{gameId}` directly enters that game's board screen.
 - Once a game is opened, the browser enters that game's board screen and updates the URL to `/g/{gameId}`.
 - The game screen shows the current game id and includes a `Back to Lobby` button.
 - The `/profile` page is available only to local password accounts, prefills the current display name, allows display-name updates, and requires password confirmation before deleting the account.
