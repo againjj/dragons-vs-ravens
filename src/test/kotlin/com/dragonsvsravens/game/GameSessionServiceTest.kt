@@ -54,6 +54,62 @@ class GameSessionServiceTest {
     }
 
     @Test
+    fun `creating free play seeds the draft board and preserves it when starting the game`() {
+        val service = createService()
+
+        val created = service.createGame(
+            CreateGameRequest(
+                startingSide = Side.ravens,
+                boardSize = 7,
+                board = mapOf(
+                    "a1" to Piece.dragon,
+                    "g7" to Piece.raven
+                )
+            )
+        )
+
+        assertEquals(GameLifecycle.new, created.lifecycle)
+        assertEquals(Phase.none, created.snapshot.phase)
+        assertEquals("free-play", created.selectedRuleConfigurationId)
+        assertEquals(Side.ravens, created.selectedStartingSide)
+        assertEquals(7, created.selectedBoardSize)
+        assertEquals(Piece.dragon, created.snapshot.board["a1"])
+        assertEquals(Piece.raven, created.snapshot.board["g7"])
+
+        val started = service.applyCommand(created.id, GameCommandRequest(expectedVersion = created.version, type = "start-game"))
+
+        assertEquals(GameLifecycle.active, started.lifecycle)
+        assertEquals(Phase.setup, started.snapshot.phase)
+        assertEquals(Piece.dragon, started.snapshot.board["a1"])
+        assertEquals(Piece.raven, started.snapshot.board["g7"])
+    }
+
+    @Test
+    fun `creating a preset game ignores the supplied draft board`() {
+        val service = createService()
+
+        val created = service.createGame(
+            CreateGameRequest(
+                ruleConfigurationId = "trivial",
+                startingSide = Side.ravens,
+                boardSize = 9,
+                board = mapOf(
+                    "a1" to Piece.gold
+                )
+            )
+        )
+
+        assertEquals("trivial", created.selectedRuleConfigurationId)
+        assertEquals(GameLifecycle.new, created.lifecycle)
+        assertEquals(Phase.none, created.snapshot.phase)
+        assertEquals(7, created.selectedBoardSize)
+        assertEquals(Side.dragons, created.selectedStartingSide)
+        assertEquals(Piece.dragon, created.snapshot.board["a1"])
+        assertEquals(Piece.gold, created.snapshot.board["a2"])
+        assertEquals(Piece.raven, created.snapshot.board["g1"])
+    }
+
+    @Test
     fun `sse broadcasts are scoped to one game`() {
         val service = createService()
         val firstGame = service.createGame()

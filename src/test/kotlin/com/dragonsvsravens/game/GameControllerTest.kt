@@ -17,13 +17,22 @@ class GameControllerTest : AbstractGameControllerTestSupport() {
         mockMvc.post("/api/games") {
             with(authenticated("create-game"))
             contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(CreateGameRequest())
+            content = objectMapper.writeValueAsString(
+                CreateGameRequest(
+                    startingSide = Side.ravens,
+                    board = mapOf(
+                        "a1" to Piece.dragon
+                    )
+                )
+            )
         }.andExpect {
             status { isOk() }
             jsonPath("$.game.id") { value(org.hamcrest.Matchers.matchesPattern("[23456789CFGHJMPQRVWX]{7}")) }
             jsonPath("$.game.lifecycle", equalTo("new"))
             jsonPath("$.game.snapshot.phase", equalTo("none"))
             jsonPath("$.game.selectedRuleConfigurationId", equalTo("free-play"))
+            jsonPath("$.game.selectedStartingSide", equalTo("ravens"))
+            jsonPath("$.game.snapshot.board.a1", equalTo("dragon"))
         }
     }
 

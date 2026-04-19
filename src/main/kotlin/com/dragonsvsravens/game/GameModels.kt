@@ -87,7 +87,8 @@ data class GameSession(
 data class CreateGameRequest(
     val ruleConfigurationId: String? = null,
     val startingSide: Side? = null,
-    val boardSize: Int? = null
+    val boardSize: Int? = null,
+    val board: Map<String, Piece>? = null
 )
 
 data class CreateGameResponse(

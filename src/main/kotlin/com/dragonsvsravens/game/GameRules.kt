@@ -12,9 +12,10 @@ object GameRules {
     fun createInitialSnapshot(
         ruleConfigurationId: String = freePlayRuleConfigurationId,
         selectedStartingSide: Side = Side.dragons,
-        selectedBoardSize: Int = defaultBoardSize
+        selectedBoardSize: Int = defaultBoardSize,
+        initialBoard: Map<String, Piece>? = null
     ): GameSnapshot =
-        GameSnapshotFactory.createInitialSnapshot(ruleConfigurationId, selectedStartingSide, selectedBoardSize)
+        GameSnapshotFactory.createInitialSnapshot(ruleConfigurationId, selectedStartingSide, selectedBoardSize, initialBoard)
 
     fun createIdleSnapshot(
         ruleConfigurationId: String,
@@ -26,9 +27,10 @@ object GameRules {
     fun startGame(
         ruleConfigurationId: String = freePlayRuleConfigurationId,
         selectedStartingSide: Side = Side.dragons,
-        selectedBoardSize: Int = defaultBoardSize
+        selectedBoardSize: Int = defaultBoardSize,
+        initialBoard: Map<String, Piece>? = null
     ): GameSnapshot =
-        GameSnapshotFactory.startGame(ruleConfigurationId, selectedStartingSide, selectedBoardSize)
+        GameSnapshotFactory.startGame(ruleConfigurationId, selectedStartingSide, selectedBoardSize, initialBoard)
 
     fun cycleSetupPiece(snapshot: GameSnapshot, square: String): GameSnapshot =
         GameSnapshotFactory.cycleSetupPiece(snapshot, square)

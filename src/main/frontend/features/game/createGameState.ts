@@ -1,6 +1,7 @@
 import { getCenterSquare, getColumnLetters, getRowNumbers, isValidBoardSize } from "../../board-geometry.js";
 import type {
     CreateGameDraftState,
+    CreateGameRequest,
     Piece,
     RuleConfigurationSummary,
     ServerGameSnapshot,
@@ -366,6 +367,20 @@ export const buildDraftSnapshot = (draftState: CreateGameDraftState): ServerGame
         ruleConfigurationId: ruleConfiguration.summary.id,
         positionKeys: []
     };
+};
+
+export const buildCreateGameRequest = (draftState: CreateGameDraftState): CreateGameRequest => {
+    const request: CreateGameRequest = {
+        ruleConfigurationId: draftState.selectedRuleConfigurationId,
+        startingSide: draftState.selectedStartingSide,
+        boardSize: draftState.selectedBoardSize
+    };
+
+    if (draftState.selectedRuleConfigurationId === defaultRuleConfigurationId) {
+        request.board = filterDraftBoardToBoardSize(draftState.draftBoard, draftState.selectedBoardSize);
+    }
+
+    return request;
 };
 
 export const isDraftBoardEditable = (draftState: CreateGameDraftState): boolean =>

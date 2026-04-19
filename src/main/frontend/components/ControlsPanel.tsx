@@ -23,7 +23,7 @@ interface GameSetupControlsProps {
     onSelectRuleConfiguration: (ruleConfigurationId: string) => void;
     onSelectStartingSide: (side: Side) => void;
     onSelectBoardSize: (boardSize: number) => void;
-    onStartGame?: () => void;
+    onStartGame?: () => void | Promise<void>;
 }
 
 export const GameSetupControls = ({

@@ -8,6 +8,7 @@ import { renderWithStore } from "./test-utils.js";
 
 const {
     fetchAuthSessionMock,
+    createGameSessionMock,
     fetchGameViewMock,
     fetchLocalProfileMock,
     loginAsGuestMock,
@@ -15,6 +16,7 @@ const {
     sendGameCommandRequestMock
 } = vi.hoisted(() => ({
     fetchAuthSessionMock: vi.fn(),
+    createGameSessionMock: vi.fn(),
     fetchGameViewMock: vi.fn(),
     fetchLocalProfileMock: vi.fn(),
     loginAsGuestMock: vi.fn(),
@@ -24,6 +26,7 @@ const {
 
 vi.mock("../../main/frontend/game-client.js", () => ({
     fetchAuthSession: fetchAuthSessionMock,
+    createGameSession: createGameSessionMock,
     fetchGameView: fetchGameViewMock,
     fetchLocalProfile: fetchLocalProfileMock,
     getOAuthLoginUrl: (provider: string) => `/oauth2/authorization/${provider}`,
@@ -53,6 +56,7 @@ vi.mock("../../main/frontend/hooks/useFullscreen.js", () => ({
 describe("App routing", () => {
     beforeEach(() => {
         fetchAuthSessionMock.mockReset();
+        createGameSessionMock.mockReset();
         fetchGameViewMock.mockReset();
         fetchLocalProfileMock.mockReset();
         loginAsGuestMock.mockReset();
@@ -148,7 +152,8 @@ describe("App routing", () => {
         expect(screen.getByRole("button", { name: "Log Out" })).toBeInTheDocument();
     });
 
-    test("logged in users loading /create are shown the create page shell", async () => {
+    test("logged in users loading /create can start a game from the draft", async () => {
+        const user = userEvent.setup();
         fetchAuthSessionMock.mockResolvedValue({
             authenticated: true,
             user: {
@@ -157,15 +162,99 @@ describe("App routing", () => {
                 authType: "local"
             }
         });
+        createGameSessionMock.mockResolvedValue({
+            id: "game-101",
+            version: 0,
+            createdAt: "2026-04-05T00:00:00Z",
+            updatedAt: "2026-04-05T00:00:00Z",
+            lifecycle: "new",
+            canUndo: false,
+            undoOwnerSide: null,
+            availableRuleConfigurations: [],
+            selectedRuleConfigurationId: "free-play",
+            selectedStartingSide: "dragons",
+            selectedBoardSize: 7,
+            snapshot: {
+                board: {},
+                boardSize: 7,
+                specialSquare: "d4",
+                phase: "none",
+                activeSide: "dragons",
+                pendingMove: null,
+                turns: [],
+                ruleConfigurationId: "free-play",
+                positionKeys: []
+            }
+        });
+        fetchGameViewMock.mockResolvedValue(createGameView({ id: "game-101" }));
         window.history.pushState({}, "", "/create");
-
-        renderWithStore(<App />);
+        const { store } = renderWithStore(<App />, {
+            preloadedState: {
+                createGame: {
+                    isActive: true,
+                    selectedRuleConfigurationId: "free-play",
+                    selectedStartingSide: "dragons",
+                    selectedBoardSize: 7,
+                    draftBoard: {
+                        a1: "dragon"
+                    }
+                }
+            }
+        });
 
         expect(await screen.findByRole("heading", { name: "Create Game" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Start Game" })).toBeEnabled();
+        await user.click(screen.getByRole("button", { name: "Start Game" }));
+
+        await screen.findByRole("heading", { name: "Game game-101" });
+        expect(createGameSessionMock).toHaveBeenCalledWith({
+            ruleConfigurationId: "free-play",
+            startingSide: "dragons",
+            boardSize: 7,
+            board: {
+                a1: "dragon"
+            }
+        });
+        expect(store.getState().game.session?.id).toBe("game-101");
+        expect(window.location.pathname).toBe("/g/game-101");
+    });
+
+    test("create game errors stay on /create and preserve the draft", async () => {
+        const user = userEvent.setup();
+        fetchAuthSessionMock.mockResolvedValue({
+            authenticated: true,
+            user: {
+                id: "player-dragons",
+                displayName: "Dragon Player",
+                authType: "local"
+            }
+        });
+        createGameSessionMock.mockRejectedValue(new Error("Unable to create game."));
+        window.history.pushState({}, "", "/create");
+        const { store } = renderWithStore(<App />, {
+            preloadedState: {
+                createGame: {
+                    isActive: true,
+                    selectedRuleConfigurationId: "free-play",
+                    selectedStartingSide: "dragons",
+                    selectedBoardSize: 7,
+                    draftBoard: {
+                        a1: "dragon"
+                    }
+                }
+            }
+        });
+
+        expect(await screen.findByRole("heading", { name: "Create Game" })).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Start Game" }));
+
         expect(window.location.pathname).toBe("/create");
-        expect(screen.getByRole("heading", { name: "Configuration" })).toBeInTheDocument();
-        expect(screen.getByRole("heading", { name: "Rules" })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Start Game" })).toBeDisabled();
+        expect(screen.getByText("Unable to create game.")).toBeInTheDocument();
+        expect(store.getState().createGame.draftBoard).toMatchObject({
+            a1: "dragon"
+        });
+        expect(store.getState().game.session).toBeNull();
+        expect(store.getState().game.isSubmitting).toBe(false);
     });
 
     test("loading /create initializes the draft and leaving the route clears it", async () => {

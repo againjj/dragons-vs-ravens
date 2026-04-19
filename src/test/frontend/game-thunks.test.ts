@@ -1,6 +1,7 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 
 import { createAppStore } from "../../main/frontend/app/store.js";
+import { createGameDraftActions } from "../../main/frontend/features/game/createGameSlice.js";
 import { createAuthSession, createGameView, createSession } from "./fixtures.js";
 
 const {
@@ -32,30 +33,40 @@ describe("gameThunks", () => {
         sendGameCommandRequestMock.mockReset();
     });
 
-    test("createGame enters the game view with the created session", async () => {
+    test("createGame submits the active draft and stores the created session", async () => {
         const session = createSession({ id: "game-101" });
-        const gameView = createGameView({ id: "game-101" });
         createGameSessionMock.mockResolvedValue(session);
-        fetchGameViewMock.mockResolvedValue(gameView);
         const store = createAppStore();
+        store.dispatch(createGameDraftActions.createModeEntered());
+        store.dispatch(createGameDraftActions.setupSquareCycled("a1"));
 
         const createdGameId = await store.dispatch(createGame());
 
         expect(createdGameId).toBe("game-101");
-        expect(store.getState().game.view).toBe("game");
-        expect(store.getState().game.currentGameId).toBe("game-101");
+        expect(createGameSessionMock).toHaveBeenCalledWith({
+            ruleConfigurationId: "free-play",
+            startingSide: "dragons",
+            boardSize: 7,
+            board: {
+                a1: "dragon"
+            }
+        });
         expect(store.getState().game.session?.id).toBe("game-101");
-        expect(store.getState().game.viewerRole).toBe("dragons");
+        expect(store.getState().game.currentGameId).toBe("game-101");
+        expect(store.getState().game.view).toBe("lobby");
+        expect(store.getState().game.isSubmitting).toBe(false);
     });
 
     test("createGame shows a server-down message when the create request does not respond", async () => {
         createGameSessionMock.mockRejectedValue(new TypeError("Failed to fetch"));
         const store = createAppStore();
+        store.dispatch(createGameDraftActions.createModeEntered());
 
         const createdGameId = await store.dispatch(createGame());
 
         expect(createdGameId).toBeNull();
         expect(store.getState().game.feedbackMessage).toBe("The server is down. Please wait and try again later.");
+        expect(store.getState().createGame.isActive).toBe(true);
     });
 
     test("openGame enters the game view for a valid game id", async () => {

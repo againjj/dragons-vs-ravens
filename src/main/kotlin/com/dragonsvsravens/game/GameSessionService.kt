@@ -27,17 +27,25 @@ class GameSessionService(
     fun createGame(request: CreateGameRequest = CreateGameRequest(), createdByUserId: String? = null): GameSession {
         val selectedRuleConfigurationId = request.ruleConfigurationId ?: GameRules.freePlayRuleConfigurationId
         GameRules.getRuleConfigurationSummary(selectedRuleConfigurationId)
-        val selectedStartingSide = request.startingSide ?: Side.dragons
-        val selectedBoardSize = request.boardSize ?: GameRules.defaultBoardSize
-        GameRules.validateBoardSize(selectedBoardSize)
+        val requestedBoardSize = request.boardSize ?: GameRules.defaultBoardSize
+        GameRules.validateBoardSize(requestedBoardSize)
+        if (selectedRuleConfigurationId == GameRules.freePlayRuleConfigurationId) {
+            validateDraftBoard(request.board, requestedBoardSize)
+        }
 
         while (true) {
+            val snapshot = GameRules.createInitialSnapshot(
+                selectedRuleConfigurationId,
+                request.startingSide ?: Side.dragons,
+                requestedBoardSize,
+                request.board
+            )
             val game = GameSessionFactory.createFreshStoredGame(
                 gameId = GameIdGenerator.nextId(),
-                snapshot = createIdleSnapshot(selectedRuleConfigurationId, selectedStartingSide, selectedBoardSize),
-                selectedRuleConfigurationId = selectedRuleConfigurationId,
-                selectedStartingSide = selectedStartingSide,
-                selectedBoardSize = selectedBoardSize,
+                snapshot = snapshot,
+                selectedRuleConfigurationId = snapshot.ruleConfigurationId,
+                selectedStartingSide = snapshot.activeSide,
+                selectedBoardSize = snapshot.boardSize,
                 createdByUserId = createdByUserId,
                 now = Instant.now(clock)
             )
@@ -144,12 +152,13 @@ class GameSessionService(
         }
     }
 
-    private fun createIdleSnapshot(
-        ruleConfigurationId: String,
-        selectedStartingSide: Side,
-        selectedBoardSize: Int
-    ): GameSnapshot =
-        GameRules.createIdleSnapshot(ruleConfigurationId, selectedStartingSide, selectedBoardSize)
+    private fun validateDraftBoard(board: Map<String, Piece>?, boardSize: Int) {
+        board?.keys?.forEach { square ->
+            require(BoardCoordinates.isValidSquare(square, boardSize)) {
+                "Square $square is outside the ${boardSize}x${boardSize} board."
+            }
+        }
+    }
 
     private fun touchGame(gameId: String, accessedAt: Instant = Instant.now(clock)) {
         gameStore.touch(gameId, accessedAt) ?: throw GameNotFoundException(gameId)

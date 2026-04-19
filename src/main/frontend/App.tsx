@@ -14,6 +14,7 @@ import {
 import { gameActions } from "./features/game/gameSlice.js";
 import { continueAsGuest, loadAuthSession, login, logout, signup } from "./features/auth/authThunks.js";
 import { useGameSession } from "./features/game/useGameSession.js";
+import { createGame } from "./features/game/gameThunks.js";
 import { useFullscreen } from "./hooks/useFullscreen.js";
 import { useGameRoute } from "./hooks/useGameRoute.js";
 import { selectCurrentUser, selectIsAuthenticated } from "./features/auth/authSelectors.js";
@@ -51,6 +52,15 @@ export const App = () => {
 
     const handleCreateGame = () => {
         navigateToCreate();
+    };
+
+    const handleStartGameFromCreate = () => {
+        void (async () => {
+            const gameId = await dispatch(createGame());
+            if (gameId) {
+                navigateToGame(gameId);
+            }
+        })();
     };
 
     return (
@@ -134,7 +144,7 @@ export const App = () => {
                     }}
                 />
             ) : page === "create" ? (
-                <CreateGameScreen />
+                <CreateGameScreen onStartGame={handleStartGameFromCreate} />
             ) : page === "profile" ? (
                 <section className="auth-layout">
                     <ProfileScreen />

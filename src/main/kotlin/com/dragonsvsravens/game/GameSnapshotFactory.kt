@@ -6,8 +6,9 @@ internal object GameSnapshotFactory {
     fun createInitialSnapshot(
         ruleConfigurationId: String = GameRules.freePlayRuleConfigurationId,
         selectedStartingSide: Side = Side.dragons,
-        selectedBoardSize: Int = GameRules.defaultBoardSize
-    ): GameSnapshot = createBaseSnapshot(ruleConfigurationId, Phase.none, selectedStartingSide, selectedBoardSize)
+        selectedBoardSize: Int = GameRules.defaultBoardSize,
+        initialBoard: Map<String, Piece>? = null
+    ): GameSnapshot = createBaseSnapshot(ruleConfigurationId, Phase.none, selectedStartingSide, selectedBoardSize, initialBoard)
 
     fun createIdleSnapshot(
         ruleConfigurationId: String,
@@ -19,14 +20,16 @@ internal object GameSnapshotFactory {
     fun startGame(
         ruleConfigurationId: String = GameRules.freePlayRuleConfigurationId,
         selectedStartingSide: Side = Side.dragons,
-        selectedBoardSize: Int = GameRules.defaultBoardSize
+        selectedBoardSize: Int = GameRules.defaultBoardSize,
+        initialBoard: Map<String, Piece>? = null
     ): GameSnapshot {
         val configuration = RuleCatalog.getRuleConfiguration(ruleConfigurationId)
         val initialSnapshot = createBaseSnapshot(
             configuration.summary.id,
             configuration.ruleSet.startPhase(),
             selectedStartingSide,
-            selectedBoardSize
+            selectedBoardSize,
+            initialBoard
         )
         return initializePositionHistory(initialSnapshot)
     }
@@ -76,7 +79,8 @@ internal object GameSnapshotFactory {
         ruleConfigurationId: String,
         phase: Phase,
         selectedStartingSide: Side,
-        selectedBoardSize: Int
+        selectedBoardSize: Int,
+        initialBoard: Map<String, Piece>? = null
     ): GameSnapshot {
         val configuration = RuleCatalog.getRuleConfiguration(ruleConfigurationId)
         GameRules.validateBoardSize(selectedBoardSize)
@@ -86,8 +90,13 @@ internal object GameSnapshotFactory {
         } else {
             configuration.specialSquare
         }
+        val board = if (ruleConfigurationId == GameRules.freePlayRuleConfigurationId) {
+            LinkedHashMap(initialBoard ?: emptyMap())
+        } else {
+            LinkedHashMap(configuration.presetBoard)
+        }
         return GameSnapshot(
-            board = LinkedHashMap(configuration.presetBoard),
+            board = board,
             boardSize = boardSize,
             specialSquare = specialSquare,
             phase = phase,

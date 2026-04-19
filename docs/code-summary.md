@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, can route into a client-only `/create` draft flow backed by local Redux draft state or open games by id, and then talks to the per-game backend API for the active session. The `/create` page now has a dedicated three-panel draft layout with the board on the left, configuration controls in the middle, and the rules panel on the right.
+This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, can route into a client-only `/create` draft flow backed by local Redux draft state or open games by id, and then talks to the per-game backend API for the active session. The `/create` page now has a dedicated three-panel draft layout with the board on the left, configuration controls in the middle, and the rules panel on the right, and its Start Game action submits the draft payload to `POST /api/games` so the backend can seed the stored session from the drafted setup before opening `/g/{gameId}`.
 
 The `docs` folder now also includes a Sherwood-focused bot planning document at `docs/bot-implementation-plan.md`, which now locks in first-release decisions, adopts release-two-ready bot-id persistence from the start, and sketches a second release with named `Simple`, `Random`, and `Minimax` bots plus grouped undo and expanded ruleset support. It also includes `docs/create-and-play-redesign.md`, a detailed implementation plan for moving game creation into a client-only `/create` draft flow and reshaping the live `/g/{gameId}` play screen.
 
@@ -18,7 +18,7 @@ The web layer now also includes a dedicated controller advice that recognizes ex
 - `src/main/kotlin/com/dragonsvsravens/game/*.kt`
   - Server-side game state models, pure-ish rules, the JDBC-backed game store, the session service, and REST/SSE endpoints.
   - Rule metadata and execution are now separated across `RuleCatalog.kt`, `GameSnapshotFactory.kt`, `RuleEngine.kt`, and per-ruleset engine files, with `GameRules.kt` kept as a thin facade.
-  - `GameCommandService.kt` now owns command authorization, validation, undo handling, and seat-claim transitions, while `GameSessionService.kt` keeps persisted-game loading, broadcasting, emitter lifecycle, and stale cleanup.
+  - `GameCommandService.kt` now owns command authorization, validation, undo handling, and seat-claim transitions, while `GameSessionService.kt` keeps persisted-game loading, create-payload seeding, broadcasting, emitter lifecycle, and stale cleanup.
 - `src/main/kotlin/com/dragonsvsravens/auth/*.kt`
   - Session auth models, JDBC-backed user persistence, guest and local login flows, optional OAuth login integration, local-account profile management, and session cleanup hooks for temporary guest users.
 - `src/main/kotlin/com/dragonsvsravens/web/*.kt`
@@ -31,17 +31,17 @@ The web layer now also includes a dedicated controller advice that recognizes ex
 - `src/main/resources/static/styles.css`
   - Owns layout, board sizing variables, responsive behavior, fullscreen styling, and the `#c274c8` highlight color used for the board's corner and center squares.
 - `src/main/frontend/game-types.ts`
-  - Frontend wire types, auth/game DTOs, and the local create-draft state shape.
+  - Frontend wire types, auth/game DTOs, the local create-draft state shape, and the create-game request payload.
 - `src/main/frontend/board-geometry.ts`
   - Board coordinate helpers, dimension helpers, center-square helpers, and highlighted-square helpers.
 - `src/main/frontend/features/game/createGameState.ts`
-  - Local `/create` draft configuration data plus pure snapshot helpers.
+  - Local `/create` draft configuration data, pure snapshot helpers, and the draft-to-create-request mapper.
 - `src/main/frontend/game-rules-client.ts`
   - Client-side ownership, capture, targeting, and local-selection helpers used by selectors and board rendering.
 - `src/main/frontend/move-history.ts`
   - Turn notation and grouped move-history row helpers.
 - `src/main/frontend/game-client.ts`
-  - Transport helpers for REST commands and SSE subscription setup.
+  - Transport helpers for REST commands, create-game submission, and SSE subscription setup.
 - `src/main/frontend/App.tsx`
   - Top-level React layout and shell composition.
   - Handles auth bootstrap plus switching between the login, lobby, create, profile, and active game screens.
@@ -59,7 +59,7 @@ The web layer now also includes a dedicated controller advice that recognizes ex
   - Redux store setup and typed hooks.
 - `src/main/frontend/features/game/*.ts`
   - Game slice, selectors, thunks, and stream lifecycle wiring.
-  - Includes current-game and current-view state, auth-aware game metadata, the local draft-create slice/selectors/helpers, exact undo availability and ownership, command/claim-side thunks, and shared helpers for applying fetched game views plus auth-failure refresh recovery.
+  - Includes current-game and current-view state, auth-aware game metadata, the local draft-create slice/selectors/helpers, exact undo availability and ownership, create-game submission from the draft payload, command/claim-side thunks, and shared helpers for applying fetched game views plus auth-failure refresh recovery.
 - `src/main/frontend/features/auth/*.ts`
   - Auth session slice, selectors, profile state, and guest/local auth thunks.
 - `src/main/frontend/features/ui/*.ts`
@@ -103,9 +103,9 @@ The web layer now also includes a dedicated controller advice that recognizes ex
   - Gradle task `testFrontend` runs the frontend tests.
   - `./gradlew test` runs both the frontend tests and the Kotlin/Spring test task.
 - Runtime flow:
-  - The browser lobby lives at `/`.
-  - The browser treats `/create` as a local-only draft-entry route and `/g/{gameId}` as the canonical active-game URL.
-  - Loading `/create` or `/g/{gameId}` directly opens that page in the browser.
+- The browser lobby lives at `/`.
+- The browser treats `/create` as a local-only draft-entry route and `/g/{gameId}` as the canonical active-game URL.
+- Loading `/create` or `/g/{gameId}` directly opens that page in the browser.
   - Session inspection uses `GET /api/auth/session`.
   - Guest login uses `POST /api/auth/guest`.
   - Local signup and login use `POST /api/auth/signup` and `POST /api/auth/login`.
@@ -117,8 +117,9 @@ The web layer now also includes a dedicated controller advice that recognizes ex
   - Opening a game by id uses `GET /api/games/{gameId}`.
   - Seat claiming uses `POST /api/games/{gameId}/claim-side`.
   - A request-scoped auth-aware game view is available at `GET /api/games/{gameId}/view`.
-  - The active game screen sends mutations to `POST /api/games/{gameId}/commands`.
-  - The active game screen subscribes to `GET /api/games/{gameId}/stream` for live updates.
+- The active game screen sends mutations to `POST /api/games/{gameId}/commands`.
+- The create screen sends its drafted setup to `POST /api/games`, which creates the persisted session from that payload before the browser opens `/g/{gameId}`.
+- The active game screen subscribes to `GET /api/games/{gameId}/stream` for live updates.
   - Games are stored in the configured database and are automatically evicted when they have not been accessed longer than the configured stale threshold and no SSE viewers are connected.
 - Runtime configuration:
   - `server.port` reads `${PORT:8080}` so the app keeps its local default while also working on Railway-style platforms that inject the listen port at runtime.
@@ -262,6 +263,7 @@ Most UI-only changes should start in the relevant component, selector, or browse
   - both claimed players may place pieces and end setup
   - any square, including `d4`, can be changed during setup
   - any number of gold pieces may be placed during setup
+  - the `/create` flow can seed the starting setup board before the live game opens
 - Ending setup switches to `move`, the selected starting side moves first, dragons may move dragons or gold, ravens may move ravens, and movement allows any owned piece to move to any empty square.
 - If an opposing piece exists after a move, the game enters `capture`, where dragons may capture one raven and ravens may capture one dragon or gold.
 - Capture can still be skipped.

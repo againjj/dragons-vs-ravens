@@ -617,6 +617,14 @@ button:disabled {
     min-height: 1.45em;
 }
 
+.create-feedback {
+    min-height: 1.45em;
+    margin: 0;
+    color: var(--accent-dark);
+    line-height: 1.45;
+    font-weight: 600;
+}
+
 .legend-section p + p {
     margin-top: 8px;
 }

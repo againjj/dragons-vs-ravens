@@ -124,6 +124,7 @@ export interface CreateGameRequest {
     ruleConfigurationId?: string;
     startingSide?: Side;
     boardSize?: number;
+    board?: Record<string, Piece>;
 }
 
 export interface CreateGameDraftState {

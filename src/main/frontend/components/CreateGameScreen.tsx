@@ -16,14 +16,17 @@ import {
     selectCreateGameSnapshot
 } from "../features/game/createGameSelectors.js";
 import { createGameDraftActions } from "../features/game/createGameSlice.js";
+import { selectFeedbackMessage, selectIsSubmitting } from "../features/game/gameSelectors.js";
 import { useBoardSizing } from "../hooks/useBoardSizing.js";
 
 interface CreateGameScreenProps {
-    onStartGame?: () => void;
+    onStartGame?: () => void | Promise<void>;
 }
 
 export const CreateGameScreen = ({ onStartGame }: CreateGameScreenProps = {}) => {
     const dispatch = useAppDispatch();
+    const feedbackMessage = useAppSelector(selectFeedbackMessage);
+    const isSubmitting = useAppSelector(selectIsSubmitting);
     const currentRuleConfiguration = useAppSelector(selectCreateGameCurrentRuleConfiguration);
     const availableRuleConfigurations = useAppSelector(selectCreateGameAvailableRuleConfigurations);
     const selectedRuleConfigurationId = useAppSelector(selectCreateGameSelectedRuleConfigurationId);
@@ -82,7 +85,7 @@ export const CreateGameScreen = ({ onStartGame }: CreateGameScreenProps = {}) =>
                         selectedRuleConfigurationId={selectedRuleConfigurationId}
                         selectedStartingSide={selectedStartingSide}
                         selectedBoardSize={selectedBoardSize}
-                        isDisabled={false}
+                        isDisabled={isSubmitting}
                         onSelectRuleConfiguration={(ruleConfigurationId) => {
                             void dispatch(createGameDraftActions.ruleConfigurationSelected(ruleConfigurationId));
                         }}
@@ -103,6 +106,9 @@ export const CreateGameScreen = ({ onStartGame }: CreateGameScreenProps = {}) =>
                         {draftBoard && selectedRuleConfigurationId === "free-play"
                             ? `${Object.keys(draftBoard).length} pieces placed in the draft.`
                             : " "}
+                    </p>
+                    <p className="create-feedback" aria-live="polite">
+                        {feedbackMessage ?? " "}
                     </p>
                 </section>
 

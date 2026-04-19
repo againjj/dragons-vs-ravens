@@ -49,7 +49,8 @@ class GameCommandService(
                     snapshot = GameRules.startGame(
                         current.session.selectedRuleConfigurationId,
                         current.session.selectedStartingSide,
-                        current.session.selectedBoardSize
+                        current.session.selectedBoardSize,
+                        current.session.snapshot.board
                     ),
                     undoSnapshots = emptyList()
                 )

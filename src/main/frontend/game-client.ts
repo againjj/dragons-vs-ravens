@@ -74,7 +74,12 @@ export const createGameSession = async (
         body: JSON.stringify(request)
     });
     if (!response.ok) {
-        throw new Error(`Failed to create game: ${response.status}`);
+        const errorMessage = await parseErrorMessage(response);
+        throw new Error(
+            errorMessage === defaultCommandErrorMessage
+                ? "Unable to create a new game right now."
+                : errorMessage
+        );
     }
 
     const result = await parseJson<CreateGameResponse>(response);

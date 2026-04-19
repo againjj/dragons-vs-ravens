@@ -32,7 +32,7 @@ The page now also includes auth controls for guest play, local signup/login/logo
 Users must authenticate before opening the lobby or viewing a game.
 Local password accounts now also get a `Profile` button in the upper-right app chrome that opens `/profile`.
 The lobby now presents separate `Start Fresh` and `Rejoin Game` cards, normalizes typed game IDs to uppercase, and disables `Open Game` until an ID is entered. Clicking `Start Fresh` now opens `/create` instead of immediately creating a persisted game.
-The create screen now uses a three-panel layout with the draft board on the left, configuration controls in the middle, and rules on the right. The create draft keeps its board and configuration state local while you stay on `/create`, and leaving that route clears the draft before you return to the lobby or open a game.
+The create screen now uses a three-panel layout with the draft board on the left, configuration controls in the middle, and rules on the right. The create draft keeps its board and configuration state local while you stay on `/create`, and leaving that route clears the draft before you return to the lobby or open a game. Clicking `Start Game` sends that draft configuration to the backend, which creates the persisted session from the submitted payload before the browser opens `/g/{gameId}`.
 Each game has its own URL at `/g/{gameId}`.
 Loading a game URL directly opens that game, and after you open a game from the lobby the browser updates the address bar to that game's `/g/{gameId}` URL.
 If you load a game URL directly and then return to the lobby, the app now replaces that direct-entry history slot instead of trapping the browser Back button inside the app.
@@ -40,7 +40,7 @@ The browser stays subscribed to that game's SSE stream until you go back to the 
 The active game screen shows the current game ID plus a `Back to Lobby` button.
 The game board now resumes responsive resizing correctly after entering a game from the lobby.
 Once a game is open, the controls include the play-style dropdown plus the usual gameplay actions.
-`Free Play` preserves the original behavior: before starting, you can choose whether dragons or ravens move first; starting a game then enters setup with an empty board, setup clicks cycle `empty -> dragon -> raven -> gold -> empty`, capture is manual, and the game is ended manually.
+`Free Play` preserves the original behavior: before starting, you can choose whether dragons or ravens move first; the create flow can seed an initial setup board before the live game opens, setup clicks cycle `empty -> dragon -> raven -> gold -> empty`, capture is manual, and the game is ended manually.
 `Trivial Configuration`, `Original Game`, `Sherwood Rules`, `Square One`, `Sherwood x 9`, and `Square One x 9` start from preset boards with no setup phase, resolve captures automatically, and end automatically based on their own rules.
 `Sherwood Rules`, `Square One`, `Sherwood x 9`, and `Square One x 9` match the original-style capture and win/draw rules, but the gold is moved by the dragons and may move only one orthogonal square at a time.
 Original-style games now resolve terminal wins before post-turn draws: they award `Ravens win` immediately when the gold is captured and `Dragons win` immediately when the last raven is captured, even if the opposing side would otherwise have no legal reply.

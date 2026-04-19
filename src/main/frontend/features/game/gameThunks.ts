@@ -2,6 +2,7 @@ import { claimGameSide, createGameSession, fetchGameView, sendGameCommandRequest
 import type { AppThunk, RootState } from "../../app/store.js";
 import { normalizeSelectedSquare } from "../../game-rules-client.js";
 import type { GameCommandRequest, GameViewResponse, ServerGameSession, Side } from "../../game-types.js";
+import { buildCreateGameRequest } from "./createGameState.js";
 import { gameActions } from "./gameSlice.js";
 import { uiActions } from "../ui/uiSlice.js";
 import { authActions } from "../auth/authSlice.js";
@@ -21,6 +22,13 @@ const isServerUnavailableError = (error: unknown): boolean =>
 
 const getUserActionErrorMessage = (error: unknown, fallbackMessage: string): string =>
     isServerUnavailableError(error) ? serverUnavailableMessage : fallbackMessage;
+
+const getCreateGameErrorMessage = (error: unknown): string =>
+    isServerUnavailableError(error)
+        ? serverUnavailableMessage
+        : error instanceof Error && error.message.trim().length > 0
+            ? error.message
+            : "Unable to create a new game right now.";
 
 const getOauthProviders = (getState: () => RootState): string[] => getState().auth.session.oauthProviders;
 
@@ -88,18 +96,18 @@ const sendSelectionClearingCommand = (
     await dispatch(sendCommand(partialCommand));
 };
 
-export const createGame = (): AppThunk<Promise<string | null>> => async (dispatch) => {
-    dispatch(gameActions.loadStarted());
+export const createGame = (): AppThunk<Promise<string | null>> => async (dispatch, getState) => {
+    dispatch(gameActions.commandStarted());
 
     try {
-        const session = await createGameSession();
-        dispatch(gameActions.gameOpened(session.id));
-        const loaded = await dispatch(loadGameViewForUserAction(session.id, "Unable to create a new game right now."));
-        return loaded ? session.id : null;
+        const session = await createGameSession(buildCreateGameRequest(getState().createGame));
+        dispatch(gameActions.sessionUpdated(session));
+        return session.id;
     } catch (error) {
-        dispatch(gameActions.loadFailed());
-        dispatch(gameActions.feedbackMessageSet(getUserActionErrorMessage(error, "Unable to create a new game right now.")));
+        dispatch(gameActions.feedbackMessageSet(getCreateGameErrorMessage(error)));
         return null;
+    } finally {
+        dispatch(gameActions.commandFinished());
     }
 };
 
