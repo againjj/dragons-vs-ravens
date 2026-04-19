@@ -2,9 +2,16 @@ import { describe, expect, test } from "vitest";
 
 import { createAppStore } from "../../main/frontend/app/store.js";
 import { gameActions } from "../../main/frontend/features/game/gameSlice.js";
-import { selectCanViewerAct, selectStatusText, selectTargetableSquares } from "../../main/frontend/features/game/gameSelectors.js";
+import {
+    selectCanClaimDragons,
+    selectCanClaimRavens,
+    selectCanViewerAct,
+    selectCanViewerUndo,
+    selectStatusText,
+    selectTargetableSquares
+} from "../../main/frontend/features/game/gameSelectors.js";
 import { uiActions } from "../../main/frontend/features/ui/uiSlice.js";
-import { createSession } from "./fixtures.js";
+import { createAuthSession, createSession } from "./fixtures.js";
 
 describe("game selectors", () => {
     test("status text prefers feedback messages over snapshot-derived text", () => {
@@ -110,6 +117,53 @@ describe("game selectors", () => {
 
         expect(selectCanViewerAct(dragonsStore.getState())).toBe(true);
         expect(selectCanViewerAct(ravensStore.getState())).toBe(true);
+    });
+
+    test("a player who owns both seats can act and undo even when the other side moved last", () => {
+        const store = createAppStore({
+            auth: {
+                session: createAuthSession({
+                    user: {
+                        id: "player-dragons",
+                        displayName: "Dragon Player",
+                        authType: "local"
+                    }
+                })
+            },
+            game: {
+                session: createSession(
+                    {
+                        canUndo: true,
+                        undoOwnerSide: "ravens"
+                    },
+                    {
+                        phase: "move",
+                        activeSide: "ravens"
+                    }
+                ),
+                viewerRole: "dragons",
+                dragonsPlayer: {
+                    id: "player-dragons",
+                    displayName: "Dragon Player"
+                },
+                ravensPlayer: {
+                    id: "player-dragons",
+                    displayName: "Dragon Player"
+                },
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: null
+            }
+        });
+
+        expect(selectCanViewerAct(store.getState())).toBe(true);
+        expect(selectCanViewerUndo(store.getState())).toBe(true);
+        expect(selectCanClaimDragons(store.getState())).toBe(false);
+        expect(selectCanClaimRavens(store.getState())).toBe(false);
     });
 
     test("status text uses the no game copy before a game starts", () => {

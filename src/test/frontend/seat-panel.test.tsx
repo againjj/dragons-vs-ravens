@@ -32,7 +32,7 @@ describe("SeatPanel", () => {
         expect(screen.getByText((_, element) => element?.textContent === "Dragons: Open seat")).toBeInTheDocument();
         expect(screen.getByText((_, element) => element?.textContent === "Ravens: Raven Player")).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Claim Dragons" })).toBeEnabled();
-        expect(screen.getByRole("button", { name: "Claim Ravens" })).toBeDisabled();
+        expect(screen.queryByRole("button", { name: "Claim Ravens" })).toBeNull();
 
         await user.click(screen.getByRole("button", { name: "Claim Dragons" }));
 
@@ -40,13 +40,13 @@ describe("SeatPanel", () => {
         expect(onClaimRavens).not.toHaveBeenCalled();
     });
 
-    test("hides claim buttons after the viewer has claimed a side", () => {
+    test("shows the remaining open claim button after the viewer has claimed a side", () => {
         renderWithStore(
             <SeatPanel onClaimDragons={vi.fn()} onClaimRavens={vi.fn()} />,
             {
                 preloadedState: {
                     auth: {
-                        session: createAuthSession()
+                        session: createAuthSession({ user: { id: "player-dragons", displayName: "Dragon Player", authType: "local" } })
                     },
                     game: {
                         viewerRole: "dragons",
@@ -58,6 +58,6 @@ describe("SeatPanel", () => {
         );
 
         expect(screen.queryByRole("button", { name: "Claim Dragons" })).toBeNull();
-        expect(screen.queryByRole("button", { name: "Claim Ravens" })).toBeNull();
+        expect(screen.getByRole("button", { name: "Claim Ravens" })).toBeEnabled();
     });
 });

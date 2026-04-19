@@ -21,13 +21,6 @@ class GameCommandService(
         if (currentHolder != null) {
             throw ForbiddenActionException("${side.name.replaceFirstChar(Char::titlecase)} is already claimed.")
         }
-        val oppositeHolder = when (side) {
-            Side.dragons -> session.ravensPlayerUserId
-            Side.ravens -> session.dragonsPlayerUserId
-        }
-        if (oppositeHolder == userId) {
-            throw ForbiddenActionException("One user cannot claim both sides.")
-        }
         return current.next(
             snapshot = session.snapshot,
             undoSnapshots = current.undoSnapshots,

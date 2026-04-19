@@ -273,6 +273,35 @@ describe("ControlsPanel", () => {
         expect(screen.getByRole("button", { name: "End Game" })).toBeDisabled();
     });
 
+    test("lets a player who owns both sides act and undo after the other side moves", () => {
+        renderPanel(
+            createSession(
+                {
+                    canUndo: true,
+                    undoOwnerSide: "ravens",
+                    lifecycle: "active",
+                    dragonsPlayerUserId: "player-dragons",
+                    ravensPlayerUserId: "player-dragons"
+                },
+                {
+                    phase: "move",
+                    activeSide: "ravens"
+                }
+            ),
+            {
+                viewerRole: "dragons",
+                dragonsPlayer: { id: "player-dragons", displayName: "Dragon Player" },
+                ravensPlayer: { id: "player-dragons", displayName: "Dragon Player" }
+            },
+            {
+                user: { id: "player-dragons", displayName: "Dragon Player", authType: "local" }
+            }
+        );
+
+        expect(screen.getByRole("button", { name: "End Game" })).toBeEnabled();
+        expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled();
+    });
+
     test("enables capture skipping only during the capture phase", () => {
         renderPanel(
             createSession(

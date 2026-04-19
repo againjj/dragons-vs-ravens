@@ -42,16 +42,31 @@ export const selectViewerOwnsASeat = createSelector(
     (viewerRole) => viewerRole === "dragons" || viewerRole === "ravens"
 );
 
+const selectCurrentUserOwnsBothSeats = createSelector(
+    selectCurrentUser,
+    selectDragonsPlayer,
+    selectRavensPlayer,
+    (currentUser, dragonsPlayer, ravensPlayer) =>
+        !!currentUser &&
+        dragonsPlayer?.id === currentUser.id &&
+        ravensPlayer?.id === currentUser.id
+);
+
 export const selectCanViewerAct = createSelector(
     selectSnapshot,
     selectViewerRole,
     selectViewerOwnsASeat,
-    (snapshot, viewerRole, viewerOwnsASeat) => {
+    selectCurrentUserOwnsBothSeats,
+    (snapshot, viewerRole, viewerOwnsASeat, currentUserOwnsBothSeats) => {
         if (!snapshot || !viewerOwnsASeat) {
             return false;
         }
 
         if (snapshot.phase === "none" || snapshot.phase === "setup") {
+            return true;
+        }
+
+        if (currentUserOwnsBothSeats) {
             return true;
         }
 
@@ -63,34 +78,30 @@ export const selectCanViewerUndo = createSelector(
     selectCanUndo,
     selectUndoOwnerSide,
     selectViewerRole,
-    (canUndo, undoOwnerSide, viewerRole) =>
+    selectCurrentUserOwnsBothSeats,
+    (canUndo, undoOwnerSide, viewerRole, currentUserOwnsBothSeats) =>
         canUndo &&
-        undoOwnerSide != null &&
-        viewerRole === undoOwnerSide
+        (currentUserOwnsBothSeats || (undoOwnerSide != null && viewerRole === undoOwnerSide))
 );
 
 export const selectCanClaimDragons = createSelector(
     selectIsAuthenticated,
     selectCurrentUser,
     selectDragonsPlayer,
-    selectRavensPlayer,
-    (isAuthenticated, currentUser, dragonsPlayer, ravensPlayer) =>
+    (isAuthenticated, currentUser, dragonsPlayer) =>
         isAuthenticated &&
         !!currentUser &&
-        dragonsPlayer == null &&
-        ravensPlayer?.id !== currentUser.id
+        dragonsPlayer == null
 );
 
 export const selectCanClaimRavens = createSelector(
     selectIsAuthenticated,
     selectCurrentUser,
-    selectDragonsPlayer,
     selectRavensPlayer,
-    (isAuthenticated, currentUser, dragonsPlayer, ravensPlayer) =>
+    (isAuthenticated, currentUser, ravensPlayer) =>
         isAuthenticated &&
         !!currentUser &&
-        ravensPlayer == null &&
-        dragonsPlayer?.id !== currentUser.id
+        ravensPlayer == null
 );
 
 export const selectCapturableSquares = createSelector(selectSnapshot, (snapshot) =>

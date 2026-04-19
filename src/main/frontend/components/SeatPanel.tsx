@@ -5,7 +5,6 @@ import {
     selectCanClaimRavens,
     selectDragonsPlayer,
     selectRavensPlayer,
-    selectViewerOwnsASeat,
     selectViewerRole
 } from "../features/game/gameSelectors.js";
 
@@ -22,7 +21,6 @@ export const SeatPanel = ({ onClaimDragons, onClaimRavens }: SeatPanelProps) => 
     const ravensPlayer = useAppSelector(selectRavensPlayer);
     const canClaimDragons = useAppSelector(selectCanClaimDragons);
     const canClaimRavens = useAppSelector(selectCanClaimRavens);
-    const viewerOwnsASeat = useAppSelector(selectViewerOwnsASeat);
 
     return (
         <div className="seat-summary" aria-label="Seat ownership">
@@ -38,14 +36,18 @@ export const SeatPanel = ({ onClaimDragons, onClaimRavens }: SeatPanelProps) => 
                 <span className="seat-summary-item">
                     <strong>Ravens:</strong> {ravensPlayer?.displayName ?? "Open seat"}
                 </span>
-                {!viewerOwnsASeat ? (
+                {canClaimDragons || canClaimRavens ? (
                     <span className="controls seat-summary-actions">
-                        <button type="button" disabled={!canClaimDragons} onClick={onClaimDragons}>
-                            Claim Dragons
-                        </button>
-                        <button type="button" disabled={!canClaimRavens} onClick={onClaimRavens}>
-                            Claim Ravens
-                        </button>
+                        {canClaimDragons ? (
+                            <button type="button" onClick={onClaimDragons}>
+                                Claim Dragons
+                            </button>
+                        ) : null}
+                        {canClaimRavens ? (
+                            <button type="button" onClick={onClaimRavens}>
+                                Claim Ravens
+                            </button>
+                        ) : null}
                     </span>
                 ) : null}
             </div>

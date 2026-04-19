@@ -1,5 +1,7 @@
 package com.dragonsvsravens.game
 
+import org.junit.jupiter.api.Assertions.assertAll
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -59,6 +61,28 @@ class GameAuthorizationControllerTest : AbstractGameControllerTestSupport() {
         claimSide(game.id, Side.dragons, defaultTestUserId).andExpect {
             status { isOk() }
             jsonPath("$.dragonsPlayerUserId", equalTo(defaultTestUserId))
+        }
+    }
+
+    @Test
+    fun `authenticated user can claim both open sides and others cannot steal them`() {
+        val game = createGame()
+        assignSides(game.id, null, null)
+
+        claimSide(game.id, Side.dragons, defaultTestUserId).andExpect {
+            status { isOk() }
+            jsonPath("$.dragonsPlayerUserId", equalTo(defaultTestUserId))
+        }
+
+        claimSide(game.id, Side.ravens, defaultTestUserId).andExpect {
+            status { isOk() }
+            jsonPath("$.dragonsPlayerUserId", equalTo(defaultTestUserId))
+            jsonPath("$.ravensPlayerUserId", equalTo(defaultTestUserId))
+        }
+
+        claimSide(game.id, Side.dragons, alternateTestUserId).andExpect {
+            status { isForbidden() }
+            jsonPath("$.message", equalTo("Dragons is already claimed."))
         }
     }
 
@@ -275,6 +299,56 @@ class GameAuthorizationControllerTest : AbstractGameControllerTestSupport() {
             status { isForbidden() }
             jsonPath("$.message", equalTo("Only the player who made the last move may undo."))
         }
+    }
+
+    @Test
+    fun `player who owns both sides can undo after either side moves`() {
+        val game = createGame()
+
+        authenticatedPostGameCommand(
+            game.id,
+            command(game.version, "start-game"),
+            userId = defaultTestUserId
+        ).andExpect {
+            status { isOk() }
+        }
+
+        setupDragonAt(game.id, "a1")
+        setupRavenAt(game.id, "b1")
+        endSetup(game.id)
+
+        authenticatedPostGameCommand(
+            game.id,
+            command(currentVersion(game.id), "move-piece", origin = "a1", destination = "a2"),
+            userId = defaultTestUserId
+        ).andExpect {
+            status { isOk() }
+        }
+
+        authenticatedPostGameCommand(
+            game.id,
+            command(currentVersion(game.id), "skip-capture"),
+            userId = defaultTestUserId
+        ).andExpect {
+            status { isOk() }
+        }
+
+        authenticatedPostGameCommand(
+            game.id,
+            command(currentVersion(game.id), "move-piece", origin = "b1", destination = "b2"),
+            userId = defaultTestUserId
+        ).andExpect {
+            status { isOk() }
+        }
+
+        val undone = executeGameCommand(game.id, command(currentVersion(game.id), "undo"))
+
+        assertAll(
+            { assertEquals(Phase.move, undone.snapshot.phase) },
+            { assertEquals(Side.ravens, undone.snapshot.activeSide) },
+            { assertEquals(Piece.raven, undone.snapshot.board["b1"]) },
+            { assertEquals(null, undone.snapshot.board["b2"]) }
+        )
     }
 
     @Test
