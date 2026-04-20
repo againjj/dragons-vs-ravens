@@ -1,6 +1,6 @@
 export type Piece = "dragon" | "raven" | "gold";
 export type Side = "dragons" | "ravens";
-export type Phase = "none" | "setup" | "move" | "capture";
+export type Phase = "none" | "move" | "capture";
 export type TurnType = "move" | "gameOver";
 export type GameLifecycle = "new" | "active" | "finished";
 export type AuthType = "guest" | "local" | "oauth";
@@ -15,7 +15,6 @@ export interface RuleConfigurationSummary {
     id: string;
     name: string;
     descriptionSections: RuleDescriptionSection[];
-    hasSetupPhase: boolean;
     hasManualCapture: boolean;
     hasManualEndGame: boolean;
 }
@@ -144,12 +143,6 @@ export const generatedGameIdPattern = /^[23456789CFGHJMPQRVWX]{7}$/;
 export interface GameCommandRequest {
     expectedVersion: number;
     type:
-        | "start-game"
-        | "select-rule-configuration"
-        | "select-starting-side"
-        | "select-board-size"
-        | "cycle-setup"
-        | "end-setup"
         | "move-piece"
         | "capture-piece"
         | "skip-capture"

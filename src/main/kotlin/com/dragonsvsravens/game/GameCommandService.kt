@@ -61,14 +61,6 @@ class GameCommandService(
                 current.withSelectedBoardSize(requireBoardSize(command))
             }
 
-            "cycle-setup" -> applyInPhase(current, command, Phase.setup) { snapshot ->
-                current.next(snapshot = GameRules.cycleSetupPiece(snapshot, requireSquare(command, snapshot.boardSize)))
-            }
-
-            "end-setup" -> applyInPhase(current, command, Phase.setup) { snapshot ->
-                current.next(snapshot = GameRules.endSetup(snapshot, current.session.selectedStartingSide))
-            }
-
             "move-piece" -> applyInPhase(current, command, Phase.move) { snapshot ->
                 current.nextWithUndo(
                     snapshot = GameRules.movePiece(
@@ -148,9 +140,6 @@ class GameCommandService(
             return
         }
         if (phase == Phase.none) {
-            return
-        }
-        if (phase == Phase.setup) {
             return
         }
         if (assignedSide != current.session.snapshot.activeSide) {

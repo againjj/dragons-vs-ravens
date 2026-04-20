@@ -34,7 +34,7 @@ class GameSessionService(
         }
 
         while (true) {
-            val snapshot = GameRules.createInitialSnapshot(
+            val snapshot = GameRules.startGame(
                 selectedRuleConfigurationId,
                 request.startingSide ?: Side.dragons,
                 requestedBoardSize,

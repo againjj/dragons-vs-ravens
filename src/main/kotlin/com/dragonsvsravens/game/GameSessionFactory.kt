@@ -18,7 +18,11 @@ object GameSessionFactory {
         version = 0,
         createdAt = now,
         updatedAt = now,
-        lifecycle = GameLifecycle.new,
+        lifecycle = when {
+            snapshot.turns.lastOrNull()?.type == TurnType.gameOver -> GameLifecycle.finished
+            snapshot.phase == Phase.none -> GameLifecycle.new
+            else -> GameLifecycle.active
+        },
         selectedRuleConfigurationId = selectedRuleConfigurationId,
         selectedStartingSide = selectedStartingSide,
         selectedBoardSize = selectedBoardSize,

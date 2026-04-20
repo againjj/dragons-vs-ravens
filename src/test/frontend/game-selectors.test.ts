@@ -62,63 +62,6 @@ describe("game selectors", () => {
         expect(targetableSquares).toHaveLength((7 * 7) - 3);
     });
 
-    test("status text uses the updated setup copy", () => {
-        const store = createAppStore({
-            game: {
-                session: createSession({}, {
-                    phase: "setup"
-                }),
-                isSubmitting: false,
-                loadState: "ready",
-                connectionState: "open",
-                feedbackMessage: null
-            },
-            ui: {
-                selectedSquare: null
-            }
-        });
-
-        expect(selectStatusText(store.getState())).toBe("Setup phase: place the pieces on the board.");
-    });
-
-    test("setup allows both claimed players to act", () => {
-        const dragonsStore = createAppStore({
-            game: {
-                session: createSession({}, {
-                    phase: "setup",
-                    activeSide: "dragons"
-                }),
-                viewerRole: "dragons",
-                isSubmitting: false,
-                loadState: "ready",
-                connectionState: "open",
-                feedbackMessage: null
-            },
-            ui: {
-                selectedSquare: null
-            }
-        });
-        const ravensStore = createAppStore({
-            game: {
-                session: createSession({}, {
-                    phase: "setup",
-                    activeSide: "dragons"
-                }),
-                viewerRole: "ravens",
-                isSubmitting: false,
-                loadState: "ready",
-                connectionState: "open",
-                feedbackMessage: null
-            },
-            ui: {
-                selectedSquare: null
-            }
-        });
-
-        expect(selectCanViewerAct(dragonsStore.getState())).toBe(true);
-        expect(selectCanViewerAct(ravensStore.getState())).toBe(true);
-    });
-
     test("a player who owns both seats can act and undo even when the other side moved last", () => {
         const store = createAppStore({
             auth: {
@@ -166,7 +109,7 @@ describe("game selectors", () => {
         expect(selectCanClaimRavens(store.getState())).toBe(false);
     });
 
-    test("status text uses the no game copy before a game starts", () => {
+    test("status text uses the no game copy when the session is idle", () => {
         const store = createAppStore({
             game: {
                 session: createSession(),
@@ -184,7 +127,7 @@ describe("game selectors", () => {
         expect(selectStatusText(store.getState())).toBe("No game in progress. Select a play style and start the game.");
     });
 
-    test("status text prompts spectators to claim a side before a game starts", () => {
+    test("status text prompts spectators to claim a side when the session is idle", () => {
         const store = createAppStore({
             game: {
                 session: createSession(),

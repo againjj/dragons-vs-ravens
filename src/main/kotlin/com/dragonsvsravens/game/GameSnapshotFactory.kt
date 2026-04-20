@@ -1,8 +1,6 @@
 package com.dragonsvsravens.game
 
 internal object GameSnapshotFactory {
-    private val setupCycle = listOf(Piece.dragon, Piece.raven, Piece.gold)
-
     fun createInitialSnapshot(
         ruleConfigurationId: String = GameRules.freePlayRuleConfigurationId,
         selectedStartingSide: Side = Side.dragons,
@@ -23,38 +21,15 @@ internal object GameSnapshotFactory {
         selectedBoardSize: Int = GameRules.defaultBoardSize,
         initialBoard: Map<String, Piece>? = null
     ): GameSnapshot {
-        val configuration = RuleCatalog.getRuleConfiguration(ruleConfigurationId)
         val initialSnapshot = createBaseSnapshot(
-            configuration.summary.id,
-            configuration.ruleSet.startPhase(),
+            ruleConfigurationId,
+            Phase.move,
             selectedStartingSide,
             selectedBoardSize,
             initialBoard
         )
         return initializePositionHistory(initialSnapshot)
     }
-
-    fun cycleSetupPiece(snapshot: GameSnapshot, square: String): GameSnapshot {
-        val board = LinkedHashMap(snapshot.board)
-        val nextPiece = nextSetupPiece(board[square])
-
-        if (nextPiece == null) {
-            board.remove(square)
-        } else {
-            board[square] = nextPiece
-        }
-
-        return snapshot.copy(board = board)
-    }
-
-    fun endSetup(snapshot: GameSnapshot, selectedStartingSide: Side = Side.dragons): GameSnapshot =
-        initializePositionHistory(
-            snapshot.copy(
-                phase = Phase.move,
-                activeSide = resolveStartingSide(snapshot.ruleConfigurationId, selectedStartingSide),
-                pendingMove = null
-            )
-        )
 
     fun initializePositionHistory(snapshot: GameSnapshot): GameSnapshot {
         val configuration = RuleCatalog.getRuleConfiguration(snapshot.ruleConfigurationId)
@@ -105,14 +80,5 @@ internal object GameSnapshotFactory {
             turns = emptyList(),
             ruleConfigurationId = configuration.summary.id
         )
-    }
-
-    private fun nextSetupPiece(piece: Piece?): Piece? {
-        if (piece == null) {
-            return setupCycle.first()
-        }
-
-        val currentIndex = setupCycle.indexOf(piece)
-        return if (currentIndex == setupCycle.lastIndex) null else setupCycle[currentIndex + 1]
     }
 }

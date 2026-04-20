@@ -20,10 +20,10 @@ class GameRulesTest {
     }
 
     @Test
-    fun `free play start game enters setup with a cleared board and history`() {
+    fun `free play start game enters move with a cleared board and history`() {
         val snapshot = GameRules.startGame()
 
-        assertEquals(Phase.setup, snapshot.phase)
+        assertEquals(Phase.move, snapshot.phase)
         assertTrue(snapshot.board.isEmpty())
         assertEquals(emptyList<TurnRecord>(), snapshot.turns)
         assertEquals(GameRules.freePlayRuleConfigurationId, snapshot.ruleConfigurationId)
@@ -42,42 +42,13 @@ class GameRulesTest {
     }
 
     @Test
-    fun `setup cycles empty to dragon to raven to gold to empty`() {
-        val first = GameRules.cycleSetupPiece(GameRules.startGame(), "a1")
-        val second = GameRules.cycleSetupPiece(first, "a1")
-        val third = GameRules.cycleSetupPiece(second, "a1")
-        val fourth = GameRules.cycleSetupPiece(third, "a1")
-
-        assertEquals(Piece.dragon, first.board["a1"])
-        assertEquals(Piece.raven, second.board["a1"])
-        assertEquals(Piece.gold, third.board["a1"])
-        assertFalse(fourth.board.containsKey("a1"))
-    }
-
-    @Test
-    fun `end setup resets pending move and starts with dragons`() {
-        val started = GameRules.endSetup(
-            GameRules.startGame().copy(
-                pendingMove = TurnRecord(type = TurnType.move, from = "a1", to = "a2"),
-                activeSide = Side.ravens
-            )
-        )
-
-        assertEquals(Phase.move, started.phase)
-        assertEquals(Side.dragons, started.activeSide)
-        assertNull(started.pendingMove)
-    }
-
-    @Test
     fun `free play move enters capture when an opposing piece exists`() {
         val moved = GameRules.movePiece(
-            GameRules.endSetup(
-                GameRules.startGame().copy(
-                    board = linkedMapOf(
-                        "d4" to Piece.gold,
-                        "a1" to Piece.dragon,
-                        "b2" to Piece.raven
-                    )
+            GameRules.startGame(
+                initialBoard = linkedMapOf(
+                    "d4" to Piece.gold,
+                    "a1" to Piece.dragon,
+                    "b2" to Piece.raven
                 )
             ),
             "a1",
@@ -93,12 +64,10 @@ class GameRulesTest {
     @Test
     fun `free play move commits immediately when nothing is capturable`() {
         val moved = GameRules.movePiece(
-            GameRules.endSetup(
-                GameRules.startGame().copy(
-                    board = linkedMapOf(
-                        "d4" to Piece.gold,
-                        "a1" to Piece.dragon
-                    )
+            GameRules.startGame(
+                initialBoard = linkedMapOf(
+                    "d4" to Piece.gold,
+                    "a1" to Piece.dragon
                 )
             ),
             "a1",

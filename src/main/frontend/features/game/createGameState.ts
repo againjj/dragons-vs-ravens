@@ -54,7 +54,6 @@ const createOriginalStyleSummary = (
             ]
         }
     ],
-    hasSetupPhase: false,
     hasManualCapture: false,
     hasManualEndGame: false
 });
@@ -79,13 +78,13 @@ const freePlay: CreateRuleConfiguration = {
             {
                 heading: "Overview",
                 paragraphs: [
-                    "Ravens are trying to steal the dragons' gold! Start a game. Place pieces during setup, then dragons and ravens alternate turns."
+                    "Ravens are trying to steal the dragons' gold! Build the opening position on this page, then dragons and ravens alternate turns once the game starts."
                 ]
             },
             {
-                heading: "Setup Phase",
+                heading: "Create Game",
                 paragraphs: [
-                    "Click any square to cycle through dragon, raven, gold, then empty. Click \"End Setup\" when all the pieces are placed."
+                    "Click any square to cycle through dragon, raven, gold, then empty. Starting the game locks in that drafted board as the live opening position."
                 ]
             },
             {
@@ -95,7 +94,6 @@ const freePlay: CreateRuleConfiguration = {
                 ]
             }
         ],
-        hasSetupPhase: true,
         hasManualCapture: true,
         hasManualEndGame: true
     },
@@ -131,7 +129,6 @@ const trivial: CreateRuleConfiguration = {
                 ]
             }
         ],
-        hasSetupPhase: false,
         hasManualCapture: false,
         hasManualEndGame: false
     },
@@ -347,7 +344,7 @@ export const buildDraftSnapshot = (draftState: CreateGameDraftState): ServerGame
             board: filterDraftBoardToBoardSize(draftState.draftBoard, boardSize),
             boardSize,
             specialSquare: getCenterSquare(boardSize),
-            phase: "setup",
+            phase: "move",
             activeSide: draftState.selectedStartingSide,
             pendingMove: null,
             turns: [],

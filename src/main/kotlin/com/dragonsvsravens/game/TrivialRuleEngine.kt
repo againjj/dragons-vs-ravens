@@ -1,8 +1,6 @@
 package com.dragonsvsravens.game
 
 internal object TrivialRuleEngine : RuleSet {
-    override fun startPhase(): Phase = Phase.move
-
     override fun validateMove(snapshot: GameSnapshot, origin: String, destination: String, piece: Piece) = Unit
 
     override fun applyMove(snapshot: GameSnapshot, origin: String, destination: String, piece: Piece): GameSnapshot =

@@ -21,7 +21,6 @@ export const createSession = (
                     paragraphs: ["Free Play description"]
                 }
             ],
-            hasSetupPhase: true,
             hasManualCapture: true,
             hasManualEndGame: true
         },
@@ -33,7 +32,6 @@ export const createSession = (
                     paragraphs: ["Trivial description"]
                 }
             ],
-            hasSetupPhase: false,
             hasManualCapture: false,
             hasManualEndGame: false
         },
@@ -45,7 +43,6 @@ export const createSession = (
                     paragraphs: ["Original Game description"]
                 }
             ],
-            hasSetupPhase: false,
             hasManualCapture: false,
             hasManualEndGame: false
         },
@@ -57,7 +54,6 @@ export const createSession = (
                     paragraphs: ["Sherwood Rules description"]
                 }
             ],
-            hasSetupPhase: false,
             hasManualCapture: false,
             hasManualEndGame: false
         },
@@ -69,7 +65,6 @@ export const createSession = (
                     paragraphs: ["Square One description"]
                 }
             ],
-            hasSetupPhase: false,
             hasManualCapture: false,
             hasManualEndGame: false
         },
@@ -81,7 +76,6 @@ export const createSession = (
                     paragraphs: ["Sherwood x 9 description"]
                 }
             ],
-            hasSetupPhase: false,
             hasManualCapture: false,
             hasManualEndGame: false
         },
@@ -93,7 +87,6 @@ export const createSession = (
                     paragraphs: ["Square One x 9 description"]
                 }
             ],
-            hasSetupPhase: false,
             hasManualCapture: false,
             hasManualEndGame: false
         }

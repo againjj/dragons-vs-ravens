@@ -32,16 +32,16 @@ The page now also includes auth controls for guest play, local signup/login/logo
 Users must authenticate before opening the lobby or viewing a game.
 Local password accounts now also get a `Profile` button in the upper-right app chrome that opens `/profile`.
 The lobby now presents separate `Start Fresh` and `Rejoin Game` cards, normalizes typed game IDs to uppercase, and disables `Open Game` until an ID is entered. Clicking `Start Fresh` now opens `/create` instead of immediately creating a persisted game.
-The create screen now uses a three-panel layout with the draft board on the left, configuration controls in the middle, and rules on the right. The create draft keeps its board and configuration state local while you stay on `/create`, and leaving that route clears the draft before you return to the lobby or open a game. Clicking `Start Game` sends that draft configuration to the backend, which creates the persisted session from the submitted payload before the browser opens `/g/{gameId}`.
+The create screen now uses a three-panel layout with the draft board on the left, configuration controls in the middle, and rules on the right. The create draft keeps its board and configuration state local while you stay on `/create`, and leaving that route clears the draft before you return to the lobby or open a game. Clicking `Start Game` sends that draft configuration to the backend, which creates the persisted session from the submitted payload and opens the live game directly in move phase at `/g/{gameId}`.
 Each game has its own URL at `/g/{gameId}`.
 Loading a game URL directly opens that game, and after you open a game from the lobby the browser updates the address bar to that game's `/g/{gameId}` URL.
 If you load a game URL directly and then return to the lobby, the app now replaces that direct-entry history slot instead of trapping the browser Back button inside the app.
 The browser stays subscribed to that game's SSE stream until you go back to the lobby.
 The active game screen shows the current game ID plus a `Back to Lobby` button, a compact seat ownership line in the header, and a center-column move list whose controls stay above the scrollable history.
 The game board now resumes responsive resizing correctly after entering a game from the lobby.
-Once a game is open, the controls include the play-style dropdown plus the usual gameplay actions.
-`Free Play` preserves the original behavior: before starting, you can choose whether dragons or ravens move first; the create flow can seed an initial setup board before the live game opens, setup clicks cycle `empty -> dragon -> raven -> gold -> empty`, capture is manual, and the game is ended manually.
-`Trivial Configuration`, `Original Game`, `Sherwood Rules`, `Square One`, `Sherwood x 9`, and `Square One x 9` start from preset boards with no setup phase, resolve captures automatically, and end automatically based on their own rules.
+Once a game is open, the controls show only live gameplay actions.
+`Free Play` now finishes all board drafting on `/create`: before starting, you can choose whether dragons or ravens move first, and draft squares still cycle `empty -> dragon -> raven -> gold -> empty`. After creation, the persisted game opens directly in move phase, capture remains manual, and the game is ended manually.
+`Trivial Configuration`, `Original Game`, `Sherwood Rules`, `Square One`, `Sherwood x 9`, and `Square One x 9` also open directly in move phase from their preset boards, resolve captures automatically, and end automatically based on their own rules.
 `Sherwood Rules`, `Square One`, `Sherwood x 9`, and `Square One x 9` match the original-style capture and win/draw rules, but the gold is moved by the dragons and may move only one orthogonal square at a time.
 Original-style games now resolve terminal wins before post-turn draws: they award `Ravens win` immediately when the gold is captured and `Dragons win` immediately when the last raven is captured, even if the opposing side would otherwise have no legal reply.
 Game over returns the session to a finished no-game state while preserving the final board position and full completed history, including a terminal `Game Over: ...` entry. The header status line now mirrors the final outcome too, showing the winning side, an explicit draw cause, or manual-end wording when a game is stopped on purpose.
@@ -63,7 +63,7 @@ Guest accounts are session-only: logging out or losing the session deletes the g
 Expected SSE disconnects during logout are now treated as normal disconnected-client events, so the server no longer logs noisy `Broken pipe` errors when a browser closes its game stream during sign-out.
 The `/profile` page is available only to local password accounts. It lets a user update their display name using the same validation as signup, and delete their own account only after confirming their password again.
 Deleting a local account signs that session out, releases any claimed seats, clears nullable ownership references such as the game creator id, and leaves the game itself intact and readable.
-On the game screen, the browser now shows claimed seats, hides pre-game setup controls until a side is claimed, keeps the remaining open claim button visible when a player already owns the other seat, and only shows actionable board and control affordances to the player who can act, except that both claimed players may participate during `Free Play` setup. If one user owns both seats, the active-game controls and undo button stay available whenever the current state allows them. Undo is reserved for the player who made the last undoable move unless the same user owns both seats.
+On the game screen, the browser now shows claimed seats, keeps the remaining open claim button visible when a player already owns the other seat, and only shows actionable board and control affordances to the player who can act. If one user owns both seats, the active-game controls and undo button stay available whenever the current state allows them. Undo is reserved for the player who made the last undoable move unless the same user owns both seats.
 User-triggered game errors now appear in the same modal-style error box used elsewhere in the frontend, and when the browser cannot reach the server the message explicitly says the server is down and the user should wait and try again later.
 
 ## Google OAuth Setup
@@ -163,7 +163,7 @@ The current Railway production URL is [https://dragons-vs-ravens-production.up.r
 - `src/main/frontend/board-geometry.ts`
   - board dimensions, square naming, and highlighted-square helpers
 - `src/main/frontend/features/game/createGameSlice.ts`
-  - local `/create` draft state for rule selection, board size, starting side, and setup cycling
+  - local `/create` draft state for rule selection, board size, starting side, and draft-board cycling
 - `src/main/frontend/game-rules-client.ts`
   - client-side ownership, capture, targeting, and local-selection helpers
 - `src/main/frontend/move-history.ts`
@@ -179,7 +179,7 @@ The current Railway production URL is [https://dragons-vs-ravens-production.up.r
 - `src/main/frontend/components/Board.tsx`
   - shared board rendering plus connected and controlled click handling
 - `src/main/frontend/components/ControlsPanel.tsx`
-  - live-game controls plus shared draft setup controls
+  - live-game controls while `GameSetupControls` handles the create-screen configuration UI
 - `src/main/frontend/components/RulesPanel.tsx`
   - shared rules-description renderer
 - `src/main/frontend/app`

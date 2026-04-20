@@ -33,17 +33,13 @@ class JdbcGameStoreTest {
 
     @Test
     fun `store round trips a game and its undo snapshots`() {
-        val originalSnapshot = freePlaySnapshot()
-        val undoSnapshot = originalSnapshot.copy(
-            board = mapOf("a1" to Piece.dragon),
-            phase = Phase.setup
+        val originalSnapshot = GameRules.startGame(
+            initialBoard = mapOf("a1" to Piece.dragon)
         )
+        val undoSnapshot = originalSnapshot.copy(board = mapOf("a1" to Piece.dragon))
         val storedGame = storedGame(
             gameId = "persisted-game",
-            snapshot = originalSnapshot.copy(
-                board = mapOf("b2" to Piece.raven),
-                phase = Phase.move
-            ),
+            snapshot = originalSnapshot.copy(board = mapOf("b2" to Piece.raven), phase = Phase.move),
             undoSnapshots = listOf(undoSnapshot),
             version = 4,
             updatedAt = Instant.parse("2026-04-08T10:05:00Z"),
@@ -66,7 +62,7 @@ class JdbcGameStoreTest {
 
         val updated = storedGame(
             gameId = "locked-game",
-            snapshot = initial.session.snapshot.copy(phase = Phase.setup),
+            snapshot = initial.session.snapshot.copy(board = mapOf("a1" to Piece.dragon)),
             undoSnapshots = emptyList(),
             version = 1,
             updatedAt = createdAt.plusSeconds(10),
@@ -79,7 +75,7 @@ class JdbcGameStoreTest {
 
         val staleWrite = storedGame(
             gameId = "locked-game",
-            snapshot = updated.session.snapshot.copy(phase = Phase.move),
+            snapshot = updated.session.snapshot.copy(board = mapOf("b2" to Piece.raven)),
             undoSnapshots = emptyList(),
             version = 1,
             updatedAt = createdAt.plusSeconds(20),
@@ -111,13 +107,13 @@ class JdbcGameStoreTest {
     fun `clear user references releases seats and creator references`() {
         val storedGame = GameSessionFactory.createStoredGame(
             gameId = "owned-game",
-            snapshot = freePlaySnapshot(),
+            snapshot = GameRules.startGame(initialBoard = mapOf("a1" to Piece.dragon)),
             undoSnapshots = emptyList(),
             version = 0,
             createdAt = createdAt,
             updatedAt = createdAt,
             lastAccessedAt = createdAt,
-            lifecycle = GameLifecycle.new,
+            lifecycle = GameLifecycle.active,
             selectedRuleConfigurationId = GameRules.freePlayRuleConfigurationId,
             selectedStartingSide = Side.dragons,
             selectedBoardSize = GameRules.defaultBoardSize,
@@ -147,10 +143,10 @@ class JdbcGameStoreTest {
             GameCommandService(clock)
         )
 
-        val created = firstService.createGame()
+        val created = firstService.createGame(CreateGameRequest(board = mapOf("a1" to Piece.dragon)))
         val started = firstService.applyCommand(
             created.id,
-            GameCommandRequest(expectedVersion = created.version, type = "start-game")
+            GameCommandRequest(expectedVersion = created.version, type = "move-piece", origin = "a1", destination = "a2")
         )
 
         val restartedService = GameSessionService(
@@ -163,16 +159,14 @@ class JdbcGameStoreTest {
 
         assertEquals(started.id, reloaded.id)
         assertEquals(1, reloaded.version)
-        assertEquals(Phase.setup, reloaded.snapshot.phase)
+        assertEquals(Phase.move, reloaded.snapshot.phase)
+        assertEquals(Piece.dragon, reloaded.snapshot.board["a2"])
     }
-
-    private fun freePlaySnapshot(): GameSnapshot =
-        GameRules.createIdleSnapshot(GameRules.freePlayRuleConfigurationId, Side.dragons)
 
     private fun freshStoredGame(gameId: String): StoredGame =
         GameSessionFactory.createFreshStoredGame(
             gameId = gameId,
-            snapshot = freePlaySnapshot(),
+            snapshot = GameRules.startGame(initialBoard = mapOf("a1" to Piece.dragon)),
             selectedRuleConfigurationId = GameRules.freePlayRuleConfigurationId,
             selectedStartingSide = Side.dragons,
             selectedBoardSize = GameRules.defaultBoardSize,

@@ -235,8 +235,7 @@ abstract class AbstractGameControllerTestSupport {
         }
         return when (current.snapshot.phase) {
             Phase.capture,
-            Phase.move,
-            Phase.setup -> when (current.snapshot.activeSide) {
+            Phase.move -> when (current.snapshot.activeSide) {
                 Side.dragons -> current.dragonsPlayerUserId
                 Side.ravens -> current.ravensPlayerUserId
             }
@@ -247,32 +246,6 @@ abstract class AbstractGameControllerTestSupport {
     protected fun currentGame(gameId: String): GameSession = getGame(gameId)
 
     protected fun currentVersion(gameId: String): Long = currentGame(gameId).version
-
-    protected fun startSetup(gameId: String): GameSession =
-        executeGameCommand(gameId, command(currentVersion(gameId), "start-game"))
-
-    protected fun endSetup(gameId: String): GameSession =
-        executeGameCommand(gameId, command(currentVersion(gameId), "end-setup"))
-
-    protected fun setupDragonAt(gameId: String, square: String) {
-        executeGameCommand(gameId, command(currentVersion(gameId), "cycle-setup", square = square))
-    }
-
-    protected fun setupRavenAt(gameId: String, square: String) {
-        setupDragonAt(gameId, square)
-        executeGameCommand(gameId, command(currentVersion(gameId), "cycle-setup", square = square))
-    }
-
-    protected fun enterCapturePhase(gameId: String) {
-        startSetup(gameId)
-        setupDragonAt(gameId, "a1")
-        setupRavenAt(gameId, "b2")
-        endSetup(gameId)
-        executeGameCommand(
-            gameId,
-            command(currentVersion(gameId), "move-piece", origin = "a1", destination = "a2")
-        )
-    }
 
     protected fun assertGameUnchanged(gameId: String, expected: GameSession) {
         val after = getGame(gameId)

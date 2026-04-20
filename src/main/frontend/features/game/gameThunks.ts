@@ -209,21 +209,6 @@ const createCommandThunk = (
     await dispatch(sendCommand(partialCommand));
 };
 
-export const startGame = (): AppThunk<Promise<void>> =>
-    createCommandThunk({ type: "start-game" }, { clearSelection: true });
-
-export const selectRuleConfiguration = (ruleConfigurationId: string): AppThunk<Promise<void>> =>
-    createCommandThunk({ type: "select-rule-configuration", ruleConfigurationId }, { clearSelection: true });
-
-export const selectStartingSide = (side: Side): AppThunk<Promise<void>> =>
-    createCommandThunk({ type: "select-starting-side", side }, { clearSelection: true });
-
-export const selectBoardSize = (boardSize: number): AppThunk<Promise<void>> =>
-    createCommandThunk({ type: "select-board-size", boardSize }, { clearSelection: true });
-
-export const endSetup = (): AppThunk<Promise<void>> =>
-    createCommandThunk({ type: "end-setup" }, { clearSelection: true });
-
 export const endGame = (): AppThunk<Promise<void>> =>
     createCommandThunk({ type: "end-game" }, { clearSelection: true });
 
@@ -232,9 +217,6 @@ export const skipCapture = (): AppThunk<Promise<void>> =>
 
 export const undoMove = (): AppThunk<Promise<void>> =>
     createCommandThunk({ type: "undo" }, { clearSelection: true });
-
-export const cycleSetup = (square: string): AppThunk<Promise<void>> =>
-    createCommandThunk({ type: "cycle-setup", square });
 
 export const capturePiece = (square: string): AppThunk<Promise<void>> =>
     createCommandThunk({ type: "capture-piece", square });

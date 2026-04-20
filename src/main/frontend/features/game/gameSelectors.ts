@@ -23,14 +23,10 @@ export const selectSelectedSquare = (state: RootState) => state.ui.selectedSquar
 export const selectIsSubmitting = (state: RootState) => state.game.isSubmitting;
 export const selectIsLoadingGame = (state: RootState) => state.game.loadState === "loading";
 export const selectFeedbackMessage = (state: RootState) => state.game.feedbackMessage;
-export const selectAvailableRuleConfigurations = (state: RootState) =>
+const selectAvailableRuleConfigurations = (state: RootState) =>
     state.game.session?.availableRuleConfigurations ?? emptyRuleConfigurations;
-export const selectSelectedRuleConfigurationId = (state: RootState) =>
+const selectSelectedRuleConfigurationId = (state: RootState) =>
     state.game.session?.selectedRuleConfigurationId ?? null;
-export const selectSelectedStartingSide = (state: RootState) =>
-    state.game.session?.selectedStartingSide ?? "dragons";
-export const selectSelectedBoardSize = (state: RootState) =>
-    state.game.session?.selectedBoardSize ?? 7;
 export const selectCurrentRuleConfiguration = createSelector(
     selectAvailableRuleConfigurations,
     selectSelectedRuleConfigurationId,
@@ -63,7 +59,7 @@ export const selectCanViewerAct = createSelector(
             return false;
         }
 
-        if (snapshot.phase === "none" || snapshot.phase === "setup") {
+        if (snapshot.phase === "none") {
             return true;
         }
 
@@ -115,18 +111,6 @@ export const selectIsFinishedGame = createSelector(
     (snapshot, lifecycle) => snapshot?.phase === "none" && lifecycle === "finished"
 );
 
-export const selectShowPreGameControls = createSelector(
-    selectSnapshot,
-    selectLifecycle,
-    (snapshot, lifecycle) => snapshot?.phase === "none" && lifecycle === "new"
-);
-
-export const selectShowOwnedPreGameControls = createSelector(
-    selectShowPreGameControls,
-    selectViewerOwnsASeat,
-    (showPreGameControls, viewerOwnsASeat) => showPreGameControls && viewerOwnsASeat
-);
-
 export const selectTargetableSquares = createSelector(
     selectSnapshot,
     selectSelectedSquare,
@@ -157,10 +141,6 @@ export const selectStatusText = createSelector(
             return gameState.connectionState === "reconnecting"
                 ? "Connection lost. Trying to reconnect..."
                 : "Loading game...";
-        }
-
-        if (snapshot.phase === "setup") {
-            return "Setup phase: place the pieces on the board.";
         }
 
         if (snapshot.phase === "none") {

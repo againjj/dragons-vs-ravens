@@ -2,11 +2,11 @@
 
 ## Overview
 
-This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, can route into a client-only `/create` draft flow backed by local Redux draft state or open games by id, and then talks to the per-game backend API for the active session. The `/create` page now has a dedicated three-panel draft layout with the board on the left, configuration controls in the middle, and the rules panel on the right, and its Start Game action submits the draft payload to `POST /api/games` so the backend can seed the stored session from the drafted setup before opening `/g/{gameId}`. The live `/g/{gameId}` screen now uses a three-column layout with the board on the left, the move list and its controls in the center, and the rules panel on the right, while seat ownership now lives in the page header beneath the game title and status. Finished-game status messaging now mirrors the terminal outcome, so the header explains who won, why a game was drawn, or that it ended manually.
+This project is a small Spring Boot 3.3 + Kotlin 2.1 web app that serves a browser-based board game prototype. The backend supports multiple persisted game sessions, addressed by game id, and broadcasts updates over server-sent events per game. The frontend now opens on a lobby screen, can route into a client-only `/create` draft flow backed by local Redux draft state or open games by id, and then talks to the per-game backend API for the active session. The `/create` page now has a dedicated three-panel draft layout with the board on the left, configuration controls in the middle, and the rules panel on the right, and its Start Game action submits the draft payload to `POST /api/games` so the backend can create the persisted session directly in live play before opening `/g/{gameId}`. The live `/g/{gameId}` screen now uses a three-column layout with the board on the left, the move list and its controls in the center, and the rules panel on the right, while seat ownership now lives in the page header beneath the game title and status. Finished-game status messaging now mirrors the terminal outcome, so the header explains who won, why a game was drawn, or that it ended manually.
 
 The `docs` folder now also includes a Sherwood-focused bot planning document at `docs/bot-implementation-plan.md`, which now locks in first-release decisions, adopts release-two-ready bot-id persistence from the start, and sketches a second release with named `Simple`, `Random`, and `Minimax` bots plus grouped undo and expanded ruleset support. It also includes `docs/create-and-play-redesign.md`, a detailed implementation plan for moving game creation into a client-only `/create` draft flow and reshaping the live `/g/{gameId}` play screen.
 
-The backend now also includes session-cookie authentication for guest and local users, optional OAuth login wiring, persisted seat ownership on games, request-scoped game-view metadata, and self-service local-account profile management. The frontend now consumes that auth-aware view data, surfaces guest/local auth controls, requires authentication before entering the lobby or a game, gates gameplay actions by claimed side and active turn while still allowing both claimed players to participate during free-play setup, and exposes a local-only profile page for display-name updates plus account deletion. Dual-seat ownership is now supported on live games, so the same user can claim both sides, keep the remaining open claim action visible, and retain undo/active-play access when the current state allows it. Google OAuth availability is now configuration-aware, and successful Google login returns to the original `/login?next=...` destination.
+The backend now also includes session-cookie authentication for guest and local users, optional OAuth login wiring, persisted seat ownership on games, request-scoped game-view metadata, and self-service local-account profile management. The frontend now consumes that auth-aware view data, surfaces guest/local auth controls, requires authentication before entering the lobby or a game, gates gameplay actions by claimed side and active turn, and exposes a local-only profile page for display-name updates plus account deletion. Dual-seat ownership is now supported on live games, so the same user can claim both sides, keep the remaining open claim action visible, and retain undo/active-play access when the current state allows it. Google OAuth availability is now configuration-aware, and successful Google login returns to the original `/login?next=...` destination.
 
 Recent organization work is now reflected directly in the codebase: the old `game.ts` helper module has been split into focused files for shared types, board geometry, client-side rules helpers, and move-history formatting. The backend `GameRules.kt` module has been split into a rule catalog, snapshot factory, shared rule-engine contract, and dedicated free-play, trivial, and original-style rule-engine files while preserving the existing `GameRules` facade for callers. Repeated game-view fetch, auth-session patching, selection normalization, and `401`/`403` recovery logic in `gameThunks.ts` has been consolidated into shared thunk helpers so open, refresh, command, and seat-claim flows stay aligned. The game-only layout and wiring have been extracted from `App.tsx` into a dedicated `GameScreen.tsx` container so the app shell stays focused on auth bootstrap, shared chrome, and route selection. The create flow now has its own frontend-only Redux slice, selectors, and helper module so `/create` can hold a local draft board, rule selection, board size, and starting-side state without touching the persisted game session. On the backend, command authorization, validation, undo transitions, and side-claim logic have been extracted into `GameCommandService.kt`, leaving `GameSessionService.kt` focused on store orchestration, SSE lifecycle, and stale-game cleanup. User-triggered game actions now also funnel frontend request failures into the same dismissible error-box pattern used by auth/profile flows, with a specific server-down message for network failures where the backend does not respond.
 The web layer now also includes a dedicated controller advice that recognizes expected disconnected-client I/O during SSE teardown, such as logout-time `Broken pipe` writes, and lets Spring log them as normal client disconnects instead of noisy application errors.
@@ -56,7 +56,7 @@ The web layer now also includes a dedicated controller advice that recognizes ex
 - `src/main/frontend/components/Board.tsx`
   - Shared board rendering plus connected and controlled click handling.
 - `src/main/frontend/components/ControlsPanel.tsx`
-  - Live-game control wiring plus the shared draft setup control block.
+  - Live-game control wiring while `GameSetupControls` handles the create-screen configuration block.
 - `src/main/frontend/components/RulesPanel.tsx`
   - Shared rules-description renderer for live and draft screens.
 - `src/main/frontend/app/*.ts`
@@ -69,7 +69,7 @@ The web layer now also includes a dedicated controller advice that recognizes ex
 - `src/main/frontend/features/ui/*.ts`
   - Local-only UI state such as selected square.
 - `src/main/frontend/components/*.tsx`
-  - React components for the lobby screen, auth panel, local profile screen, live game screen, create screen, seat summary, board rendering, setup controls, rules panels, move list, and status text.
+  - React components for the lobby screen, auth panel, local profile screen, live game screen, create screen, seat summary, board rendering, create controls, rules panels, move list, and status text.
 - `src/main/frontend/hooks/*.ts`
   - Browser hooks for responsive sizing, fullscreen behavior, and URL-to-page routing.
   - `useBoardSizing.ts` now measures the padded board panel so the board can shrink and grow without overflowing the panel.
@@ -122,7 +122,7 @@ The web layer now also includes a dedicated controller advice that recognizes ex
   - Seat claiming uses `POST /api/games/{gameId}/claim-side`.
   - A request-scoped auth-aware game view is available at `GET /api/games/{gameId}/view`.
 - The active game screen sends mutations to `POST /api/games/{gameId}/commands`.
-- The create screen sends its drafted setup to `POST /api/games`, which creates the persisted session from that payload before the browser opens `/g/{gameId}`.
+- The create screen sends its drafted setup to `POST /api/games`, which creates the persisted session directly in move phase before the browser opens `/g/{gameId}`.
 - The active game screen subscribes to `GET /api/games/{gameId}/stream` for live updates.
   - Games are stored in the configured database and are automatically evicted when they have not been accessed longer than the configured stale threshold and no SSE viewers are connected.
 - Runtime configuration:
@@ -145,7 +145,7 @@ The canonical board is represented on the server as `Map<String, Piece>` and on 
 
 - `Piece = "dragon" | "raven" | "gold"`
 - `Side = "dragons" | "ravens"`
-- `Phase = "none" | "setup" | "move" | "capture"`
+- `Phase = "none" | "move" | "capture"`
 - `TurnType = "move" | "gameOver"`
 
 `GameSnapshot` currently contains:
@@ -191,8 +191,7 @@ Important implication: game state is now persisted in the configured database, s
 
 The Kotlin game module is now the source of truth for game rules and state transitions.
 
-- Creates fresh idle snapshots for new games.
-- Owns setup cycling logic.
+- Creates fresh idle snapshots for edit-only draft or test helpers, and live snapshots for created games.
 - Owns turn transitions.
 - Owns rule-configuration lookup, movement validation, capture resolution, and automatic game-over checks.
 - Wraps each snapshot in a versioned persisted game session.
@@ -201,7 +200,7 @@ The Kotlin game module is now the source of truth for game rules and state trans
 - Broadcasts updated snapshots to SSE clients scoped by game id.
 - Tracks last access time server-side for stale-game eviction.
 - Persists which local user, if any, currently owns each side.
-- Enforces that only authenticated claimed players may submit commands, with shared access during free-play setup and active-side enforcement once turn-based play begins.
+- Enforces that only authenticated claimed players may submit commands, with active-side enforcement once turn-based play begins.
 - Splits command-transition logic into `GameCommandService.kt` and session/store orchestration into `GameSessionService.kt`.
 
 Most gameplay changes should start on the backend here.
@@ -235,7 +234,7 @@ The React frontend is now split by responsibility.
 - `authThunks.ts` coordinates current-session loading plus guest/local login and logout flows.
 - `gameStream.ts` plus `useGameSession.ts` open and maintain the SSE subscription only for the active game screen.
 - `useGameRoute.ts` maps browser URLs to lobby, create, or game state and keeps the address bar in sync with the active game id.
-- `Board.tsx`, `ControlsPanel.tsx`, `MoveList.tsx`, `SeatPanel.tsx`, and `StatusBanner.tsx` render the current UI from Redux state, including shared free-play setup affordances for both claimed players and the live seat summary's dual-seat claim buttons.
+- `Board.tsx`, `ControlsPanel.tsx`, `MoveList.tsx`, `SeatPanel.tsx`, and `StatusBanner.tsx` render the current UI from Redux state, while the create screen uses controlled board editing through the local draft slice.
 - `LobbyScreen.tsx` renders the create-or-open entry flow before a game is active.
 - `useBoardSizing.ts` and `useFullscreen.ts` wrap browser-specific layout and fullscreen behavior.
 
@@ -259,16 +258,12 @@ Most UI-only changes should start in the relevant component, selector, or browse
 
 ### Free Play
 
-- Once a game screen is open and `Free Play` is selected in the no-game state, the browser also shows shared controls for starting side and square board size.
+- Free Play configuration now happens entirely on `/create`.
 - Free Play board size may be selected from `3x3` through `26x26`.
-- `Free Play` preserves the original setup flow:
-  - starting the game enters `setup`
-  - clicking a square cycles `empty -> dragon -> raven -> gold -> empty`
-  - both claimed players may place pieces and end setup
-  - any square, including `d4`, can be changed during setup
-  - any number of gold pieces may be placed during setup
-  - the `/create` flow can seed the starting setup board before the live game opens
-- Ending setup switches to `move`, the selected starting side moves first, dragons may move dragons or gold, ravens may move ravens, and movement allows any owned piece to move to any empty square.
+- Clicking a draft square on `/create` still cycles `empty -> dragon -> raven -> gold -> empty`.
+- Any square, including `d4`, can be edited in the draft, and any number of gold pieces may be placed.
+- Clicking `Start Game` persists that drafted board and opens the live game directly in `move`.
+- The selected starting side moves first, dragons may move dragons or gold, ravens may move ravens, and movement allows any owned piece to move to any empty square.
 - If an opposing piece exists after a move, the game enters `capture`, where dragons may capture one raven and ravens may capture one dragon or gold.
 - Capture can still be skipped.
 - Active play still exposes `End Game`, which appends a terminal `gameOver` turn and marks the session finished.
@@ -333,7 +328,7 @@ Most UI-only changes should start in the relevant component, selector, or browse
 - Opening the lobby, loading `/create` or a game, and SSE subscription now require an authenticated session.
 - Command submission and seat claiming also require an authenticated session.
 - Authenticated users may claim one open side on a game; unclaimed viewers remain spectators.
-- The game screen now shows current seat ownership, hides pre-game setup controls until the viewer claims a side, keeps the remaining open claim button visible when one seat is already claimed, allows both claimed players to place pieces and end setup in free play, and suppresses gameplay affordances when the viewer is spectating or on the wrong side once turn-based play begins unless the same user owns both seats.
+- The game screen now shows current seat ownership, keeps the remaining open claim button visible when one seat is already claimed, and suppresses gameplay affordances when the viewer is spectating or on the wrong side once turn-based play begins unless the same user owns both seats.
 - If a guest session ends, that guest user is deleted and any seats they held become unclaimed while the game itself stays active and viewable.
 - Generated game ids now use 7 characters from the Open Location Code ("PLUS code") alphabet `23456789CFGHJMPQRVWX`, which is the shortest fixed width that still covers more than 1,000,000,000 possible games.
 - Mutation requests include an expected version.
@@ -414,10 +409,8 @@ Future UI changes should preserve the split of transport logic, Redux state, ren
 - The backend tests currently cover:
   - rule-configuration-specific setup and movement validation, including Original Game and Sherwood Rules variants
   - initial snapshot
-  - start-game entry into setup
-  - setup cycling
-  - setup gold placement behavior
-  - end-setup transition behavior
+  - create-game entry into move
+  - draft-board seeding for free play
   - move-to-capture transitions
   - move commits when capture is unavailable
   - capture commits

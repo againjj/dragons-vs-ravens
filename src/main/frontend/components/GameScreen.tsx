@@ -13,12 +13,7 @@ import { gameActions } from "../features/game/gameSlice.js";
 import {
     claimSide,
     endGame,
-    endSetup,
-    selectBoardSize,
-    selectRuleConfiguration,
-    selectStartingSide,
     skipCapture,
-    startGame,
     undoMove
 } from "../features/game/gameThunks.js";
 import { useBoardSizing } from "../hooks/useBoardSizing.js";
@@ -79,21 +74,6 @@ export const GameScreen = () => {
                     <div className="turns-panel-header">
                         <h2>Move List</h2>
                         <ControlsPanel
-                            onStartGame={() => {
-                                void dispatch(startGame());
-                            }}
-                            onSelectRuleConfiguration={(ruleConfigurationId) => {
-                                void dispatch(selectRuleConfiguration(ruleConfigurationId));
-                            }}
-                            onSelectStartingSide={(side) => {
-                                void dispatch(selectStartingSide(side));
-                            }}
-                            onSelectBoardSize={(boardSize) => {
-                                void dispatch(selectBoardSize(boardSize));
-                            }}
-                            onEndSetup={() => {
-                                void dispatch(endSetup());
-                            }}
                             onEndGame={() => {
                                 void dispatch(endGame());
                             }}

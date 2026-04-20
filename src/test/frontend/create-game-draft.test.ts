@@ -29,7 +29,7 @@ describe("create game draft", () => {
             board: {},
             boardSize: 7,
             specialSquare: "d4",
-            phase: "setup",
+            phase: "move",
             activeSide: "dragons",
             ruleConfigurationId: "free-play"
         });
@@ -50,7 +50,7 @@ describe("create game draft", () => {
             },
             boardSize: 5,
             specialSquare: "c3",
-            phase: "setup",
+            phase: "move",
             activeSide: "dragons",
             ruleConfigurationId: "free-play"
         });

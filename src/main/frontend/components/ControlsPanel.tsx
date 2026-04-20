@@ -1,15 +1,10 @@
 import { useAppSelector } from "../app/hooks.js";
 import {
-    selectAvailableRuleConfigurations,
     selectCanViewerAct,
     selectCanViewerUndo,
     selectCurrentRuleConfiguration,
     selectIsFinishedGame,
     selectIsSubmitting,
-    selectSelectedBoardSize,
-    selectSelectedRuleConfigurationId,
-    selectSelectedStartingSide,
-    selectShowOwnedPreGameControls,
     selectSnapshot
 } from "../features/game/gameSelectors.js";
 import type { RuleConfigurationSummary, Side } from "../game-types.js";
@@ -121,22 +116,12 @@ export const GameSetupControls = ({
 };
 
 interface ControlsPanelProps {
-    onStartGame: () => void;
-    onSelectRuleConfiguration: (ruleConfigurationId: string) => void;
-    onSelectStartingSide: (side: Side) => void;
-    onSelectBoardSize: (boardSize: number) => void;
-    onEndSetup: () => void;
     onEndGame: () => void;
     onUndo: () => void;
     onSkipCapture: () => void;
 }
 
 export const ControlsPanel = ({
-    onStartGame,
-    onSelectRuleConfiguration,
-    onSelectStartingSide,
-    onSelectBoardSize,
-    onEndSetup,
     onEndGame,
     onUndo,
     onSkipCapture
@@ -145,13 +130,8 @@ export const ControlsPanel = ({
     const canViewerAct = useAppSelector(selectCanViewerAct);
     const canViewerUndo = useAppSelector(selectCanViewerUndo);
     const isSubmitting = useAppSelector(selectIsSubmitting);
-    const showPreGameControls = useAppSelector(selectShowOwnedPreGameControls);
     const isFinishedGame = useAppSelector(selectIsFinishedGame);
-    const availableRuleConfigurations = useAppSelector(selectAvailableRuleConfigurations);
     const currentRuleConfiguration = useAppSelector(selectCurrentRuleConfiguration);
-    const selectedRuleConfigurationId = useAppSelector(selectSelectedRuleConfigurationId);
-    const selectedStartingSide = useAppSelector(selectSelectedStartingSide);
-    const selectedBoardSize = useAppSelector(selectSelectedBoardSize);
     const disabled = !snapshot || isSubmitting || !canViewerAct;
     const phase = snapshot?.phase;
     const isActivePlay = phase === "move" || phase === "capture";
@@ -171,29 +151,6 @@ export const ControlsPanel = ({
 
     return (
         <div className="controls controls-sidebar">
-            {showPreGameControls ? (
-                <GameSetupControls
-                    availableRuleConfigurations={availableRuleConfigurations}
-                    selectedRuleConfigurationId={selectedRuleConfigurationId ?? "free-play"}
-                    selectedStartingSide={selectedStartingSide}
-                    selectedBoardSize={selectedBoardSize}
-                    isDisabled={disabled}
-                    onSelectRuleConfiguration={onSelectRuleConfiguration}
-                    onSelectStartingSide={onSelectStartingSide}
-                    onSelectBoardSize={onSelectBoardSize}
-                    onStartGame={onStartGame}
-                />
-            ) : null}
-            {phase === "setup" ? (
-                <button
-                    id="end-setup-button"
-                    type="button"
-                    disabled={disabled}
-                    onClick={onEndSetup}
-                >
-                    End Setup
-                </button>
-            ) : null}
             {isActivePlay ? (
                 <>
                     {currentRuleConfiguration?.hasManualCapture ? (

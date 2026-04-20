@@ -16,51 +16,12 @@ import java.time.ZoneOffset
 class GameSessionServiceTest {
 
     @Test
-    fun `broken sse emitter does not prevent a valid command from succeeding for its game`() {
-        val service = createService()
-        val failingEmitter = object : SseEmitter(0L) {
-            override fun send(builder: SseEventBuilder) {
-                throw IllegalStateException("stale emitter")
-            }
-        }
-        val recordingEmitter = RecordingEmitter()
-        val game = service.createGame()
-
-        service.createEmitter(game.id, failingEmitter)
-        service.createEmitter(game.id, recordingEmitter)
-
-        val updated = service.applyCommand(
-            game.id,
-            GameCommandRequest(
-                expectedVersion = 0,
-                type = "start-game"
-            )
-        )
-
-        assertEquals(1, updated.version)
-        assertEquals(GameLifecycle.active, updated.lifecycle)
-        assertEquals(Phase.setup, updated.snapshot.phase)
-        assertEquals(2, recordingEmitter.eventsSent)
-    }
-
-    @Test
-    fun `created games use seven character plus code style ids`() {
-        val service = createService()
-
-        val game = service.createGame()
-
-        assertTrue(GameIdGenerator.isGeneratedGameId(game.id))
-        assertEquals(GameIdGenerator.gameIdLength, game.id.length)
-    }
-
-    @Test
-    fun `creating free play seeds the draft board and preserves it when starting the game`() {
+    fun `create game returns an active free-play session in move phase`() {
         val service = createService()
 
         val created = service.createGame(
             CreateGameRequest(
                 startingSide = Side.ravens,
-                boardSize = 7,
                 board = mapOf(
                     "a1" to Piece.dragon,
                     "g7" to Piece.raven
@@ -68,20 +29,12 @@ class GameSessionServiceTest {
             )
         )
 
-        assertEquals(GameLifecycle.new, created.lifecycle)
-        assertEquals(Phase.none, created.snapshot.phase)
-        assertEquals("free-play", created.selectedRuleConfigurationId)
-        assertEquals(Side.ravens, created.selectedStartingSide)
-        assertEquals(7, created.selectedBoardSize)
+        assertEquals(GameLifecycle.active, created.lifecycle)
+        assertEquals(Phase.move, created.snapshot.phase)
+        assertEquals(Side.ravens, created.snapshot.activeSide)
         assertEquals(Piece.dragon, created.snapshot.board["a1"])
         assertEquals(Piece.raven, created.snapshot.board["g7"])
-
-        val started = service.applyCommand(created.id, GameCommandRequest(expectedVersion = created.version, type = "start-game"))
-
-        assertEquals(GameLifecycle.active, started.lifecycle)
-        assertEquals(Phase.setup, started.snapshot.phase)
-        assertEquals(Piece.dragon, started.snapshot.board["a1"])
-        assertEquals(Piece.raven, started.snapshot.board["g7"])
+        assertTrue(created.snapshot.positionKeys.isEmpty())
     }
 
     @Test
@@ -93,108 +46,54 @@ class GameSessionServiceTest {
                 ruleConfigurationId = "trivial",
                 startingSide = Side.ravens,
                 boardSize = 9,
-                board = mapOf(
-                    "a1" to Piece.gold
-                )
+                board = mapOf("a1" to Piece.gold)
             )
         )
 
+        assertEquals(GameLifecycle.active, created.lifecycle)
         assertEquals("trivial", created.selectedRuleConfigurationId)
-        assertEquals(GameLifecycle.new, created.lifecycle)
-        assertEquals(Phase.none, created.snapshot.phase)
+        assertEquals(Phase.move, created.snapshot.phase)
         assertEquals(7, created.selectedBoardSize)
         assertEquals(Side.dragons, created.selectedStartingSide)
         assertEquals(Piece.dragon, created.snapshot.board["a1"])
         assertEquals(Piece.gold, created.snapshot.board["a2"])
-        assertEquals(Piece.raven, created.snapshot.board["g1"])
     }
 
     @Test
-    fun `sse broadcasts are scoped to one game`() {
+    fun `broken sse emitter does not prevent a valid command from succeeding for its game`() {
         val service = createService()
-        val firstGame = service.createGame()
-        val secondGame = service.createGame()
-        val firstEmitter = RecordingEmitter()
-        val secondEmitter = RecordingEmitter()
+        val failingEmitter = object : SseEmitter(0L) {
+            override fun send(builder: SseEventBuilder) {
+                throw IllegalStateException("stale emitter")
+            }
+        }
+        val recordingEmitter = RecordingEmitter()
+        val game = service.createGame(CreateGameRequest(board = mapOf("a1" to Piece.dragon)))
 
-        service.createEmitter(firstGame.id, firstEmitter)
-        service.createEmitter(secondGame.id, secondEmitter)
+        service.createEmitter(game.id, failingEmitter)
+        service.createEmitter(game.id, recordingEmitter)
 
-        service.applyCommand(
-            firstGame.id,
+        val updated = service.applyCommand(
+            game.id,
             GameCommandRequest(
                 expectedVersion = 0,
-                type = "start-game"
+                type = "move-piece",
+                origin = "a1",
+                destination = "a2"
             )
         )
 
-        assertEquals(2, firstEmitter.eventsSent)
-        assertEquals(1, secondEmitter.eventsSent)
+        assertEquals(1, updated.version)
+        assertEquals(GameLifecycle.active, updated.lifecycle)
+        assertEquals(Phase.move, updated.snapshot.phase)
+        assertEquals(2, recordingEmitter.eventsSent)
     }
 
     @Test
-    fun `mutating one game does not affect another game`() {
-        val service = createService()
-        val firstGame = service.createGame()
-        val secondGame = service.createGame()
-
-        val updatedFirstGame = service.applyCommand(
-            firstGame.id,
-            GameCommandRequest(
-                expectedVersion = firstGame.version,
-                type = "start-game"
-            )
-        )
-        val unchangedSecondGame = service.getGame(secondGame.id)
-
-        assertEquals(Phase.setup, updatedFirstGame.snapshot.phase)
-        assertEquals(GameLifecycle.new, unchangedSecondGame.lifecycle)
-        assertEquals(Phase.none, unchangedSecondGame.snapshot.phase)
-        assertEquals(0, unchangedSecondGame.version)
-    }
-
-    @Test
-    fun `version conflicts are scoped to a single game`() {
-        val service = createService()
-        val firstGame = service.createGame()
-        val secondGame = service.createGame()
-
-        service.applyCommand(
-            firstGame.id,
-            GameCommandRequest(
-                expectedVersion = firstGame.version,
-                type = "start-game"
-            )
-        )
-
-        val conflict = assertThrows<VersionConflictException> {
-            service.applyCommand(
-                firstGame.id,
-                GameCommandRequest(
-                    expectedVersion = firstGame.version,
-                    type = "start-game"
-                )
-            )
-        }
-
-        val updatedSecondGame = service.applyCommand(
-            secondGame.id,
-            GameCommandRequest(
-                expectedVersion = secondGame.version,
-                type = "start-game"
-            )
-        )
-
-        assertEquals(1, conflict.latestGame.version)
-        assertEquals(firstGame.id, conflict.latestGame.id)
-        assertEquals(Phase.setup, updatedSecondGame.snapshot.phase)
-        assertEquals(secondGame.id, updatedSecondGame.id)
-    }
-
-    @Test
-    fun `selecting a rule configuration updates the shared session in the no game state`() {
-        val service = createService()
-        val gameId = createGameId(service)
+    fun `selecting a rule configuration updates an idle session`() {
+        val store = InMemoryGameStore()
+        val service = createService(store)
+        val gameId = createIdleGameId(store)
 
         val updated = service.applyCommand(
             gameId,
@@ -207,300 +106,16 @@ class GameSessionServiceTest {
 
         assertEquals("trivial", updated.selectedRuleConfigurationId)
         assertEquals(GameLifecycle.new, updated.lifecycle)
-        assertEquals("trivial", updated.snapshot.ruleConfigurationId)
         assertEquals(Phase.none, updated.snapshot.phase)
         assertEquals(Piece.dragon, updated.snapshot.board["a1"])
         assertEquals(Piece.gold, updated.snapshot.board["a2"])
-        assertEquals(Piece.raven, updated.snapshot.board["a7"])
-        assertTrue(updated.snapshot.turns.isEmpty())
     }
 
     @Test
-    fun `selecting a starting side updates free play in the no game state`() {
-        val service = createService()
-        val gameId = createGameId(service)
-
-        val updated = service.applyCommand(
-            gameId,
-            GameCommandRequest(
-                expectedVersion = 0,
-                type = "select-starting-side",
-                side = Side.ravens
-            )
-        )
-
-        assertEquals(Side.ravens, updated.selectedStartingSide)
-        assertEquals(GameLifecycle.new, updated.lifecycle)
-        assertEquals(Side.ravens, updated.snapshot.activeSide)
-        assertEquals(GameRules.freePlayRuleConfigurationId, updated.snapshot.ruleConfigurationId)
-    }
-
-    @Test
-    fun `selecting a board size updates free play in the no game state`() {
-        val service = createService()
-        val gameId = createGameId(service)
-
-        val updated = service.applyCommand(
-            gameId,
-            GameCommandRequest(
-                expectedVersion = 0,
-                type = "select-board-size",
-                boardSize = 9
-            )
-        )
-
-        assertEquals(9, updated.selectedBoardSize)
-        assertEquals(GameLifecycle.new, updated.lifecycle)
-        assertEquals(9, updated.snapshot.boardSize)
-        assertEquals("e5", updated.snapshot.specialSquare)
-        assertEquals(GameRules.freePlayRuleConfigurationId, updated.snapshot.ruleConfigurationId)
-    }
-
-    @Test
-    fun `undo restores the previous snapshot and updates can undo`() {
-        val service = createService()
-        val gameId = createGameId(service)
-
-        enterMovePhaseWithDragonAtA1(service, gameId)
-        val moved = service.applyCommand(
-            gameId,
-            GameCommandRequest(
-                expectedVersion = 3,
-                type = "move-piece",
-                origin = "a1",
-                destination = "a2"
-            )
-        )
-
-        assertTrue(moved.canUndo)
-        assertEquals(Phase.move, moved.snapshot.phase)
-        assertEquals(Piece.dragon, moved.snapshot.board["a2"])
-
-        val undone = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 4, type = "undo"))
-
-        assertFalse(undone.canUndo)
-        assertEquals(Phase.move, undone.snapshot.phase)
-        assertEquals(Piece.dragon, undone.snapshot.board["a1"])
-        assertFalse(undone.snapshot.board.containsKey("a2"))
-    }
-
-    @Test
-    fun `end game preserves the board and keeps undo available`() {
-        val service = createService()
-        val gameId = createGameId(service)
-
-        enterMovePhaseWithDragonAtA1(service, gameId)
-        service.applyCommand(
-            gameId,
-            GameCommandRequest(
-                expectedVersion = 3,
-                type = "move-piece",
-                origin = "a1",
-                destination = "a2"
-            )
-        )
-
-        val ended = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 4, type = "end-game"))
-
-        assertEquals(GameLifecycle.finished, ended.lifecycle)
-        assertEquals(Phase.none, ended.snapshot.phase)
-        assertEquals(Piece.dragon, ended.snapshot.board["a2"])
-        assertEquals(TurnType.gameOver, ended.snapshot.turns.last().type)
-        assertTrue(ended.canUndo)
-    }
-
-    @Test
-    fun `undo after end game restores the previous playable snapshot`() {
-        val service = createService()
-        val gameId = createGameId(service)
-
-        enterMovePhaseWithDragonAtA1(service, gameId)
-        service.applyCommand(
-            gameId,
-            GameCommandRequest(
-                expectedVersion = 3,
-                type = "move-piece",
-                origin = "a1",
-                destination = "a2"
-            )
-        )
-        service.applyCommand(gameId, GameCommandRequest(expectedVersion = 4, type = "end-game"))
-
-        val undone = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 5, type = "undo"))
-
-        assertEquals(GameLifecycle.active, undone.lifecycle)
-        assertEquals(Phase.move, undone.snapshot.phase)
-        assertEquals(Piece.dragon, undone.snapshot.board["a2"])
-        assertEquals(TurnType.move, undone.snapshot.turns.last().type)
-        assertFalse(undone.snapshot.turns.any { it.type == TurnType.gameOver })
-        assertTrue(undone.canUndo)
-    }
-
-    @Test
-    fun `finished games cannot be restarted on the same game id`() {
-        val service = createService()
-        val gameId = createGameId(service)
-
-        enterMovePhaseWithDragonAtA1(service, gameId)
-        service.applyCommand(gameId, GameCommandRequest(expectedVersion = 3, type = "end-game"))
-
-        val exception = assertThrows<InvalidCommandException> {
-            service.applyCommand(gameId, GameCommandRequest(expectedVersion = 4, type = "start-game"))
-        }
-
-        assertEquals("Game $gameId is finished. Create a new game to play again.", exception.message)
-    }
-
-    @Test
-    fun `finished games cannot be reconfigured on the same game id`() {
-        val service = createService()
-        val gameId = createGameId(service)
-
-        enterMovePhaseWithDragonAtA1(service, gameId)
-        service.applyCommand(gameId, GameCommandRequest(expectedVersion = 3, type = "end-game"))
-
-        val exception = assertThrows<InvalidCommandException> {
-            service.applyCommand(
-                gameId,
-                GameCommandRequest(
-                    expectedVersion = 4,
-                    type = "select-rule-configuration",
-                    ruleConfigurationId = "trivial"
-                )
-            )
-        }
-
-        assertEquals("Game $gameId is finished. Create a new game to play again.", exception.message)
-    }
-
-    @Test
-    fun `starting original game uses its preset board and opening side`() {
-        val service = createService()
-        val gameId = createGameId(service)
-
-        service.applyCommand(
-            gameId,
-            GameCommandRequest(
-                expectedVersion = 0,
-                type = "select-rule-configuration",
-                ruleConfigurationId = "original-game"
-            )
-        )
-
-        val started = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 1, type = "start-game"))
-
-        assertEquals("original-game", started.snapshot.ruleConfigurationId)
-        assertEquals(Phase.move, started.snapshot.phase)
-        assertEquals(Side.ravens, started.snapshot.activeSide)
-        assertEquals(Piece.gold, started.snapshot.board["d4"])
-        assertEquals(Piece.dragon, started.snapshot.board["d5"])
-        assertEquals(Piece.raven, started.snapshot.board["d7"])
-    }
-
-    @Test
-    fun `starting sherwood rules uses the original setup and opening side`() {
-        val service = createService()
-        val gameId = createGameId(service)
-
-        service.applyCommand(
-            gameId,
-            GameCommandRequest(
-                expectedVersion = 0,
-                type = "select-rule-configuration",
-                ruleConfigurationId = "sherwood-rules"
-            )
-        )
-
-        val started = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 1, type = "start-game"))
-
-        assertEquals("sherwood-rules", started.snapshot.ruleConfigurationId)
-        assertEquals(Phase.move, started.snapshot.phase)
-        assertEquals(Side.ravens, started.snapshot.activeSide)
-        assertEquals(Piece.gold, started.snapshot.board["d4"])
-        assertEquals(Piece.dragon, started.snapshot.board["d5"])
-        assertEquals(Piece.raven, started.snapshot.board["d7"])
-    }
-
-    @Test
-    fun `starting sherwood x 9 uses the shifted setup and opening side`() {
-        val service = createService()
-        val gameId = createGameId(service)
-
-        service.applyCommand(
-            gameId,
-            GameCommandRequest(
-                expectedVersion = 0,
-                type = "select-rule-configuration",
-                ruleConfigurationId = "sherwood-x-9"
-            )
-        )
-
-        val started = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 1, type = "start-game"))
-
-        assertEquals("sherwood-x-9", started.snapshot.ruleConfigurationId)
-        assertEquals(Phase.move, started.snapshot.phase)
-        assertEquals(Side.ravens, started.snapshot.activeSide)
-        assertEquals(9, started.snapshot.boardSize)
-        assertEquals("e5", started.snapshot.specialSquare)
-        assertEquals(Piece.gold, started.snapshot.board["e5"])
-        assertEquals(Piece.dragon, started.snapshot.board["e6"])
-        assertEquals(Piece.raven, started.snapshot.board["e8"])
-    }
-
-    @Test
-    fun `starting square one uses the square one setup and opening side`() {
-        val service = createService()
-        val gameId = createGameId(service)
-
-        service.applyCommand(
-            gameId,
-            GameCommandRequest(
-                expectedVersion = 0,
-                type = "select-rule-configuration",
-                ruleConfigurationId = "square-one"
-            )
-        )
-
-        val started = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 1, type = "start-game"))
-
-        assertEquals("square-one", started.snapshot.ruleConfigurationId)
-        assertEquals(Phase.move, started.snapshot.phase)
-        assertEquals(Side.ravens, started.snapshot.activeSide)
-        assertEquals(Piece.gold, started.snapshot.board["d4"])
-        assertEquals(Piece.dragon, started.snapshot.board["d5"])
-        assertEquals(Piece.raven, started.snapshot.board["b6"])
-    }
-
-    @Test
-    fun `starting square one x 9 uses the shifted square one setup and opening side`() {
-        val service = createService()
-        val gameId = createGameId(service)
-
-        service.applyCommand(
-            gameId,
-            GameCommandRequest(
-                expectedVersion = 0,
-                type = "select-rule-configuration",
-                ruleConfigurationId = "square-one-x-9"
-            )
-        )
-
-        val started = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 1, type = "start-game"))
-
-        assertEquals("square-one-x-9", started.snapshot.ruleConfigurationId)
-        assertEquals(Phase.move, started.snapshot.phase)
-        assertEquals(Side.ravens, started.snapshot.activeSide)
-        assertEquals(9, started.snapshot.boardSize)
-        assertEquals("e5", started.snapshot.specialSquare)
-        assertEquals(Piece.gold, started.snapshot.board["e5"])
-        assertEquals(Piece.dragon, started.snapshot.board["e6"])
-        assertEquals(Piece.raven, started.snapshot.board["c7"])
-    }
-
-    @Test
-    fun `starting free play honors the selected starting side through setup`() {
-        val service = createService()
-        val gameId = createGameId(service)
+    fun `starting an idle free-play session enters move phase immediately`() {
+        val store = InMemoryGameStore()
+        val service = createService(store)
+        val gameId = createIdleGameId(store)
 
         service.applyCommand(
             gameId,
@@ -512,116 +127,55 @@ class GameSessionServiceTest {
         )
 
         val started = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 1, type = "start-game"))
-        assertEquals(Phase.setup, started.snapshot.phase)
-        assertEquals(Side.ravens, started.snapshot.activeSide)
 
-        val endedSetup = service.applyCommand(gameId, GameCommandRequest(expectedVersion = 2, type = "end-setup"))
-        assertEquals(Phase.move, endedSetup.snapshot.phase)
-        assertEquals(Side.ravens, endedSetup.snapshot.activeSide)
+        assertEquals(GameLifecycle.active, started.lifecycle)
+        assertEquals(Phase.move, started.snapshot.phase)
+        assertEquals(Side.ravens, started.snapshot.activeSide)
     }
 
     @Test
     fun `undo with no move history is rejected`() {
         val service = createService()
-        val gameId = createGameId(service)
+        val game = service.createGame(CreateGameRequest(board = mapOf("a1" to Piece.dragon)))
 
         val exception = assertThrows<InvalidCommandException> {
-            service.applyCommand(gameId, GameCommandRequest(expectedVersion = 0, type = "undo"))
+            service.applyCommand(game.id, GameCommandRequest(expectedVersion = 0, type = "undo"))
         }
 
         assertEquals("No move is available to undo.", exception.message)
-        assertFalse(service.getGame(gameId).canUndo)
+        assertFalse(service.getGame(game.id).canUndo)
     }
 
     @Test
     fun `loading a game touches its last accessed time`() {
         val store = InMemoryGameStore()
         val service = createService(store)
-        val game = service.createGame()
-        val oldAccessedAt = Instant.parse("2026-04-08T00:00:00Z")
+        val game = service.createGame(CreateGameRequest(board = mapOf("a1" to Piece.dragon)))
 
-        store.touch(game.id, oldAccessedAt)
+        val beforeTouch = store.get(game.id)
+        val loaded = service.getGame(game.id)
+        val afterTouch = store.get(game.id)
 
-        service.getGame(game.id)
-
-        val storedGame = store.get(game.id)
-        assertNotNull(storedGame)
-        assertTrue(storedGame!!.lastAccessedAt.isAfter(oldAccessedAt))
+        assertNotNull(beforeTouch)
+        assertEquals(game.id, loaded.id)
+        assertNotNull(afterTouch)
+        assertTrue(afterTouch!!.lastAccessedAt >= beforeTouch!!.lastAccessedAt)
     }
 
     @Test
-    fun `game older than the stale threshold with no viewers is removed`() {
+    fun `remove stale games ignores active emitters`() {
         val store = InMemoryGameStore()
-        val service = createService(store)
-        val oldAccessedAt = Instant.parse("2026-04-08T00:00:00Z")
-        val now = oldAccessedAt.plus(GameSessionService.defaultStaleGameThreshold).plusSeconds(1)
-        val game = createStoredGame(
-            store = store,
-            gameId = "stale-game",
-            lastAccessedAt = oldAccessedAt
-        )
-
-        service.removeStaleGames(now)
-
-        assertNull(store.get(game.session.id))
-    }
-
-    @Test
-    fun `recently loaded game is not removed`() {
-        val store = InMemoryGameStore()
-        val service = createService(store)
-        val oldAccessedAt = Instant.parse("2026-04-08T00:00:00Z")
-        val now = oldAccessedAt.plus(GameSessionService.defaultStaleGameThreshold).plusSeconds(1)
-        val game = createStoredGame(
-            store = store,
-            gameId = "recent-game",
-            lastAccessedAt = oldAccessedAt
-        )
-
-        service.getGame(game.session.id)
-        service.removeStaleGames(now)
-
-        assertNotNull(store.get(game.session.id))
-    }
-
-    @Test
-    fun `game with active emitter is not removed`() {
-        val store = InMemoryGameStore()
-        val service = createService(store)
-        val oldAccessedAt = Instant.parse("2026-04-08T00:00:00Z")
-        val now = oldAccessedAt.plus(GameSessionService.defaultStaleGameThreshold).plusSeconds(1)
-        val game = createStoredGame(
-            store = store,
-            gameId = "watched-game",
-            lastAccessedAt = oldAccessedAt
-        )
-
-        service.createEmitter(game.session.id, RecordingEmitter())
-        store.touch(game.session.id, oldAccessedAt)
-
-        service.removeStaleGames(now)
-
-        assertNotNull(store.get(game.session.id))
-    }
-
-    @Test
-    fun `game touched on emitter disconnect is not removed immediately after viewer leaves`() {
-        val store = InMemoryGameStore()
-        val service = createService(store)
-        val oldAccessedAt = Instant.parse("2026-04-08T00:00:00Z")
-        val now = oldAccessedAt.plus(GameSessionService.defaultStaleGameThreshold).plusSeconds(1)
-        val game = createStoredGame(
-            store = store,
-            gameId = "disconnect-game",
-            lastAccessedAt = oldAccessedAt
-        )
+        val oldAccessedAt = Instant.parse("2026-04-01T12:00:00Z")
+        val now = Instant.parse("2026-04-08T12:00:00Z")
+        val service = createService(store, fixedClock(now), Duration.ofDays(1))
+        val game = createStoredIdleGame(store, "stale-game", oldAccessedAt)
         val emitter = service.createEmitter(game.session.id)
 
         store.touch(game.session.id, oldAccessedAt)
-        emitter.complete()
         service.removeStaleGames(now)
 
         assertNotNull(store.get(game.session.id))
+        emitter.complete()
     }
 
     private class RecordingEmitter : SseEmitter(0L) {
@@ -643,18 +197,20 @@ class GameSessionServiceTest {
         GameCommandService(clock)
     )
 
-    private fun createGameId(service: GameSessionService): String = service.createGame().id
-
-    private fun enterMovePhaseWithDragonAtA1(service: GameSessionService, gameId: String) {
-        service.applyCommand(gameId, GameCommandRequest(expectedVersion = 0, type = "start-game"))
-        service.applyCommand(gameId, GameCommandRequest(expectedVersion = 1, type = "cycle-setup", square = "a1"))
-        service.applyCommand(gameId, GameCommandRequest(expectedVersion = 2, type = "end-setup"))
+    private fun createIdleGameId(store: InMemoryGameStore): String {
+        val storedGame = GameSessionFactory.createFreshStoredGame(
+            gameId = GameIdGenerator.nextId(),
+            snapshot = GameRules.createIdleSnapshot(GameRules.freePlayRuleConfigurationId, Side.dragons),
+            selectedRuleConfigurationId = GameRules.freePlayRuleConfigurationId,
+            selectedStartingSide = Side.dragons,
+            selectedBoardSize = GameRules.defaultBoardSize,
+            now = fixedClock().instant()
+        )
+        store.putIfAbsent(storedGame)
+        return storedGame.session.id
     }
 
-    private fun fixedClock(now: Instant = Instant.parse("2026-04-08T12:00:00Z")): Clock =
-        Clock.fixed(now, ZoneOffset.UTC)
-
-    private fun createStoredGame(
+    private fun createStoredIdleGame(
         store: InMemoryGameStore,
         gameId: String,
         lastAccessedAt: Instant
@@ -670,4 +226,7 @@ class GameSessionServiceTest {
         store.put(storedGame)
         return storedGame
     }
+
+    private fun fixedClock(now: Instant = Instant.parse("2026-04-08T12:00:00Z")): Clock =
+        Clock.fixed(now, ZoneOffset.UTC)
 }

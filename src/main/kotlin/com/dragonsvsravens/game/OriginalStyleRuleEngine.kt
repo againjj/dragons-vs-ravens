@@ -3,8 +3,6 @@ package com.dragonsvsravens.game
 internal class OriginalStyleRuleEngine(
     private val goldMovesOneSquareAtATime: Boolean = false
 ) : RuleSet {
-    override fun startPhase(): Phase = Phase.move
-
     override fun validateMove(snapshot: GameSnapshot, origin: String, destination: String, piece: Piece) {
         val path = BoardCoordinates.pathBetween(origin, destination, snapshot.boardSize)
         require(path.isNotEmpty() || origin[0] == destination[0] || origin.drop(1) == destination.drop(1)) {

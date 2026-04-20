@@ -13,7 +13,7 @@ import org.springframework.test.web.servlet.post
 class GameControllerTest : AbstractGameControllerTestSupport() {
 
     @Test
-    fun `create game returns a new non default session`() {
+    fun `create game returns an active free-play session that starts in move phase`() {
         mockMvc.post("/api/games") {
             with(authenticated("create-game"))
             contentType = MediaType.APPLICATION_JSON
@@ -28,78 +28,78 @@ class GameControllerTest : AbstractGameControllerTestSupport() {
         }.andExpect {
             status { isOk() }
             jsonPath("$.game.id") { value(org.hamcrest.Matchers.matchesPattern("[23456789CFGHJMPQRVWX]{7}")) }
-            jsonPath("$.game.lifecycle", equalTo("new"))
-            jsonPath("$.game.snapshot.phase", equalTo("none"))
+            jsonPath("$.game.lifecycle", equalTo("active"))
+            jsonPath("$.game.snapshot.phase", equalTo("move"))
             jsonPath("$.game.selectedRuleConfigurationId", equalTo("free-play"))
             jsonPath("$.game.selectedStartingSide", equalTo("ravens"))
+            jsonPath("$.game.snapshot.activeSide", equalTo("ravens"))
             jsonPath("$.game.snapshot.board.a1", equalTo("dragon"))
         }
     }
 
     @Test
-    fun `new game routes mutate only the selected game`() {
-        val firstGame = createGame()
-        val secondGame = createGame()
+    fun `game routes mutate only the selected game`() {
+        val firstGame = createGame(CreateGameRequest(board = mapOf("a1" to Piece.dragon)))
+        val secondGame = createGame(CreateGameRequest(board = mapOf("b1" to Piece.dragon)))
 
-        postGameCommand(firstGame.id, command(firstGame.version, "start-game")).andExpect {
+        postGameCommand(firstGame.id, command(firstGame.version, "move-piece", origin = "a1", destination = "a2")).andExpect {
             status { isOk() }
             jsonPath("$.id", equalTo(firstGame.id))
-            jsonPath("$.snapshot.phase", equalTo("setup"))
+            jsonPath("$.snapshot.phase", equalTo("move"))
+            jsonPath("$.snapshot.board.a2", equalTo("dragon"))
         }
 
         mockMvc.get("/api/games/${secondGame.id}") {
             with(authenticated(secondGame.id))
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.id", equalTo(secondGame.id))
+            jsonPath("$.snapshot.board.b1", equalTo("dragon"))
+            jsonPath("$.version", equalTo(0))
         }
-            .andExpect {
-                status { isOk() }
-                jsonPath("$.id", equalTo(secondGame.id))
-                jsonPath("$.snapshot.phase", equalTo("none"))
-                jsonPath("$.version", equalTo(0))
-            }
     }
 
     @Test
     fun `version conflict response is scoped to the requested game`() {
-        val firstGame = createGame()
-        val secondGame = createGame()
+        val firstGame = createGame(CreateGameRequest(board = mapOf("a1" to Piece.dragon)))
+        val secondGame = createGame(CreateGameRequest(board = mapOf("b1" to Piece.dragon)))
 
-        executeGameCommand(firstGame.id, command(firstGame.version, "start-game"))
-        executeGameCommand(secondGame.id, command(secondGame.version, "start-game"))
+        executeGameCommand(firstGame.id, command(firstGame.version, "move-piece", origin = "a1", destination = "a2"))
+        executeGameCommand(secondGame.id, command(secondGame.version, "move-piece", origin = "b1", destination = "b2"))
 
-        postGameCommand(firstGame.id, command(firstGame.version, "start-game")).andExpect {
+        postGameCommand(firstGame.id, command(firstGame.version, "move-piece", origin = "a1", destination = "a3")).andExpect {
             status { isConflict() }
             jsonPath("$.id", equalTo(firstGame.id))
             jsonPath("$.version", equalTo(1))
-            jsonPath("$.snapshot.phase", equalTo("setup"))
+            jsonPath("$.snapshot.board.a2", equalTo("dragon"))
         }
     }
 
     @Test
     fun `persisted game can be reloaded after a follow up request`() {
-        val created = createGame()
+        val created = createGame(CreateGameRequest(board = mapOf("a1" to Piece.dragon)))
 
-        executeGameCommand(created.id, command(created.version, "start-game"))
+        executeGameCommand(created.id, command(created.version, "move-piece", origin = "a1", destination = "a2"))
 
         mockMvc.get("/api/games/${created.id}") {
             with(authenticated(created.id))
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.id", equalTo(created.id))
+            jsonPath("$.version", equalTo(1))
+            jsonPath("$.snapshot.phase", equalTo("move"))
+            jsonPath("$.snapshot.board.a2", equalTo("dragon"))
         }
-            .andExpect {
-                status { isOk() }
-                jsonPath("$.id", equalTo(created.id))
-                jsonPath("$.version", equalTo(1))
-                jsonPath("$.snapshot.phase", equalTo("setup"))
-            }
     }
 
     @Test
     fun `missing game returns not found on multi game routes`() {
         mockMvc.get("/api/games/missing-game") {
             with(authenticated("missing-game"))
+        }.andExpect {
+            status { isNotFound() }
+            jsonPath("$.message", equalTo("Game missing-game was not found."))
         }
-            .andExpect {
-                status { isNotFound() }
-                jsonPath("$.message", equalTo("Game missing-game was not found."))
-            }
     }
 
     @Test
@@ -117,25 +117,23 @@ class GameControllerTest : AbstractGameControllerTestSupport() {
     fun `removed default compatibility routes return not found`() {
         mockMvc.get("/api/game") {
             with(authenticated("legacy-route"))
+        }.andExpect {
+            status { isNotFound() }
         }
-            .andExpect {
-                status { isNotFound() }
-            }
 
         mockMvc.post("/api/game/commands") {
             with(authenticated("legacy-route"))
             contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(command(0, "start-game"))
+            content = objectMapper.writeValueAsString(command(0, "move-piece", origin = "a1", destination = "a2"))
         }.andExpect {
             status { isNotFound() }
         }
 
         mockMvc.get("/api/game/stream") {
             with(authenticated("legacy-route"))
+        }.andExpect {
+            status { isNotFound() }
         }
-            .andExpect {
-                status { isNotFound() }
-            }
     }
 
     @Test

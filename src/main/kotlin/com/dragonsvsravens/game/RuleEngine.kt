@@ -10,8 +10,6 @@ internal data class RuleConfiguration(
 )
 
 internal interface RuleSet {
-    fun startPhase(): Phase
-
     fun validateMove(snapshot: GameSnapshot, origin: String, destination: String, piece: Piece)
 
     fun getCapturableSquares(snapshot: GameSnapshot): List<String> = emptyList()

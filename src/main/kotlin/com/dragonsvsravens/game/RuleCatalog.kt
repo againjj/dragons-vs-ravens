@@ -43,13 +43,13 @@ internal object RuleCatalog {
                 RuleDescriptionSection(
                     heading = "Overview",
                     paragraphs = listOf(
-                        "Ravens are trying to steal the dragons' gold! Start a game. Place pieces during setup, then dragons and ravens alternate turns."
+                        "Ravens are trying to steal the dragons' gold! Build the opening position on the create page, then dragons and ravens alternate turns once the game starts."
                     )
                 ),
                 RuleDescriptionSection(
-                    heading = "Setup Phase",
+                    heading = "Create Game",
                     paragraphs = listOf(
-                        "Click any square to cycle through dragon, raven, gold, then empty. Click \"End Setup\" when all the pieces are placed."
+                        "On the create page, click any square to cycle through dragon, raven, gold, then empty. Starting the game locks in that drafted board as the live opening position."
                     )
                 ),
                 RuleDescriptionSection(
@@ -59,7 +59,6 @@ internal object RuleCatalog {
                     )
                 )
             ),
-            hasSetupPhase = true,
             hasManualCapture = true,
             hasManualEndGame = true
         ),
@@ -100,7 +99,6 @@ internal object RuleCatalog {
                     )
                 )
             ),
-            hasSetupPhase = false,
             hasManualCapture = false,
             hasManualEndGame = false
         ),
@@ -268,7 +266,6 @@ internal object RuleCatalog {
                 )
             )
         ),
-        hasSetupPhase = false,
         hasManualCapture = false,
         hasManualEndGame = false
     )

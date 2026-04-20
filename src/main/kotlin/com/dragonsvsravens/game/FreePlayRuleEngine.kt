@@ -1,8 +1,6 @@
 package com.dragonsvsravens.game
 
 internal object FreePlayRuleEngine : RuleSet {
-    override fun startPhase(): Phase = Phase.setup
-
     override fun validateMove(snapshot: GameSnapshot, origin: String, destination: String, piece: Piece) = Unit
 
     override fun getCapturableSquares(snapshot: GameSnapshot): List<String> =

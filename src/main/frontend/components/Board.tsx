@@ -3,14 +3,14 @@ import type { CSSProperties } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks.js";
 import { getBoardDimension, getRowNumbers, getSquareName, isHighlightedBoardSquare } from "../board-geometry.js";
 import { selectCanViewerAct, selectCapturableSquares, selectSelectedSquare, selectSnapshot, selectTargetableSquares } from "../features/game/gameSelectors.js";
-import { capturePiece, cycleSetup, movePiece } from "../features/game/gameThunks.js";
+import { capturePiece, movePiece } from "../features/game/gameThunks.js";
 import { uiActions } from "../features/ui/uiSlice.js";
 import { getPieceAtSquare, normalizeSelectedSquare, sideOwnsPiece } from "../game-rules-client.js";
 import type { ServerGameSnapshot, Piece } from "../game-types.js";
 
 type BoardClickAction =
     | { type: "none" }
-    | { type: "cycle-setup"; square: string }
+    | { type: "edit-draft"; square: string }
     | { type: "capture-piece"; square: string }
     | { type: "select"; square: string | null }
     | { type: "move-piece"; origin: string; destination: string };
@@ -41,6 +41,7 @@ const getSquareClassName = (
         capturableSquares: Set<string>;
         snapshot: ServerGameSnapshot | null;
         canViewerAct: boolean;
+        isDraftEditable: boolean;
     }
 ): string => {
     const classNames = ["square"];
@@ -50,7 +51,7 @@ const getSquareClassName = (
             ? false
             : !options.canViewerAct
               ? false
-              : options.snapshot.phase === "setup"
+              : options.isDraftEditable
                 ? true
                 : options.snapshot.phase === "capture"
                   ? options.capturableSquares.has(squareName)
@@ -91,7 +92,8 @@ const getBoardClickAction = (
     snapshot: ServerGameSnapshot,
     selectedSquare: string | null,
     capturableSquares: string[],
-    canViewerAct: boolean
+    canViewerAct: boolean,
+    isDraftEditable: boolean
 ): BoardClickAction => {
     if (!canViewerAct) {
         return { type: "none" };
@@ -101,8 +103,8 @@ const getBoardClickAction = (
         return { type: "none" };
     }
 
-    if (snapshot.phase === "setup") {
-        return { type: "cycle-setup", square };
+    if (isDraftEditable) {
+        return { type: "edit-draft", square };
     }
 
     if (snapshot.phase === "capture") {
@@ -138,6 +140,7 @@ export const BoardView = ({
     onSelectSquare,
     onMovePiece
 }: BoardViewProps) => {
+    const isDraftEditable = !!onCycleSetupSquare;
     const normalizedSelectedSquare = snapshot && canViewerAct ? normalizeSelectedSquare(snapshot, selectedSquare) : null;
     const capturableSquareSet = new Set(canViewerAct ? capturableSquares : []);
     const targetableSquareSet = new Set(canViewerAct ? targetableSquares : []);
@@ -150,9 +153,9 @@ export const BoardView = ({
             return;
         }
 
-        const action = getBoardClickAction(square, snapshot, selectedSquare, capturableSquares, canViewerAct);
+        const action = getBoardClickAction(square, snapshot, selectedSquare, capturableSquares, canViewerAct, isDraftEditable);
         switch (action.type) {
-            case "cycle-setup":
+            case "edit-draft":
                 onCycleSetupSquare?.(action.square);
                 return;
             case "capture-piece":
@@ -191,7 +194,8 @@ export const BoardView = ({
                                     targetableSquares: targetableSquareSet,
                                     capturableSquares: capturableSquareSet,
                                     snapshot,
-                                    canViewerAct
+                                    canViewerAct,
+                                    isDraftEditable
                                 })}
                                 data-square={squareName}
                                 aria-label={`Square ${squareName}`}
@@ -225,9 +229,6 @@ export const Board = () => {
             canViewerAct={canViewerAct}
             capturableSquares={capturableSquares}
             targetableSquares={targetableSquares}
-            onCycleSetupSquare={(square) => {
-                void dispatch(cycleSetup(square));
-            }}
             onCapturePiece={(square) => {
                 void dispatch(capturePiece(square));
             }}

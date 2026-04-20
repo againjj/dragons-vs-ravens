@@ -16,7 +16,6 @@ enum class Side {
 
 enum class Phase {
     none,
-    setup,
     move,
     capture
 }
@@ -36,7 +35,6 @@ data class RuleConfigurationSummary(
     val id: String,
     val name: String,
     val descriptionSections: List<RuleDescriptionSection>,
-    val hasSetupPhase: Boolean,
     val hasManualCapture: Boolean,
     val hasManualEndGame: Boolean
 )

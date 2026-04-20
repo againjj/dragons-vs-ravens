@@ -32,12 +32,6 @@ object GameRules {
     ): GameSnapshot =
         GameSnapshotFactory.startGame(ruleConfigurationId, selectedStartingSide, selectedBoardSize, initialBoard)
 
-    fun cycleSetupPiece(snapshot: GameSnapshot, square: String): GameSnapshot =
-        GameSnapshotFactory.cycleSetupPiece(snapshot, square)
-
-    fun endSetup(snapshot: GameSnapshot, selectedStartingSide: Side = Side.dragons): GameSnapshot =
-        GameSnapshotFactory.endSetup(snapshot, selectedStartingSide)
-
     fun endGame(snapshot: GameSnapshot, outcome: String = "Game ended"): GameSnapshot = snapshot.copy(
         phase = Phase.none,
         activeSide = RuleCatalog.getRuleConfiguration(snapshot.ruleConfigurationId).startingSide,
