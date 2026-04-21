@@ -124,7 +124,8 @@ describe("SeatPanel", () => {
                         ravensBot: null,
                         availableBots: [
                             { id: "random", displayName: "Random" },
-                            { id: "simple", displayName: "Simple" }
+                            { id: "simple", displayName: "Simple" },
+                            { id: "minimax", displayName: "Minimax" }
                         ]
                     }
                 }
@@ -140,6 +141,36 @@ describe("SeatPanel", () => {
 
         expect(onAssignBotOpponent).toHaveBeenCalledTimes(1);
         expect(onAssignBotOpponent).toHaveBeenCalledWith("simple");
+    });
+
+    test("renders assigned minimax seats with the bot label", () => {
+        renderWithStore(
+            <SeatPanel onAssignBotOpponent={vi.fn()} onClaimDragons={vi.fn()} onClaimRavens={vi.fn()} />,
+            {
+                preloadedState: {
+                    auth: {
+                        session: createAuthSession()
+                    },
+                    game: {
+                        session: createSession({
+                            selectedRuleConfigurationId: "sherwood-rules",
+                            dragonsBotId: "minimax",
+                            ravensBotId: null,
+                            dragonsPlayerUserId: null
+                        }, {
+                            turns: []
+                        }),
+                        viewerRole: "ravens",
+                        dragonsPlayer: null,
+                        ravensPlayer: { id: "player-ravens", displayName: "Raven Player" },
+                        dragonsBot: { id: "minimax", displayName: "Minimax" },
+                        availableBots: [{ id: "minimax", displayName: "Minimax" }]
+                    }
+                }
+            }
+        );
+
+        expect(screen.getByText((_, element) => element?.textContent === "Dragons: Bot: Minimax")).toBeInTheDocument();
     });
 
     test("renders claim actions before the bot assignment controls", () => {

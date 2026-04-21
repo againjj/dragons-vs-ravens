@@ -183,18 +183,19 @@ describe("gameThunks", () => {
 
     test("assignBotOpponent refreshes the current game view after a successful assignment", async () => {
         assignBotOpponentMock.mockResolvedValue({
-            data: createSession({ id: "game-515", ravensBotId: "simple", canUndo: false })
+            data: createSession({ id: "game-515", ravensBotId: "minimax", canUndo: false })
         });
         fetchGameViewMock.mockResolvedValue(
             createGameView(
-                { id: "game-515", ravensBotId: "simple", canUndo: false },
+                { id: "game-515", ravensBotId: "minimax", canUndo: false },
                 {},
                 {
                     ravensPlayer: null,
-                    ravensBot: { id: "simple", displayName: "Simple" },
+                    ravensBot: { id: "minimax", displayName: "Minimax" },
                     availableBots: [
                         { id: "random", displayName: "Random" },
-                        { id: "simple", displayName: "Simple" }
+                        { id: "simple", displayName: "Simple" },
+                        { id: "minimax", displayName: "Minimax" }
                     ]
                 }
             )
@@ -212,14 +213,15 @@ describe("gameThunks", () => {
                 ravensPlayer: null,
                 availableBots: [
                     { id: "random", displayName: "Random" },
-                    { id: "simple", displayName: "Simple" }
+                    { id: "simple", displayName: "Simple" },
+                    { id: "minimax", displayName: "Minimax" }
                 ]
             }
         });
 
-        await store.dispatch(assignBotOpponent("simple"));
+        await store.dispatch(assignBotOpponent("minimax"));
 
-        expect(assignBotOpponentMock).toHaveBeenCalledWith("game-515", { botId: "simple" });
+        expect(assignBotOpponentMock).toHaveBeenCalledWith("game-515", { botId: "minimax" });
         expect(fetchGameViewMock).toHaveBeenCalledWith("game-515");
     });
 
