@@ -45,8 +45,8 @@ export const GameScreen = () => {
                 <div className="page-header-copy">
                     <h2>{currentGameId ? `Game ${currentGameId}` : "Current Game"}</h2>
                     <SeatPanel
-                        onAssignBotOpponent={() => {
-                            void dispatch(assignBotOpponent("random"));
+                        onAssignBotOpponent={(botId) => {
+                            void dispatch(assignBotOpponent(botId));
                         }}
                         onClaimDragons={() => {
                             void dispatch(claimSide("dragons"));

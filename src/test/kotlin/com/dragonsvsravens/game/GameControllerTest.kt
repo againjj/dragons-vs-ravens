@@ -121,6 +121,8 @@ class GameControllerTest : AbstractGameControllerTestSupport() {
             jsonPath("$.ravensBot.id", equalTo(BotRegistry.randomBotId))
             jsonPath("$.ravensBot.displayName", equalTo("Random"))
             jsonPath("$.availableBots[0].id", equalTo(BotRegistry.randomBotId))
+            jsonPath("$.availableBots[1].id", equalTo(BotRegistry.simpleBotId))
+            jsonPath("$.availableBots[1].displayName", equalTo("Simple"))
         }
     }
 
@@ -140,6 +142,7 @@ class GameControllerTest : AbstractGameControllerTestSupport() {
             }.andExpect {
                 status { isOk() }
                 jsonPath("$.availableBots[0].id", equalTo(BotRegistry.randomBotId))
+                jsonPath("$.availableBots[1].id", equalTo(BotRegistry.simpleBotId))
             }
         }
     }

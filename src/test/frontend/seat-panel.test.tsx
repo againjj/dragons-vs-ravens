@@ -95,11 +95,15 @@ describe("SeatPanel", () => {
         expect(screen.getByText((_, element) => element?.textContent === "Ravens: Bot: Random")).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Claim Ravens" })).toBeNull();
         expect(screen.queryByRole("button", { name: "Assign Bot To Ravens" })).toBeNull();
+        expect(screen.queryByRole("combobox", { name: "Choose bot opponent" })).toBeNull();
     });
 
-    test("shows the bot assignment button for supported rulesets when the opposite seat is open", () => {
+    test("shows a bot picker and assigns the selected bot for supported rulesets", async () => {
+        const user = userEvent.setup();
+        const onAssignBotOpponent = vi.fn();
+
         renderWithStore(
-            <SeatPanel onAssignBotOpponent={vi.fn()} onClaimDragons={vi.fn()} onClaimRavens={vi.fn()} />,
+            <SeatPanel onAssignBotOpponent={onAssignBotOpponent} onClaimDragons={vi.fn()} onClaimRavens={vi.fn()} />,
             {
                 preloadedState: {
                     auth: {
@@ -118,16 +122,27 @@ describe("SeatPanel", () => {
                         dragonsPlayer: { id: "player-dragons", displayName: "Dragon Player" },
                         ravensPlayer: null,
                         ravensBot: null,
-                        availableBots: [{ id: "random", displayName: "Random" }]
+                        availableBots: [
+                            { id: "random", displayName: "Random" },
+                            { id: "simple", displayName: "Simple" }
+                        ]
                     }
                 }
             }
         );
 
-        expect(screen.getByRole("button", { name: "Assign Bot To Ravens" })).toBeInTheDocument();
+        const botSelect = screen.getByRole("combobox", { name: "Choose bot opponent" });
+
+        expect(botSelect).toHaveValue("random");
+
+        await user.selectOptions(botSelect, "simple");
+        await user.click(screen.getByRole("button", { name: "Assign Bot To Ravens" }));
+
+        expect(onAssignBotOpponent).toHaveBeenCalledTimes(1);
+        expect(onAssignBotOpponent).toHaveBeenCalledWith("simple");
     });
 
-    test("renders claim actions before the bot assignment action", () => {
+    test("renders claim actions before the bot assignment controls", () => {
         renderWithStore(
             <SeatPanel onAssignBotOpponent={vi.fn()} onClaimDragons={vi.fn()} onClaimRavens={vi.fn()} />,
             {
@@ -145,7 +160,10 @@ describe("SeatPanel", () => {
                         viewerRole: "dragons",
                         dragonsPlayer: { id: "player-dragons", displayName: "Dragon Player" },
                         ravensPlayer: null,
-                        availableBots: [{ id: "random", displayName: "Random" }]
+                        availableBots: [
+                            { id: "random", displayName: "Random" },
+                            { id: "simple", displayName: "Simple" }
+                        ]
                     }
                 }
             }
@@ -153,6 +171,7 @@ describe("SeatPanel", () => {
 
         const actionButtons = screen.getAllByRole("button").map((button) => button.textContent);
         expect(actionButtons).toEqual(["Claim Ravens", "Assign Bot To Ravens"]);
+        expect(screen.getByRole("combobox", { name: "Choose bot opponent" })).toBeInTheDocument();
     });
 
     test("hides bot assignment when both seats are already claimed", () => {
@@ -180,6 +199,7 @@ describe("SeatPanel", () => {
         );
 
         expect(screen.queryByRole("button", { name: "Assign Bot To Ravens" })).toBeNull();
+        expect(screen.queryByRole("combobox", { name: "Choose bot opponent" })).toBeNull();
     });
 
     test("hides bot assignment for unsupported rulesets", () => {
@@ -207,5 +227,6 @@ describe("SeatPanel", () => {
         );
 
         expect(screen.queryByRole("button", { name: "Assign Bot To Ravens" })).toBeNull();
+        expect(screen.queryByRole("combobox", { name: "Choose bot opponent" })).toBeNull();
     });
 });

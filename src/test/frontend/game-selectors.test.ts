@@ -173,7 +173,10 @@ describe("game selectors", () => {
                     displayName: "Dragon Player"
                 },
                 ravensPlayer: null,
-                availableBots: [{ id: "random", displayName: "Random" }],
+                availableBots: [
+                    { id: "random", displayName: "Random" },
+                    { id: "simple", displayName: "Simple" }
+                ],
                 isSubmitting: false,
                 loadState: "ready",
                 connectionState: "open",

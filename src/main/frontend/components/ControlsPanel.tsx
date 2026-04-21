@@ -72,9 +72,6 @@ export const ControlsPanel = ({
                 </>
             ) : null}
             {showUndo && !isActivePlay ? undoButton : null}
-            {showUndo && hasBotSeat ? (
-                <p className="controls-help-text">Undo reverses your last move and the bot reply.</p>
-            ) : null}
         </div>
     );
 };

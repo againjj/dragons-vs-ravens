@@ -102,7 +102,7 @@ describe("ControlsPanel", () => {
         );
 
         expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled();
-        expect(screen.getByText("Undo reverses your last move and the bot reply.")).toBeInTheDocument();
+        expect(screen.queryByText("Undo reverses your last move and the bot reply.")).toBeNull();
     });
 
     test("enables undo for the player who made the last move", () => {

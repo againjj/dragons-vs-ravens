@@ -183,16 +183,19 @@ describe("gameThunks", () => {
 
     test("assignBotOpponent refreshes the current game view after a successful assignment", async () => {
         assignBotOpponentMock.mockResolvedValue({
-            data: createSession({ id: "game-515", ravensBotId: "random", canUndo: false })
+            data: createSession({ id: "game-515", ravensBotId: "simple", canUndo: false })
         });
         fetchGameViewMock.mockResolvedValue(
             createGameView(
-                { id: "game-515", ravensBotId: "random", canUndo: false },
+                { id: "game-515", ravensBotId: "simple", canUndo: false },
                 {},
                 {
                     ravensPlayer: null,
-                    ravensBot: { id: "random", displayName: "Random" },
-                    availableBots: [{ id: "random", displayName: "Random" }]
+                    ravensBot: { id: "simple", displayName: "Simple" },
+                    availableBots: [
+                        { id: "random", displayName: "Random" },
+                        { id: "simple", displayName: "Simple" }
+                    ]
                 }
             )
         );
@@ -207,13 +210,16 @@ describe("gameThunks", () => {
                 viewerRole: "dragons",
                 dragonsPlayer: { id: "player-dragons", displayName: "Dragon Player" },
                 ravensPlayer: null,
-                availableBots: [{ id: "random", displayName: "Random" }]
+                availableBots: [
+                    { id: "random", displayName: "Random" },
+                    { id: "simple", displayName: "Simple" }
+                ]
             }
         });
 
-        await store.dispatch(assignBotOpponent("random"));
+        await store.dispatch(assignBotOpponent("simple"));
 
-        expect(assignBotOpponentMock).toHaveBeenCalledWith("game-515", { botId: "random" });
+        expect(assignBotOpponentMock).toHaveBeenCalledWith("game-515", { botId: "simple" });
         expect(fetchGameViewMock).toHaveBeenCalledWith("game-515");
     });
 

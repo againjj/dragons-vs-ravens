@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import { useAppSelector } from "../app/hooks.js";
 import {
     selectAvailableBots,
@@ -12,7 +14,7 @@ import {
 } from "../features/game/gameSelectors.js";
 
 interface SeatPanelProps {
-    onAssignBotOpponent: () => void;
+    onAssignBotOpponent: (botId: string) => void;
     onClaimDragons: () => void;
     onClaimRavens: () => void;
 }
@@ -27,7 +29,14 @@ export const SeatPanel = ({ onAssignBotOpponent, onClaimDragons, onClaimRavens }
     const canClaimRavens = useAppSelector(selectCanClaimRavens);
     const canAssignBotOpponent = useAppSelector(selectCanAssignBotOpponent);
     const botAssignmentTargetSide = useAppSelector(selectBotAssignmentTargetSide);
-    const assignableBot = availableBots[0] ?? null;
+    const [selectedBotId, setSelectedBotId] = useState<string>(availableBots[0]?.id ?? "");
+
+    useEffect(() => {
+        if (availableBots.some((bot) => bot.id === selectedBotId)) {
+            return;
+        }
+        setSelectedBotId(availableBots[0]?.id ?? "");
+    }, [availableBots, selectedBotId]);
 
     return (
         <div className="seat-summary" aria-label="Seat ownership">
@@ -50,10 +59,36 @@ export const SeatPanel = ({ onAssignBotOpponent, onClaimDragons, onClaimRavens }
                                 Claim Ravens
                             </button>
                         ) : null}
-                        {canAssignBotOpponent && botAssignmentTargetSide && assignableBot ? (
-                            <button type="button" onClick={onAssignBotOpponent}>
-                                {`Assign Bot To ${botAssignmentTargetSide === "dragons" ? "Dragons" : "Ravens"}`}
-                            </button>
+                        {canAssignBotOpponent && botAssignmentTargetSide ? (
+                            <>
+                                <div className="select-shell">
+                                    <select
+                                        aria-label="Choose bot opponent"
+                                        id="bot-opponent-select"
+                                        value={selectedBotId}
+                                        onChange={(event) => {
+                                            setSelectedBotId(event.target.value);
+                                        }}
+                                    >
+                                        {availableBots.map((bot) => (
+                                            <option key={bot.id} value={bot.id}>
+                                                {bot.displayName}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <button
+                                    type="button"
+                                    disabled={!selectedBotId}
+                                    onClick={() => {
+                                        if (selectedBotId) {
+                                            onAssignBotOpponent(selectedBotId);
+                                        }
+                                    }}
+                                >
+                                    {`Assign Bot To ${botAssignmentTargetSide === "dragons" ? "Dragons" : "Ravens"}`}
+                                </button>
+                            </>
                         ) : null}
                     </span>
                 ) : null}

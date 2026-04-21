@@ -163,19 +163,21 @@ class GameSessionServiceTest {
     }
 
     @Test
-    fun `supported release two rulesets allow assigning a bot and trigger an immediate bot move`() {
+    fun `supported release two rulesets allow assigning either release four bot and trigger an immediate bot move`() {
         val service = createService()
 
-        BotRegistry.releaseTwoSupportedRuleConfigurationIds.forEach { ruleConfigurationId ->
-            val game = service.createGame(CreateGameRequest(ruleConfigurationId = ruleConfigurationId))
-            service.claimSide(game.id, Side.dragons, "player-one")
+        listOf(BotRegistry.randomBotId, BotRegistry.simpleBotId).forEach { botId ->
+            BotRegistry.releaseTwoSupportedRuleConfigurationIds.forEach { ruleConfigurationId ->
+                val game = service.createGame(CreateGameRequest(ruleConfigurationId = ruleConfigurationId))
+                service.claimSide(game.id, Side.dragons, "player-one")
 
-            val updated = service.assignBotOpponent(game.id, BotRegistry.randomBotId, "player-one")
+                val updated = service.assignBotOpponent(game.id, botId, "player-one")
 
-            assertEquals(ruleConfigurationId, updated.selectedRuleConfigurationId)
-            assertEquals(BotRegistry.randomBotId, updated.ravensBotId)
-            assertEquals(Side.dragons, updated.snapshot.activeSide)
-            assertEquals(1, updated.snapshot.turns.size)
+                assertEquals(ruleConfigurationId, updated.selectedRuleConfigurationId)
+                assertEquals(botId, updated.ravensBotId)
+                assertEquals(Side.dragons, updated.snapshot.activeSide)
+                assertEquals(1, updated.snapshot.turns.size)
+            }
         }
     }
 
