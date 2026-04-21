@@ -112,6 +112,46 @@ describe("game selectors", () => {
         expect(selectCanClaimRavens(store.getState())).toBe(false);
     });
 
+    test("grouped bot undo stays available for the player who made the last human move", () => {
+        const store = createAppStore({
+            auth: {
+                session: createAuthSession()
+            },
+            game: {
+                session: createSession(
+                    {
+                        canUndo: true,
+                        undoOwnerSide: "dragons",
+                        ravensBotId: "random"
+                    },
+                    {
+                        phase: "move",
+                        activeSide: "dragons"
+                    }
+                ),
+                viewerRole: "dragons",
+                dragonsPlayer: {
+                    id: "player-dragons",
+                    displayName: "Dragon Player"
+                },
+                ravensPlayer: null,
+                ravensBot: {
+                    id: "random",
+                    displayName: "Random"
+                },
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: null
+            }
+        });
+
+        expect(selectCanViewerUndo(store.getState())).toBe(true);
+    });
+
     test("bot assignment is available when exactly one seat is claimed by the current user", () => {
         const store = createAppStore({
             auth: {

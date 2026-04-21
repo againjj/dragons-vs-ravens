@@ -81,6 +81,30 @@ describe("ControlsPanel", () => {
         );
     });
 
+    test("enables undo in bot games when the backend reports a grouped exchange is available", () => {
+        renderPanel(
+            createSession(
+                {
+                    canUndo: true,
+                    undoOwnerSide: "dragons",
+                    lifecycle: "active",
+                    ravensBotId: "random"
+                },
+                {
+                    phase: "move",
+                    activeSide: "dragons"
+                }
+            ),
+            {
+                viewerRole: "dragons",
+                ravensBot: { id: "random", displayName: "Random" }
+            }
+        );
+
+        expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled();
+        expect(screen.getByText("Undo reverses your last move and the bot reply.")).toBeInTheDocument();
+    });
+
     test("enables undo for the player who made the last move", () => {
         renderPanel(
             createSession(

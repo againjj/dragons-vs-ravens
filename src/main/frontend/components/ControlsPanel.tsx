@@ -3,6 +3,7 @@ import {
     selectCanViewerAct,
     selectCanViewerUndo,
     selectCurrentRuleConfiguration,
+    selectHasBotSeat,
     selectIsFinishedGame,
     selectIsSubmitting,
     selectSnapshot
@@ -22,6 +23,7 @@ export const ControlsPanel = ({
     const snapshot = useAppSelector(selectSnapshot);
     const canViewerAct = useAppSelector(selectCanViewerAct);
     const canViewerUndo = useAppSelector(selectCanViewerUndo);
+    const hasBotSeat = useAppSelector(selectHasBotSeat);
     const isSubmitting = useAppSelector(selectIsSubmitting);
     const isFinishedGame = useAppSelector(selectIsFinishedGame);
     const currentRuleConfiguration = useAppSelector(selectCurrentRuleConfiguration);
@@ -70,6 +72,9 @@ export const ControlsPanel = ({
                 </>
             ) : null}
             {showUndo && !isActivePlay ? undoButton : null}
+            {showUndo && hasBotSeat ? (
+                <p className="controls-help-text">Undo reverses your last move and the bot reply.</p>
+            ) : null}
         </div>
     );
 };

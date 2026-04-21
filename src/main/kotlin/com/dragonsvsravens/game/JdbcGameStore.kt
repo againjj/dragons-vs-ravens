@@ -163,7 +163,7 @@ class JdbcGameStore(
         GameSessionFactory.createStoredGame(
             gameId = resultSet.getString("id"),
             snapshot = gameJsonCodec.readSnapshot(resultSet.getString("snapshot_json")),
-            undoSnapshots = gameJsonCodec.readUndoSnapshots(resultSet.getString("undo_snapshots_json")),
+            undoEntries = gameJsonCodec.readUndoEntries(resultSet.getString("undo_snapshots_json")),
             version = resultSet.getLong("version"),
             createdAt = resultSet.getTimestamp("created_at").toInstant(),
             updatedAt = resultSet.getTimestamp("updated_at").toInstant(),
@@ -196,7 +196,7 @@ class JdbcGameStore(
         game.session.ravensBotId,
         game.session.createdByUserId,
         gameJsonCodec.writeSnapshot(game.session.snapshot),
-        gameJsonCodec.writeUndoSnapshots(game.undoSnapshots)
+        gameJsonCodec.writeUndoEntries(game.undoEntries)
     )
 
     private fun updateArguments(game: StoredGame): Array<Any?> = arrayOf(
@@ -213,7 +213,7 @@ class JdbcGameStore(
         game.session.ravensBotId,
         game.session.createdByUserId,
         gameJsonCodec.writeSnapshot(game.session.snapshot),
-        gameJsonCodec.writeUndoSnapshots(game.undoSnapshots),
+        gameJsonCodec.writeUndoEntries(game.undoEntries),
         game.session.id,
         game.session.version - 1
     )

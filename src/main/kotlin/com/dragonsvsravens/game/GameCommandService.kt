@@ -27,7 +27,7 @@ class GameCommandService(
         }
         return current.next(
             snapshot = session.snapshot,
-            undoSnapshots = current.undoSnapshots,
+            undoEntries = current.undoEntries,
             dragonsPlayerUserId = if (side == Side.dragons) userId else session.dragonsPlayerUserId,
             ravensPlayerUserId = if (side == Side.ravens) userId else session.ravensPlayerUserId
         )
@@ -66,16 +66,13 @@ class GameCommandService(
 
         return current.next(
             snapshot = session.snapshot,
-            undoSnapshots = current.undoSnapshots,
+            undoEntries = current.undoEntries,
             dragonsBotId = if (targetSide == Side.dragons) botDefinition.id else session.dragonsBotId,
             ravensBotId = if (targetSide == Side.ravens) botDefinition.id else session.ravensBotId
         )
     }
 
     fun applyCommand(current: StoredGame, command: GameCommandRequest, actingUserId: String?): StoredGame {
-        if (command.type == "undo" && (current.session.dragonsBotId != null || current.session.ravensBotId != null)) {
-            throw InvalidCommandException("Undo is unavailable in games with a bot opponent.")
-        }
         actingUserId?.let { requireAuthorizedPlayer(current, it, command.type) }
         if (command.expectedVersion != current.session.version) {
             throw VersionConflictException(current.session)
@@ -91,7 +88,7 @@ class GameCommandService(
                         current.session.selectedBoardSize,
                         current.session.snapshot.board
                     ),
-                    undoSnapshots = emptyList()
+                    undoEntries = emptyList()
                 )
             }
 
@@ -108,12 +105,15 @@ class GameCommandService(
             }
 
             "move-piece" -> applyInPhase(current, command, Phase.move) { snapshot ->
+                val movingSide = snapshot.activeSide
                 current.nextWithUndo(
                     snapshot = GameRules.movePiece(
                         snapshot,
                         requireOrigin(command, snapshot.boardSize),
                         requireDestination(command, snapshot.boardSize)
-                    )
+                    ),
+                    ownerSide = movingSide,
+                    kind = if (isBotTurn(current, actingUserId)) UndoEntryKind.botOnly else UndoEntryKind.humanOnly
                 )
             }
 
@@ -140,7 +140,11 @@ class GameCommandService(
                 current.next(
                     lifecycle = GameLifecycle.finished,
                     snapshot = GameRules.endGame(snapshot, "Game ended"),
-                    undoSnapshots = current.undoSnapshots + snapshot
+                    undoEntries = current.undoEntries + UndoEntry(
+                        snapshot = snapshot,
+                        ownerSide = snapshot.activeSide,
+                        kind = UndoEntryKind.humanOnly
+                    )
                 )
             }
 
@@ -259,7 +263,7 @@ class GameCommandService(
 
     private fun StoredGame.next(
         snapshot: GameSnapshot,
-        undoSnapshots: List<GameSnapshot> = this.undoSnapshots,
+        undoEntries: List<UndoEntry> = this.undoEntries,
         lifecycle: GameLifecycle = this.session.lifecycle,
         selectedRuleConfigurationId: String = this.session.selectedRuleConfigurationId,
         selectedStartingSide: Side = this.session.selectedStartingSide,
@@ -272,7 +276,7 @@ class GameCommandService(
     ): StoredGame = GameSessionFactory.createStoredGame(
         gameId = session.id,
         snapshot = snapshot,
-        undoSnapshots = undoSnapshots,
+        undoEntries = undoEntries,
         version = session.version + 1,
         createdAt = session.createdAt,
         updatedAt = Instant.now(clock),
@@ -287,10 +291,18 @@ class GameCommandService(
         createdByUserId = createdByUserId
     )
 
-    private fun StoredGame.nextWithUndo(snapshot: GameSnapshot): StoredGame =
+    private fun StoredGame.nextWithUndo(
+        snapshot: GameSnapshot,
+        ownerSide: Side,
+        kind: UndoEntryKind
+    ): StoredGame =
         next(
             snapshot = snapshot,
-            undoSnapshots = undoSnapshots + session.snapshot
+            undoEntries = undoEntries + UndoEntry(
+                snapshot = session.snapshot,
+                ownerSide = ownerSide,
+                kind = kind
+            )
         )
 
     private fun StoredGame.withSelectedRuleConfiguration(ruleConfigurationId: String): StoredGame =
@@ -312,16 +324,22 @@ class GameCommandService(
         )
 
     private fun StoredGame.undo(): StoredGame {
-        val previousSnapshot = undoSnapshots.lastOrNull()
+        val previousEntry = undoEntries.lastOrNull()
             ?: throw InvalidCommandException("No move is available to undo.")
         return next(
-            snapshot = previousSnapshot,
-            undoSnapshots = undoSnapshots.dropLast(1),
-            lifecycle = if (previousSnapshot.turns.lastOrNull()?.type == TurnType.gameOver) {
+            snapshot = previousEntry.snapshot,
+            undoEntries = undoEntries.dropLast(1),
+            lifecycle = if (previousEntry.snapshot.turns.lastOrNull()?.type == TurnType.gameOver) {
                 GameLifecycle.finished
             } else {
                 GameLifecycle.active
             }
         )
     }
+
+    private fun isBotTurn(current: StoredGame, actingUserId: String?): Boolean =
+        actingUserId == null && when (current.session.snapshot.activeSide) {
+            Side.dragons -> current.session.dragonsBotId != null
+            Side.ravens -> current.session.ravensBotId != null
+        }
 }

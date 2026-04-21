@@ -16,7 +16,7 @@ object GameSessionFactory {
     ): StoredGame = createStoredGame(
         gameId = gameId,
         snapshot = snapshot,
-        undoSnapshots = emptyList(),
+        undoEntries = emptyList(),
         version = 0,
         createdAt = now,
         updatedAt = now,
@@ -36,7 +36,7 @@ object GameSessionFactory {
     fun createStoredGame(
         gameId: String,
         snapshot: GameSnapshot,
-        undoSnapshots: List<GameSnapshot>,
+        undoEntries: List<UndoEntry>,
         version: Long,
         createdAt: Instant,
         updatedAt: Instant,
@@ -58,8 +58,8 @@ object GameSessionFactory {
             updatedAt = updatedAt,
             lifecycle = lifecycle,
             snapshot = snapshot,
-            canUndo = undoSnapshots.isNotEmpty() && dragonsBotId == null && ravensBotId == null,
-            undoOwnerSide = undoSnapshots.lastOrNull()?.activeSide,
+            canUndo = canUndo(undoEntries, dragonsBotId, ravensBotId, lifecycle),
+            undoOwnerSide = undoEntries.lastOrNull()?.ownerSide,
             availableRuleConfigurations = GameRules.availableRuleConfigurations(),
             selectedRuleConfigurationId = selectedRuleConfigurationId,
             selectedStartingSide = selectedStartingSide,
@@ -70,7 +70,23 @@ object GameSessionFactory {
             ravensBotId = ravensBotId,
             createdByUserId = createdByUserId
         ),
-        undoSnapshots = undoSnapshots,
+        undoEntries = undoEntries,
         lastAccessedAt = lastAccessedAt
     )
+
+    private fun canUndo(
+        undoEntries: List<UndoEntry>,
+        dragonsBotId: String?,
+        ravensBotId: String?,
+        lifecycle: GameLifecycle
+    ): Boolean {
+        val lastEntry = undoEntries.lastOrNull() ?: return false
+        val hasBotSeat = dragonsBotId != null || ravensBotId != null
+        return if (hasBotSeat) {
+            lastEntry.kind == UndoEntryKind.humanPlusBot ||
+                (lifecycle == GameLifecycle.finished && lastEntry.kind == UndoEntryKind.humanOnly)
+        } else {
+            lastEntry.kind != UndoEntryKind.botOnly
+        }
+    }
 }

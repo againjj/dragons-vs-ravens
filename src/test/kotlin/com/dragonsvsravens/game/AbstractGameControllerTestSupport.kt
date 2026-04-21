@@ -69,7 +69,7 @@ abstract class AbstractGameControllerTestSupport {
         val storedGame = GameSessionFactory.createStoredGame(
             gameId = gameId,
             snapshot = snapshot,
-            undoSnapshots = emptyList(),
+            undoEntries = emptyList(),
             version = version,
             createdAt = createdAt,
             updatedAt = updatedAt,

@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 data class StoredGame(
     val session: GameSession,
-    val undoSnapshots: List<GameSnapshot>,
+    val undoEntries: List<UndoEntry>,
     val lastAccessedAt: Instant
 )
 

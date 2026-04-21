@@ -31,6 +31,12 @@ enum class GameLifecycle {
     finished
 }
 
+enum class UndoEntryKind {
+    humanOnly,
+    botOnly,
+    humanPlusBot
+}
+
 data class RuleConfigurationSummary(
     val id: String,
     val name: String,
@@ -50,6 +56,12 @@ data class TurnRecord(
     val to: String? = null,
     val capturedSquares: List<String> = emptyList(),
     val outcome: String? = null
+)
+
+data class UndoEntry(
+    val snapshot: GameSnapshot,
+    val ownerSide: Side? = null,
+    val kind: UndoEntryKind = UndoEntryKind.humanOnly
 )
 
 data class GameSnapshot(

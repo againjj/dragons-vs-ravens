@@ -26,21 +26,28 @@ class JdbcGameStoreTest {
     @Autowired
     lateinit var jdbcTemplate: JdbcTemplate
 
+    @Autowired
+    lateinit var gameJsonCodec: GameJsonCodec
+
     @BeforeEach
     fun resetGames() {
         jdbcTemplate.update("delete from games")
     }
 
     @Test
-    fun `store round trips a game and its undo snapshots`() {
+    fun `store round trips a game and its undo entries`() {
         val originalSnapshot = GameRules.startGame(
             initialBoard = mapOf("a1" to Piece.dragon)
         )
-        val undoSnapshot = originalSnapshot.copy(board = mapOf("a1" to Piece.dragon))
+        val undoEntry = UndoEntry(
+            snapshot = originalSnapshot.copy(board = mapOf("a1" to Piece.dragon)),
+            ownerSide = Side.dragons,
+            kind = UndoEntryKind.humanPlusBot
+        )
         val storedGame = storedGame(
             gameId = "persisted-game",
             snapshot = originalSnapshot.copy(board = mapOf("b2" to Piece.raven), phase = Phase.move),
-            undoSnapshots = listOf(undoSnapshot),
+            undoEntries = listOf(undoEntry),
             version = 4,
             updatedAt = Instant.parse("2026-04-08T10:05:00Z"),
             lastAccessedAt = Instant.parse("2026-04-08T10:06:00Z"),
@@ -63,7 +70,7 @@ class JdbcGameStoreTest {
         val updated = storedGame(
             gameId = "locked-game",
             snapshot = initial.session.snapshot.copy(board = mapOf("a1" to Piece.dragon)),
-            undoSnapshots = emptyList(),
+            undoEntries = emptyList(),
             version = 1,
             updatedAt = createdAt.plusSeconds(10),
             lastAccessedAt = createdAt.plusSeconds(10),
@@ -76,7 +83,7 @@ class JdbcGameStoreTest {
         val staleWrite = storedGame(
             gameId = "locked-game",
             snapshot = updated.session.snapshot.copy(board = mapOf("b2" to Piece.raven)),
-            undoSnapshots = emptyList(),
+            undoEntries = emptyList(),
             version = 1,
             updatedAt = createdAt.plusSeconds(20),
             lastAccessedAt = createdAt.plusSeconds(20),
@@ -108,7 +115,7 @@ class JdbcGameStoreTest {
         val storedGame = GameSessionFactory.createStoredGame(
             gameId = "owned-game",
             snapshot = GameRules.startGame(initialBoard = mapOf("a1" to Piece.dragon)),
-            undoSnapshots = emptyList(),
+            undoEntries = emptyList(),
             version = 0,
             createdAt = createdAt,
             updatedAt = createdAt,
@@ -165,6 +172,59 @@ class JdbcGameStoreTest {
         assertEquals(Piece.dragon, reloaded.snapshot.board["a2"])
     }
 
+    @Test
+    fun `legacy snapshot only undo history still reloads as undo entries`() {
+        val snapshot = GameRules.startGame(initialBoard = mapOf("a1" to Piece.dragon))
+        val legacyUndoSnapshot = snapshot.copy(board = mapOf("a1" to Piece.dragon))
+
+        jdbcTemplate.update(
+            """
+            insert into games (
+                id,
+                version,
+                created_at,
+                updated_at,
+                last_accessed_at,
+                lifecycle,
+                selected_rule_configuration_id,
+                selected_starting_side,
+                selected_board_size,
+                dragons_player_user_id,
+                ravens_player_user_id,
+                dragons_bot_id,
+                ravens_bot_id,
+                created_by_user_id,
+                snapshot_json,
+                undo_snapshots_json
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent(),
+            "legacy-undo-game",
+            2L,
+            java.sql.Timestamp.from(createdAt),
+            java.sql.Timestamp.from(createdAt.plusSeconds(30)),
+            java.sql.Timestamp.from(createdAt.plusSeconds(30)),
+            GameLifecycle.active.name,
+            GameRules.freePlayRuleConfigurationId,
+            Side.dragons.name,
+            GameRules.defaultBoardSize,
+            null,
+            null,
+            null,
+            null,
+            null,
+            gameJsonCodec.writeSnapshot(snapshot),
+            """[${gameJsonCodec.writeSnapshot(legacyUndoSnapshot)}]"""
+        )
+
+        val reloaded = gameStore.get("legacy-undo-game")
+
+        assertNotNull(reloaded)
+        assertEquals(1, reloaded!!.undoEntries.size)
+        assertEquals(UndoEntryKind.humanOnly, reloaded.undoEntries.single().kind)
+        assertEquals(Side.dragons, reloaded.session.undoOwnerSide)
+        assertTrue(reloaded.session.canUndo)
+    }
+
     private fun freshStoredGame(gameId: String): StoredGame =
         GameSessionFactory.createFreshStoredGame(
             gameId = gameId,
@@ -178,7 +238,7 @@ class JdbcGameStoreTest {
     private fun storedGame(
         gameId: String,
         snapshot: GameSnapshot,
-        undoSnapshots: List<GameSnapshot>,
+        undoEntries: List<UndoEntry>,
         version: Long,
         updatedAt: Instant,
         lastAccessedAt: Instant = updatedAt,
@@ -187,7 +247,7 @@ class JdbcGameStoreTest {
     ): StoredGame = GameSessionFactory.createStoredGame(
         gameId = gameId,
         snapshot = snapshot,
-        undoSnapshots = undoSnapshots,
+        undoEntries = undoEntries,
         version = version,
         createdAt = createdAt,
         updatedAt = updatedAt,

@@ -215,7 +215,7 @@ class GameSessionServiceTest {
         val service = createService()
         val game = service.createGame(CreateGameRequest(ruleConfigurationId = "sherwood-rules"))
 
-        service.claimSide(game.id, Side.dragons, "player-one")
+        service.claimSide(game.id, Side.ravens, "player-one")
         val withBot = service.assignBotOpponent(game.id, BotRegistry.randomBotId, "player-one")
 
         val exception = assertThrows<com.dragonsvsravens.auth.ForbiddenActionException> {
@@ -226,25 +226,155 @@ class GameSessionServiceTest {
     }
 
     @Test
-    fun `undo is rejected after a bot opponent is assigned`() {
+    fun `bot games advertise no undo until a full human plus bot exchange exists`() {
         val service = createService()
-        val game = GameSessionFactory.createFreshStoredGame(
-            gameId = "bot-game",
-            snapshot = GameRules.startGame("sherwood-rules"),
-            selectedRuleConfigurationId = "sherwood-rules",
-            selectedStartingSide = Side.ravens,
-            selectedBoardSize = GameRules.defaultBoardSize,
-            ravensBotId = BotRegistry.randomBotId,
-            now = fixedClock().instant()
+        val game = service.createGame(
+            CreateGameRequest(
+                ruleConfigurationId = "sherwood-rules",
+                startingSide = Side.dragons
+            )
         )
-        val store = InMemoryGameStore().also { it.putIfAbsent(game) }
-        val serviceWithBotGame = createService(store)
 
-        val exception = assertThrows<InvalidCommandException> {
-            serviceWithBotGame.applyCommand(game.session.id, GameCommandRequest(expectedVersion = game.session.version, type = "undo"), "player-one")
-        }
+        service.claimSide(game.id, Side.ravens, "player-one")
+        val withBot = service.assignBotOpponent(game.id, BotRegistry.randomBotId, "player-one")
 
-        assertEquals("Undo is unavailable in games with a bot opponent.", exception.message)
+        assertFalse(withBot.canUndo)
+        assertNull(withBot.undoOwnerSide)
+    }
+
+    @Test
+    fun `grouped undo restores the pre human turn snapshot in bot games without replaying the bot turn`() {
+        val service = createService()
+        val game = service.createGame(
+            CreateGameRequest(
+                ruleConfigurationId = "sherwood-rules",
+                startingSide = Side.dragons
+            )
+        )
+
+        service.claimSide(game.id, Side.ravens, "player-one")
+        val withBot = service.assignBotOpponent(game.id, BotRegistry.randomBotId, "player-one")
+        val humanMove = GameRules.getLegalMoves(withBot.snapshot).first()
+        val afterHumanMove = service.applyCommand(
+            withBot.id,
+            GameCommandRequest(
+                expectedVersion = withBot.version,
+                type = "move-piece",
+                origin = humanMove.origin,
+                destination = humanMove.destination
+            ),
+            "player-one"
+        )
+
+        assertTrue(afterHumanMove.canUndo)
+        assertEquals(Side.ravens, afterHumanMove.undoOwnerSide)
+
+        val undone = service.applyCommand(
+            afterHumanMove.id,
+            GameCommandRequest(expectedVersion = afterHumanMove.version, type = "undo"),
+            "player-one"
+        )
+
+        assertFalse(undone.canUndo)
+        assertEquals(0, undone.snapshot.turns.size)
+        assertEquals(withBot.snapshot.board, undone.snapshot.board)
+    }
+
+    @Test
+    fun `bot games allow undo after a human move ends the game before any bot reply`() {
+        val service = createService()
+        val finishedSnapshot = GameRules.endGame(
+            GameRules.startGame(
+                initialBoard = mapOf(
+                    "a1" to Piece.dragon,
+                    "b1" to Piece.raven
+                )
+            ),
+            "Dragons win"
+        )
+        val storedGame = GameSessionFactory.createStoredGame(
+            gameId = "finished-human-last-bot-game",
+            snapshot = finishedSnapshot,
+            undoEntries = listOf(
+                UndoEntry(
+                    snapshot = GameRules.startGame(
+                        initialBoard = mapOf(
+                            "a1" to Piece.dragon,
+                            "b1" to Piece.raven
+                        )
+                    ),
+                    ownerSide = Side.dragons,
+                    kind = UndoEntryKind.humanOnly
+                )
+            ),
+            version = 1,
+            createdAt = fixedClock().instant(),
+            updatedAt = fixedClock().instant(),
+            lastAccessedAt = fixedClock().instant(),
+            lifecycle = GameLifecycle.finished,
+            selectedRuleConfigurationId = GameRules.freePlayRuleConfigurationId,
+            selectedStartingSide = Side.dragons,
+            selectedBoardSize = GameRules.defaultBoardSize,
+            dragonsPlayerUserId = "player-one",
+            ravensBotId = BotRegistry.randomBotId
+        )
+        val store = InMemoryGameStore().also { it.putIfAbsent(storedGame) }
+        val serviceWithStoredGame = createService(store)
+
+        val loaded = serviceWithStoredGame.getGame(storedGame.session.id)
+
+        assertTrue(loaded.canUndo)
+        assertEquals(Side.dragons, loaded.undoOwnerSide)
+    }
+
+    @Test
+    fun `bot games allow undo after the bot makes the last move and wins the game`() {
+        val service = createService()
+        val preExchangeSnapshot = GameRules.startGame(
+            initialBoard = mapOf(
+                "a1" to Piece.dragon,
+                "b1" to Piece.raven
+            )
+        )
+        val finishedSnapshot = GameRules.endGame(
+            preExchangeSnapshot.copy(
+                board = mapOf("b2" to Piece.raven),
+                activeSide = Side.dragons,
+                turns = listOf(
+                    TurnRecord(type = TurnType.move, from = "a1", to = "a2"),
+                    TurnRecord(type = TurnType.move, from = "b1", to = "b2")
+                )
+            ),
+            "Ravens win"
+        )
+        val storedGame = GameSessionFactory.createStoredGame(
+            gameId = "finished-bot-last-game",
+            snapshot = finishedSnapshot,
+            undoEntries = listOf(
+                UndoEntry(
+                    snapshot = preExchangeSnapshot,
+                    ownerSide = Side.dragons,
+                    kind = UndoEntryKind.humanPlusBot
+                )
+            ),
+            version = 2,
+            createdAt = fixedClock().instant(),
+            updatedAt = fixedClock().instant(),
+            lastAccessedAt = fixedClock().instant(),
+            lifecycle = GameLifecycle.finished,
+            selectedRuleConfigurationId = GameRules.freePlayRuleConfigurationId,
+            selectedStartingSide = Side.dragons,
+            selectedBoardSize = GameRules.defaultBoardSize,
+            dragonsPlayerUserId = "player-one",
+            ravensBotId = BotRegistry.randomBotId
+        )
+        val store = InMemoryGameStore().also { it.putIfAbsent(storedGame) }
+        val serviceWithStoredGame = createService(store)
+
+        val loaded = serviceWithStoredGame.getGame(storedGame.session.id)
+
+        assertTrue(loaded.canUndo)
+        assertEquals(Side.dragons, loaded.undoOwnerSide)
     }
 
     @Test

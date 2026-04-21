@@ -171,4 +171,5 @@ class GameAuthorizationControllerTest : AbstractGameControllerTestSupport() {
             jsonPath("$.snapshot.board.a1", equalTo("dragon"))
         }
     }
+
 }

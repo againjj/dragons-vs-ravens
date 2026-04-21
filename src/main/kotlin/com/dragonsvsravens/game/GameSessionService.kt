@@ -171,9 +171,47 @@ class GameSessionService(
                 ),
                 actingUserId = null
             )
-            current = persistAndBroadcast(gameId, nextState)
+            current = persistAndBroadcast(gameId, groupBotUndoExchange(current, nextState))
         }
     }
+
+    private fun groupBotUndoExchange(previous: StoredGame, updated: StoredGame): StoredGame {
+        val previousUndoEntry = previous.undoEntries.lastOrNull() ?: return updated
+        val latestUndoEntry = updated.undoEntries.lastOrNull() ?: return updated
+        if (previousUndoEntry.kind != UndoEntryKind.humanOnly || latestUndoEntry.kind != UndoEntryKind.botOnly) {
+            return updated
+        }
+
+        val groupedEntry = previousUndoEntry.copy(kind = UndoEntryKind.humanPlusBot)
+        return rebuildStoredGame(
+            session = updated.session,
+            undoEntries = updated.undoEntries.dropLast(2) + groupedEntry,
+            lastAccessedAt = updated.lastAccessedAt
+        )
+    }
+
+    private fun rebuildStoredGame(
+        session: GameSession,
+        undoEntries: List<UndoEntry>,
+        lastAccessedAt: Instant
+    ): StoredGame = GameSessionFactory.createStoredGame(
+        gameId = session.id,
+        snapshot = session.snapshot,
+        undoEntries = undoEntries,
+        version = session.version,
+        createdAt = session.createdAt,
+        updatedAt = session.updatedAt,
+        lastAccessedAt = lastAccessedAt,
+        lifecycle = session.lifecycle,
+        selectedRuleConfigurationId = session.selectedRuleConfigurationId,
+        selectedStartingSide = session.selectedStartingSide,
+        selectedBoardSize = session.selectedBoardSize,
+        dragonsPlayerUserId = session.dragonsPlayerUserId,
+        ravensPlayerUserId = session.ravensPlayerUserId,
+        dragonsBotId = session.dragonsBotId,
+        ravensBotId = session.ravensBotId,
+        createdByUserId = session.createdByUserId
+    )
 
     private fun currentBotDefinition(session: GameSession): BotDefinition? {
         if (session.lifecycle != GameLifecycle.active || session.snapshot.phase != Phase.move) {

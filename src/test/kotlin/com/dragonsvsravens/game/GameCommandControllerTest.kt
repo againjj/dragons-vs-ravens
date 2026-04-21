@@ -124,7 +124,7 @@ class GameCommandControllerTest : AbstractGameControllerTestSupport() {
         val storedGame = GameSessionFactory.createStoredGame(
             gameId = "IDLE${System.nanoTime()}",
             snapshot = GameRules.createIdleSnapshot(GameRules.freePlayRuleConfigurationId, Side.dragons),
-            undoSnapshots = emptyList(),
+            undoEntries = emptyList(),
             version = 0,
             createdAt = java.time.Instant.now(),
             updatedAt = java.time.Instant.now(),
