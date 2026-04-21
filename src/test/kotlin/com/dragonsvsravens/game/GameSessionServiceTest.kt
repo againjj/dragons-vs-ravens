@@ -147,32 +147,68 @@ class GameSessionServiceTest {
     }
 
     @Test
-    fun `assigning a random bot to sherwood immediately plays the bot turn when that side is active`() {
+    fun `with one seat claimed assigning a bot to the claimed seat is rejected but assigning to the open seat succeeds`() {
         val service = createService()
         val game = service.createGame(CreateGameRequest(ruleConfigurationId = "sherwood-rules"))
 
         val claimed = service.claimSide(game.id, Side.dragons, "player-one")
+        val wrongUserException = assertThrows<com.dragonsvsravens.auth.ForbiddenActionException> {
+            service.assignBotOpponent(claimed.id, BotRegistry.randomBotId, "player-two")
+        }
         val updated = service.assignBotOpponent(claimed.id, BotRegistry.randomBotId, "player-one")
 
+        assertEquals("You must claim exactly one human seat before assigning a bot opponent.", wrongUserException.message)
         assertEquals(BotRegistry.randomBotId, updated.ravensBotId)
-        assertEquals(3, updated.version)
-        assertEquals(Side.dragons, updated.snapshot.activeSide)
-        assertEquals(listOf(TurnRecord(type = TurnType.move, from = "a4", to = "a2")), updated.snapshot.turns)
-        assertEquals(Piece.raven, updated.snapshot.board["a2"])
-        assertNull(updated.snapshot.board["a4"])
-        assertFalse(updated.canUndo)
+        assertNull(updated.dragonsBotId)
+    }
+
+    @Test
+    fun `with both seats claimed any bot assignment is rejected`() {
+        val service = createService()
+        val game = service.createGame(CreateGameRequest(ruleConfigurationId = "sherwood-rules"))
+
+        service.claimSide(game.id, Side.dragons, "player-one")
+        val fullyClaimed = service.claimSide(game.id, Side.ravens, "player-one")
+
+        val exception = assertThrows<com.dragonsvsravens.auth.ForbiddenActionException> {
+            service.assignBotOpponent(fullyClaimed.id, BotRegistry.randomBotId, "player-one")
+        }
+
+        assertEquals("A bot opponent can be assigned only to an open seat.", exception.message)
+    }
+
+    @Test
+    fun `with one seat claimed and the other assigned to a bot a human cannot claim the bot seat`() {
+        val service = createService()
+        val game = service.createGame(CreateGameRequest(ruleConfigurationId = "sherwood-rules"))
+
+        service.claimSide(game.id, Side.dragons, "player-one")
+        val withBot = service.assignBotOpponent(game.id, BotRegistry.randomBotId, "player-one")
+
+        val exception = assertThrows<com.dragonsvsravens.auth.ForbiddenActionException> {
+            service.claimSide(withBot.id, Side.ravens, "player-two")
+        }
+
+        assertEquals("Ravens is already claimed.", exception.message)
     }
 
     @Test
     fun `undo is rejected after a bot opponent is assigned`() {
         val service = createService()
-        val game = service.createGame(CreateGameRequest(ruleConfigurationId = "sherwood-rules"))
-
-        service.claimSide(game.id, Side.dragons, "player-one")
-        val botGame = service.assignBotOpponent(game.id, BotRegistry.randomBotId, "player-one")
+        val game = GameSessionFactory.createFreshStoredGame(
+            gameId = "bot-game",
+            snapshot = GameRules.startGame("sherwood-rules"),
+            selectedRuleConfigurationId = "sherwood-rules",
+            selectedStartingSide = Side.ravens,
+            selectedBoardSize = GameRules.defaultBoardSize,
+            ravensBotId = BotRegistry.randomBotId,
+            now = fixedClock().instant()
+        )
+        val store = InMemoryGameStore().also { it.putIfAbsent(game) }
+        val serviceWithBotGame = createService(store)
 
         val exception = assertThrows<InvalidCommandException> {
-            service.applyCommand(botGame.id, GameCommandRequest(expectedVersion = botGame.version, type = "undo"), "player-one")
+            serviceWithBotGame.applyCommand(game.session.id, GameCommandRequest(expectedVersion = game.session.version, type = "undo"), "player-one")
         }
 
         assertEquals("Undo is unavailable in games with a bot opponent.", exception.message)

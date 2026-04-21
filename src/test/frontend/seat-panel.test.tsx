@@ -93,15 +93,13 @@ describe("SeatPanel", () => {
         );
 
         expect(screen.getByText((_, element) => element?.textContent === "Ravens: Bot: Random")).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Claim Ravens" })).toBeNull();
         expect(screen.queryByRole("button", { name: "Assign Bot To Ravens" })).toBeNull();
     });
 
-    test("shows the sherwood bot assignment button when the opposite seat is open", async () => {
-        const user = userEvent.setup();
-        const onAssignBotOpponent = vi.fn();
-
+    test("shows the sherwood bot assignment button when the opposite seat is open", () => {
         renderWithStore(
-            <SeatPanel onAssignBotOpponent={onAssignBotOpponent} onClaimDragons={vi.fn()} onClaimRavens={vi.fn()} />,
+            <SeatPanel onAssignBotOpponent={vi.fn()} onClaimDragons={vi.fn()} onClaimRavens={vi.fn()} />,
             {
                 preloadedState: {
                     auth: {
@@ -126,8 +124,61 @@ describe("SeatPanel", () => {
             }
         );
 
-        await user.click(screen.getByRole("button", { name: "Assign Bot To Ravens" }));
+        expect(screen.getByRole("button", { name: "Assign Bot To Ravens" })).toBeInTheDocument();
+    });
 
-        expect(onAssignBotOpponent).toHaveBeenCalledTimes(1);
+    test("renders claim actions before the bot assignment action", () => {
+        renderWithStore(
+            <SeatPanel onAssignBotOpponent={vi.fn()} onClaimDragons={vi.fn()} onClaimRavens={vi.fn()} />,
+            {
+                preloadedState: {
+                    auth: {
+                        session: createAuthSession()
+                    },
+                    game: {
+                        session: createSession({
+                            selectedRuleConfigurationId: "sherwood-rules",
+                            ravensPlayerUserId: null
+                        }, {
+                            turns: []
+                        }),
+                        viewerRole: "dragons",
+                        dragonsPlayer: { id: "player-dragons", displayName: "Dragon Player" },
+                        ravensPlayer: null,
+                        availableBots: [{ id: "random", displayName: "Random" }]
+                    }
+                }
+            }
+        );
+
+        const actionButtons = screen.getAllByRole("button").map((button) => button.textContent);
+        expect(actionButtons).toEqual(["Claim Ravens", "Assign Bot To Ravens"]);
+    });
+
+    test("hides bot assignment when both seats are already claimed", () => {
+        renderWithStore(
+            <SeatPanel onAssignBotOpponent={vi.fn()} onClaimDragons={vi.fn()} onClaimRavens={vi.fn()} />,
+            {
+                preloadedState: {
+                    auth: {
+                        session: createAuthSession()
+                    },
+                    game: {
+                        session: createSession({
+                            selectedRuleConfigurationId: "sherwood-rules",
+                            ravensPlayerUserId: "player-dragons"
+                        }, {
+                            turns: []
+                        }),
+                        viewerRole: "dragons",
+                        dragonsPlayer: { id: "player-dragons", displayName: "Dragon Player" },
+                        ravensPlayer: { id: "player-dragons", displayName: "Dragon Player" },
+                        availableBots: [{ id: "random", displayName: "Random" }]
+                    }
+                }
+            }
+        );
+
+        expect(screen.queryByRole("button", { name: "Assign Bot To Ravens" })).toBeNull();
     });
 });

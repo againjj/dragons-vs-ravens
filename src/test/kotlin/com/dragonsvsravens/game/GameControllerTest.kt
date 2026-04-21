@@ -95,7 +95,7 @@ class GameControllerTest : AbstractGameControllerTestSupport() {
     @Test
     fun `bot assignment is rejected outside sherwood rules`() {
         val game = createGame(CreateGameRequest(ruleConfigurationId = "original-game"))
-        assignSides(game.id, defaultTestUserId, null)
+        assignSides(game.id, null, null)
 
         assignBotOpponent(game.id, BotRegistry.randomBotId).andExpect {
             status { isBadRequest() }

@@ -15,10 +15,14 @@ class GameCommandService(
             Side.dragons -> session.dragonsPlayerUserId
             Side.ravens -> session.ravensPlayerUserId
         }
+        val currentBotId = when (side) {
+            Side.dragons -> session.dragonsBotId
+            Side.ravens -> session.ravensBotId
+        }
         if (currentHolder == userId) {
             return current
         }
-        if (currentHolder != null) {
+        if (currentHolder != null || currentBotId != null) {
             throw ForbiddenActionException("${side.name.replaceFirstChar(Char::titlecase)} is already claimed.")
         }
         return current.next(
@@ -31,11 +35,6 @@ class GameCommandService(
 
     fun assignBotOpponent(current: StoredGame, userId: String, botDefinition: BotDefinition): StoredGame {
         val session = current.session
-        val viewerOwnsDragons = session.dragonsPlayerUserId == userId
-        val viewerOwnsRavens = session.ravensPlayerUserId == userId
-        if (viewerOwnsDragons == viewerOwnsRavens) {
-            throw ForbiddenActionException("You must claim exactly one human seat before assigning a bot opponent.")
-        }
         if (session.dragonsBotId != null || session.ravensBotId != null) {
             throw ForbiddenActionException("A bot opponent is already assigned.")
         }
@@ -49,13 +48,20 @@ class GameCommandService(
             throw InvalidCommandException("Bot assignment is available only before the first move.")
         }
 
-        val targetSide = if (viewerOwnsDragons) Side.ravens else Side.dragons
-        val targetHumanPlayer = when (targetSide) {
-            Side.dragons -> session.dragonsPlayerUserId
-            Side.ravens -> session.ravensPlayerUserId
+        val dragonsPlayerUserId = session.dragonsPlayerUserId
+        val ravensPlayerUserId = session.ravensPlayerUserId
+        val claimedSeatCount = listOf(dragonsPlayerUserId, ravensPlayerUserId).count { it != null }
+        if (claimedSeatCount == 0) {
+            throw ForbiddenActionException("You must claim exactly one human seat before assigning a bot opponent.")
         }
-        if (targetHumanPlayer != null) {
-            throw ForbiddenActionException("${targetSide.name.replaceFirstChar(Char::titlecase)} is already claimed.")
+        if (claimedSeatCount == 2) {
+            throw ForbiddenActionException("A bot opponent can be assigned only to an open seat.")
+        }
+
+        val targetSide = if (dragonsPlayerUserId == null) Side.dragons else Side.ravens
+        val claimingUserId = dragonsPlayerUserId ?: ravensPlayerUserId
+        if (claimingUserId != userId) {
+            throw ForbiddenActionException("You must claim exactly one human seat before assigning a bot opponent.")
         }
 
         return current.next(

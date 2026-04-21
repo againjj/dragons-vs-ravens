@@ -112,7 +112,7 @@ describe("game selectors", () => {
         expect(selectCanClaimRavens(store.getState())).toBe(false);
     });
 
-    test("sherwood bot assignment is available only for the opposite open seat of a single claimed human player", () => {
+    test("bot assignment is available when exactly one seat is claimed by the current user", () => {
         const store = createAppStore({
             auth: {
                 session: createAuthSession()
@@ -120,7 +120,8 @@ describe("game selectors", () => {
             game: {
                 session: createSession(
                     {
-                        selectedRuleConfigurationId: "sherwood-rules"
+                        selectedRuleConfigurationId: "sherwood-rules",
+                        ravensPlayerUserId: null
                     },
                     {
                         turns: []
@@ -181,6 +182,85 @@ describe("game selectors", () => {
 
         expect(selectIsSherwoodBotAssignmentSupported(store.getState())).toBe(false);
         expect(selectCanAssignBotOpponent(store.getState())).toBe(false);
+    });
+
+    test("bot assignment is hidden once both seats have been claimed", () => {
+        const store = createAppStore({
+            auth: {
+                session: createAuthSession()
+            },
+            game: {
+                session: createSession(
+                    {
+                        selectedRuleConfigurationId: "sherwood-rules",
+                        ravensPlayerUserId: "player-dragons"
+                    },
+                    {
+                        turns: []
+                    }
+                ),
+                viewerRole: "dragons",
+                dragonsPlayer: {
+                    id: "player-dragons",
+                    displayName: "Dragon Player"
+                },
+                ravensPlayer: {
+                    id: "player-dragons",
+                    displayName: "Raven Player"
+                },
+                availableBots: [{ id: "random", displayName: "Random" }],
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: null
+            }
+        });
+
+        expect(selectBotAssignmentTargetSide(store.getState())).toBeNull();
+        expect(selectCanAssignBotOpponent(store.getState())).toBe(false);
+    });
+
+    test("claiming a bot-controlled seat is hidden", () => {
+        const store = createAppStore({
+            auth: {
+                session: createAuthSession()
+            },
+            game: {
+                session: createSession(
+                    {
+                        selectedRuleConfigurationId: "sherwood-rules",
+                        ravensPlayerUserId: null,
+                        ravensBotId: "random"
+                    },
+                    {
+                        turns: []
+                    }
+                ),
+                viewerRole: "dragons",
+                dragonsPlayer: {
+                    id: "player-dragons",
+                    displayName: "Dragon Player"
+                },
+                ravensPlayer: null,
+                ravensBot: {
+                    id: "random",
+                    displayName: "Random"
+                },
+                availableBots: [{ id: "random", displayName: "Random" }],
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: null
+            }
+        });
+
+        expect(selectCanClaimRavens(store.getState())).toBe(false);
     });
 
     test("status text uses the no game copy when the session is idle", () => {

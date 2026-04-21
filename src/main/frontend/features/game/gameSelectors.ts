@@ -21,6 +21,10 @@ export const selectRavensPlayer = (state: RootState) => state.game.ravensPlayer;
 export const selectDragonsBot = (state: RootState) => state.game.dragonsBot;
 export const selectRavensBot = (state: RootState) => state.game.ravensBot;
 export const selectAvailableBots = (state: RootState) => state.game.availableBots ?? emptyBots;
+const selectDragonsPlayerUserId = (state: RootState) => state.game.session?.dragonsPlayerUserId ?? null;
+const selectRavensPlayerUserId = (state: RootState) => state.game.session?.ravensPlayerUserId ?? null;
+const selectDragonsBotId = (state: RootState) => state.game.session?.dragonsBotId ?? null;
+const selectRavensBotId = (state: RootState) => state.game.session?.ravensBotId ?? null;
 export const selectCanUndo = (state: RootState) => state.game.session?.canUndo ?? false;
 export const selectUndoOwnerSide = (state: RootState) => state.game.session?.undoOwnerSide ?? null;
 export const selectSelectedSquare = (state: RootState) => state.ui.selectedSquare;
@@ -96,20 +100,24 @@ export const selectCanClaimDragons = createSelector(
     selectIsAuthenticated,
     selectCurrentUser,
     selectDragonsPlayer,
-    (isAuthenticated, currentUser, dragonsPlayer) =>
+    selectDragonsBotId,
+    (isAuthenticated, currentUser, dragonsPlayer, dragonsBotId) =>
         isAuthenticated &&
         !!currentUser &&
-        dragonsPlayer == null
+        dragonsPlayer == null &&
+        dragonsBotId == null
 );
 
 export const selectCanClaimRavens = createSelector(
     selectIsAuthenticated,
     selectCurrentUser,
     selectRavensPlayer,
-    (isAuthenticated, currentUser, ravensPlayer) =>
+    selectRavensBotId,
+    (isAuthenticated, currentUser, ravensPlayer, ravensBotId) =>
         isAuthenticated &&
         !!currentUser &&
-        ravensPlayer == null
+        ravensPlayer == null &&
+        ravensBotId == null
 );
 
 export const selectIsSherwoodBotAssignmentSupported = createSelector(
@@ -121,16 +129,16 @@ export const selectIsSherwoodBotAssignmentSupported = createSelector(
 
 export const selectBotAssignmentTargetSide = createSelector(
     selectCurrentUser,
-    selectDragonsPlayer,
-    selectRavensPlayer,
-    (currentUser, dragonsPlayer, ravensPlayer): Side | null => {
+    selectDragonsPlayerUserId,
+    selectRavensPlayerUserId,
+    (currentUser, dragonsPlayerUserId, ravensPlayerUserId): Side | null => {
         if (!currentUser) {
             return null;
         }
-        if (dragonsPlayer?.id === currentUser.id && ravensPlayer == null) {
+        if (dragonsPlayerUserId === currentUser.id && ravensPlayerUserId == null) {
             return "ravens";
         }
-        if (ravensPlayer?.id === currentUser.id && dragonsPlayer == null) {
+        if (ravensPlayerUserId === currentUser.id && dragonsPlayerUserId == null) {
             return "dragons";
         }
         return null;

@@ -40,11 +40,6 @@ export const SeatPanel = ({ onAssignBotOpponent, onClaimDragons, onClaimRavens }
                 </span>
                 {canAssignBotOpponent || canClaimDragons || canClaimRavens ? (
                     <span className="controls seat-summary-actions">
-                        {canAssignBotOpponent && botAssignmentTargetSide && assignableBot ? (
-                            <button type="button" onClick={onAssignBotOpponent}>
-                                {`Assign Bot To ${botAssignmentTargetSide === "dragons" ? "Dragons" : "Ravens"}`}
-                            </button>
-                        ) : null}
                         {canClaimDragons ? (
                             <button type="button" onClick={onClaimDragons}>
                                 Claim Dragons
@@ -53,6 +48,11 @@ export const SeatPanel = ({ onAssignBotOpponent, onClaimDragons, onClaimRavens }
                         {canClaimRavens ? (
                             <button type="button" onClick={onClaimRavens}>
                                 Claim Ravens
+                            </button>
+                        ) : null}
+                        {canAssignBotOpponent && botAssignmentTargetSide && assignableBot ? (
+                            <button type="button" onClick={onAssignBotOpponent}>
+                                {`Assign Bot To ${botAssignmentTargetSide === "dragons" ? "Dragons" : "Ravens"}`}
                             </button>
                         ) : null}
                     </span>

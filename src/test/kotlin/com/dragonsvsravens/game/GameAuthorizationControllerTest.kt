@@ -85,9 +85,14 @@ class GameAuthorizationControllerTest : AbstractGameControllerTestSupport() {
     }
 
     @Test
-    fun `authenticated player can assign a random bot to the opposite sherwood seat`() {
+    fun `with one seat claimed backend rejects assigning a bot to the claimed seat but allows the open seat`() {
         val game = createGame(CreateGameRequest(ruleConfigurationId = "sherwood-rules"))
         assignSides(game.id, defaultTestUserId, null)
+
+        assignBotOpponent(game.id, BotRegistry.randomBotId, alternateTestUserId).andExpect {
+            status { isForbidden() }
+            jsonPath("$.message", equalTo("You must claim exactly one human seat before assigning a bot opponent."))
+        }
 
         assignBotOpponent(game.id, BotRegistry.randomBotId, defaultTestUserId).andExpect {
             status { isOk() }
@@ -96,13 +101,13 @@ class GameAuthorizationControllerTest : AbstractGameControllerTestSupport() {
     }
 
     @Test
-    fun `bot assignment requires exactly one claimed human seat`() {
+    fun `with both seats claimed any bot assignment is rejected`() {
         val game = createGame(CreateGameRequest(ruleConfigurationId = "sherwood-rules"))
-        assignSides(game.id, null, null)
+        assignSides(game.id, defaultTestUserId, defaultTestUserId)
 
         assignBotOpponent(game.id, BotRegistry.randomBotId, defaultTestUserId).andExpect {
             status { isForbidden() }
-            jsonPath("$.message", equalTo("You must claim exactly one human seat before assigning a bot opponent."))
+            jsonPath("$.message", equalTo("A bot opponent can be assigned only to an open seat."))
         }
     }
 
