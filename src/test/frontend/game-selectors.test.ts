@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import { createAppStore } from "../../main/frontend/app/store.js";
 import { gameActions } from "../../main/frontend/features/game/gameSlice.js";
 import {
+    selectBotAssignmentModel,
     selectBotAssignmentTargetSide,
     selectCanClaimDragons,
     selectCanAssignBotOpponent,
@@ -222,6 +223,11 @@ describe("game selectors", () => {
         expect(selectIsBotAssignmentSupported(store.getState())).toBe(true);
         expect(selectBotAssignmentTargetSide(store.getState())).toBe("ravens");
         expect(selectCanAssignBotOpponent(store.getState())).toBe(true);
+        expect(selectBotAssignmentModel(store.getState())).toMatchObject({
+            targetSide: "ravens",
+            canAssign: true,
+            isSupported: true
+        });
     });
 
     test("bot assignment is available for supported non-free-play rulesets before the first move", () => {
@@ -408,6 +414,56 @@ describe("game selectors", () => {
         });
 
         expect(selectCanClaimRavens(store.getState())).toBe(false);
+    });
+
+    test("bot assignment model resolves pending optimistic bot labels", () => {
+        const store = createAppStore({
+            auth: {
+                session: createAuthSession()
+            },
+            game: {
+                session: createSession(
+                    {
+                        selectedRuleConfigurationId: "sherwood-rules",
+                        ravensPlayerUserId: null,
+                        ravensBotId: null
+                    },
+                    {
+                        turns: []
+                    }
+                ),
+                viewerRole: "dragons",
+                dragonsPlayer: {
+                    id: "player-dragons",
+                    displayName: "Dragon Player"
+                },
+                ravensPlayer: null,
+                availableBots: [
+                    { id: "random", displayName: "Randall" },
+                    { id: "simple", displayName: "Simon" }
+                ],
+                pendingBotAssignment: {
+                    side: "ravens",
+                    botId: "simple"
+                },
+                isSubmitting: false,
+                loadState: "ready",
+                connectionState: "open",
+                feedbackMessage: null
+            },
+            ui: {
+                selectedSquare: null
+            }
+        });
+
+        expect(selectBotAssignmentModel(store.getState())).toMatchObject({
+            targetSide: "ravens",
+            canAssign: true,
+            ravensBot: {
+                id: "simple",
+                displayName: "Simon"
+            }
+        });
     });
 
     test("status text uses the no game copy when the session is idle", () => {

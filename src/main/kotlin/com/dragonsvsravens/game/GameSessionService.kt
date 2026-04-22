@@ -16,7 +16,8 @@ class GameSessionService(
     @Value("\${dragons-vs-ravens.games.stale-threshold:1008h}")
     private val staleGameThreshold: Duration,
     private val gameCommandService: GameCommandService,
-    private val botRegistry: BotRegistry
+    private val botRegistry: BotRegistry,
+    private val botTurnRunner: BotTurnRunner
 ) {
     companion object {
         val defaultStaleGameThreshold: Duration = Duration.ofDays(42)
@@ -73,7 +74,7 @@ class GameSessionService(
         val botDefinition = botRegistry.requireSupportedDefinition(botId, current.session.selectedRuleConfigurationId)
         val assigned = gameCommandService.assignBotOpponent(current, userId, botDefinition)
         val persisted = persistAndBroadcast(gameId, assigned)
-        runBotTurns(gameId, persisted).session
+        botTurnRunner.runBotTurns(persisted) { game -> persistAndBroadcast(gameId, game) }.session
     }
 
     fun applyCommand(gameId: String, command: GameCommandRequest): GameSession =
@@ -83,7 +84,7 @@ class GameSessionService(
         val current = getStoredGame(gameId)
         val nextState = gameCommandService.applyCommand(current, command, actingUserId)
         val persisted = persistAndBroadcast(gameId, nextState)
-        runBotTurns(gameId, persisted).session
+        botTurnRunner.runBotTurns(persisted) { game -> persistAndBroadcast(gameId, game) }.session
     }
 
     fun clearUserReferences(userId: String) {
@@ -148,82 +149,6 @@ class GameSessionService(
         }
         broadcast(gameId, game.session)
         return game
-    }
-
-    private fun runBotTurns(gameId: String, initial: StoredGame): StoredGame {
-        var current = initial
-
-        while (true) {
-            val botDefinition = currentBotDefinition(current.session) ?: return current
-            val legalMoves = GameRules.getLegalMoves(current.session.snapshot)
-            if (legalMoves.isEmpty()) {
-                return current
-            }
-
-            val selectedMove = botDefinition.strategy.chooseMove(current.session.snapshot, legalMoves)
-            val nextState = gameCommandService.applyCommand(
-                current,
-                GameCommandRequest(
-                    expectedVersion = current.session.version,
-                    type = "move-piece",
-                    origin = selectedMove.origin,
-                    destination = selectedMove.destination
-                ),
-                actingUserId = null
-            )
-            current = persistAndBroadcast(gameId, groupBotUndoExchange(current, nextState))
-        }
-    }
-
-    private fun groupBotUndoExchange(previous: StoredGame, updated: StoredGame): StoredGame {
-        val previousUndoEntry = previous.undoEntries.lastOrNull() ?: return updated
-        val latestUndoEntry = updated.undoEntries.lastOrNull() ?: return updated
-        if (previousUndoEntry.kind != UndoEntryKind.humanOnly || latestUndoEntry.kind != UndoEntryKind.botOnly) {
-            return updated
-        }
-
-        val groupedEntry = previousUndoEntry.copy(kind = UndoEntryKind.humanPlusBot)
-        return rebuildStoredGame(
-            session = updated.session,
-            undoEntries = updated.undoEntries.dropLast(2) + groupedEntry,
-            lastAccessedAt = updated.lastAccessedAt
-        )
-    }
-
-    private fun rebuildStoredGame(
-        session: GameSession,
-        undoEntries: List<UndoEntry>,
-        lastAccessedAt: Instant
-    ): StoredGame = GameSessionFactory.createStoredGame(
-        gameId = session.id,
-        snapshot = session.snapshot,
-        undoEntries = undoEntries,
-        version = session.version,
-        createdAt = session.createdAt,
-        updatedAt = session.updatedAt,
-        lastAccessedAt = lastAccessedAt,
-        lifecycle = session.lifecycle,
-        selectedRuleConfigurationId = session.selectedRuleConfigurationId,
-        selectedStartingSide = session.selectedStartingSide,
-        selectedBoardSize = session.selectedBoardSize,
-        dragonsPlayerUserId = session.dragonsPlayerUserId,
-        ravensPlayerUserId = session.ravensPlayerUserId,
-        dragonsBotId = session.dragonsBotId,
-        ravensBotId = session.ravensBotId,
-        createdByUserId = session.createdByUserId
-    )
-
-    private fun currentBotDefinition(session: GameSession): BotDefinition? {
-        if (session.lifecycle != GameLifecycle.active || session.snapshot.phase != Phase.move) {
-            return null
-        }
-
-        val activeBotId = when (session.snapshot.activeSide) {
-            Side.dragons -> session.dragonsBotId
-            Side.ravens -> session.ravensBotId
-        } ?: return null
-
-        return botRegistry.requireSupportedDefinition(activeBotId, session.selectedRuleConfigurationId)
     }
 
     private fun sendSnapshot(emitter: SseEmitter, session: GameSession): Boolean {

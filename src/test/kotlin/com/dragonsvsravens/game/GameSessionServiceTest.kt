@@ -428,7 +428,11 @@ class GameSessionServiceTest {
         clock,
         staleGameThreshold,
         GameCommandService(clock),
-        BotRegistry(FixedRandomIndexSource())
+        BotRegistry(FixedRandomIndexSource()),
+        BotTurnRunner(
+            GameCommandService(clock),
+            BotRegistry(FixedRandomIndexSource())
+        )
     )
 
     private fun createIdleGameId(store: InMemoryGameStore): String {

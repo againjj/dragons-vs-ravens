@@ -148,7 +148,11 @@ class JdbcGameStoreTest {
             clock,
             GameSessionService.defaultStaleGameThreshold,
             GameCommandService(clock),
-            BotRegistry(FixedRandomIndexSource())
+            BotRegistry(FixedRandomIndexSource()),
+            BotTurnRunner(
+                GameCommandService(clock),
+                BotRegistry(FixedRandomIndexSource())
+            )
         )
 
         val created = firstService.createGame(CreateGameRequest(board = mapOf("a1" to Piece.dragon)))
@@ -162,7 +166,11 @@ class JdbcGameStoreTest {
             clock,
             GameSessionService.defaultStaleGameThreshold,
             GameCommandService(clock),
-            BotRegistry(FixedRandomIndexSource())
+            BotRegistry(FixedRandomIndexSource()),
+            BotTurnRunner(
+                GameCommandService(clock),
+                BotRegistry(FixedRandomIndexSource())
+            )
         )
         val reloaded = restartedService.getGame(created.id)
 

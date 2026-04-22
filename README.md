@@ -82,7 +82,7 @@ Flyway migrations run automatically on startup.
 
 ## Project Layout
 
-- `src/main/kotlin/com/dragonsvsravens/game`: backend game rules, session handling, and game APIs
+- `src/main/kotlin/com/dragonsvsravens/game`: backend game rules, bot strategies/orchestration, session handling, and game APIs
 - `src/main/kotlin/com/dragonsvsravens/auth`: authentication and account management
 - `src/main/frontend`: React frontend, Redux state, and browser-side helpers
 - `src/test`: backend and frontend tests

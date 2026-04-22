@@ -84,6 +84,23 @@ const resolveBotSummary = (
     return availableBots.find((bot) => bot.id === resolvedBotId) ?? { id: resolvedBotId, displayName: resolvedBotId };
 };
 
+const resolveBotAssignmentTargetSide = (
+    currentUserId: string | null,
+    dragonsPlayerUserId: string | null,
+    ravensPlayerUserId: string | null
+): Side | null => {
+    if (!currentUserId) {
+        return null;
+    }
+    if (dragonsPlayerUserId === currentUserId && ravensPlayerUserId == null) {
+        return "ravens";
+    }
+    if (ravensPlayerUserId === currentUserId && dragonsPlayerUserId == null) {
+        return "dragons";
+    }
+    return null;
+};
+
 export const selectResolvedDragonsBot = createSelector(
     selectDragonsBot,
     selectDragonsBotId,
@@ -169,18 +186,8 @@ export const selectBotAssignmentTargetSide = createSelector(
     selectCurrentUser,
     selectDragonsPlayerUserId,
     selectRavensPlayerUserId,
-    (currentUser, dragonsPlayerUserId, ravensPlayerUserId): Side | null => {
-        if (!currentUser) {
-            return null;
-        }
-        if (dragonsPlayerUserId === currentUser.id && ravensPlayerUserId == null) {
-            return "ravens";
-        }
-        if (ravensPlayerUserId === currentUser.id && dragonsPlayerUserId == null) {
-            return "dragons";
-        }
-        return null;
-    }
+    (currentUser, dragonsPlayerUserId, ravensPlayerUserId): Side | null =>
+        resolveBotAssignmentTargetSide(currentUser?.id ?? null, dragonsPlayerUserId, ravensPlayerUserId)
 );
 
 export const selectIsFinishedGame = createSelector(
@@ -217,6 +224,23 @@ export const selectCanAssignBotOpponent = createSelector(
         ravensBotId == null &&
         isBotAssignmentSupported &&
         botAssignmentTargetSide != null
+);
+
+export const selectBotAssignmentModel = createSelector(
+    selectAvailableBots,
+    selectBotAssignmentTargetSide,
+    selectCanAssignBotOpponent,
+    selectIsBotAssignmentSupported,
+    selectResolvedDragonsBot,
+    selectResolvedRavensBot,
+    (availableBots, targetSide, canAssign, isSupported, dragonsBot, ravensBot) => ({
+        availableBots,
+        targetSide,
+        canAssign,
+        isSupported,
+        dragonsBot,
+        ravensBot
+    })
 );
 
 const selectActiveBotName = createSelector(

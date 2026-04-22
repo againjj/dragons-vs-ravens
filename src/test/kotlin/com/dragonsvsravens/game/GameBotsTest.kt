@@ -3,6 +3,7 @@ package com.dragonsvsravens.game
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.util.concurrent.atomic.AtomicInteger
 
 class GameBotsTest {
 
@@ -125,6 +126,34 @@ class GameBotsTest {
         val secondChoice = strategy.chooseMove(snapshot, legalMoves)
 
         assertEquals(firstChoice, secondChoice)
+    }
+
+    @Test
+    fun `minimax bot returns a stable legal move on a larger supported board`() {
+        val strategy = MinimaxGameBotStrategy()
+        val snapshot = GameRules.startGame("square-one-x-9")
+        val legalMoves = GameRules.getLegalMoves(snapshot)
+
+        val firstChoice = strategy.chooseMove(snapshot, legalMoves)
+        val secondChoice = strategy.chooseMove(snapshot, legalMoves)
+
+        assertTrue(firstChoice in legalMoves)
+        assertEquals(firstChoice, secondChoice)
+    }
+
+    @Test
+    fun `minimax bot search stays within a stable node budget on a larger supported board`() {
+        val visitedNodes = AtomicInteger(0)
+        val strategy = MinimaxGameBotStrategy(
+            searchObserver = MinimaxSearchObserver { visitedNodes.incrementAndGet() }
+        )
+        val snapshot = GameRules.startGame("square-one-x-9")
+        val legalMoves = GameRules.getLegalMoves(snapshot)
+
+        val move = strategy.chooseMove(snapshot, legalMoves)
+
+        assertTrue(move in legalMoves)
+        assertEquals(1068, visitedNodes.get())
     }
 
     @Test

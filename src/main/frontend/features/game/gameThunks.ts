@@ -6,6 +6,7 @@ import { buildCreateGameRequest } from "./createGameState.js";
 import { gameActions } from "./gameSlice.js";
 import { uiActions } from "../ui/uiSlice.js";
 import { authActions } from "../auth/authSlice.js";
+import { selectBotAssignmentModel } from "./gameSelectors.js";
 
 const serverUnavailableMessage = "The server is down. Please wait and try again later.";
 
@@ -216,18 +217,11 @@ export const claimSide = (side: Side): AppThunk<Promise<void>> => async (dispatc
 
 export const assignBotOpponent = (botId: string): AppThunk<Promise<void>> => async (dispatch, getState) => {
     const gameId = getState().game.currentGameId;
-    const currentSession = getState().game.session;
-    if (!gameId || !currentSession) {
+    if (!gameId || !getState().game.session) {
         return;
     }
 
-    const currentUserId = getState().auth.session.user?.id ?? null;
-    let targetSide: Side | null = null;
-    if (currentUserId && currentSession.dragonsPlayerUserId === currentUserId && currentSession.ravensPlayerUserId == null) {
-        targetSide = "ravens";
-    } else if (currentUserId && currentSession.ravensPlayerUserId === currentUserId && currentSession.dragonsPlayerUserId == null) {
-        targetSide = "dragons";
-    }
+    const { targetSide } = selectBotAssignmentModel(getState());
 
     if (targetSide) {
         dispatch(gameActions.pendingBotAssignmentSet({ side: targetSide, botId }));

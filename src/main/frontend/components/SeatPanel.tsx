@@ -2,14 +2,10 @@ import { useEffect, useState } from "react";
 
 import { useAppSelector } from "../app/hooks.js";
 import {
-    selectAvailableBots,
-    selectBotAssignmentTargetSide,
-    selectCanAssignBotOpponent,
+    selectBotAssignmentModel,
     selectCanClaimDragons,
     selectCanClaimRavens,
-    selectResolvedDragonsBot,
     selectDragonsPlayer,
-    selectResolvedRavensBot,
     selectRavensPlayer
 } from "../features/game/gameSelectors.js";
 
@@ -22,13 +18,9 @@ interface SeatPanelProps {
 export const SeatPanel = ({ onAssignBotOpponent, onClaimDragons, onClaimRavens }: SeatPanelProps) => {
     const dragonsPlayer = useAppSelector(selectDragonsPlayer);
     const ravensPlayer = useAppSelector(selectRavensPlayer);
-    const dragonsBot = useAppSelector(selectResolvedDragonsBot);
-    const ravensBot = useAppSelector(selectResolvedRavensBot);
-    const availableBots = useAppSelector(selectAvailableBots);
+    const { dragonsBot, ravensBot, availableBots, canAssign, targetSide } = useAppSelector(selectBotAssignmentModel);
     const canClaimDragons = useAppSelector(selectCanClaimDragons);
     const canClaimRavens = useAppSelector(selectCanClaimRavens);
-    const canAssignBotOpponent = useAppSelector(selectCanAssignBotOpponent);
-    const botAssignmentTargetSide = useAppSelector(selectBotAssignmentTargetSide);
     const [selectedBotId, setSelectedBotId] = useState<string>(availableBots[0]?.id ?? "");
 
     useEffect(() => {
@@ -47,7 +39,7 @@ export const SeatPanel = ({ onAssignBotOpponent, onClaimDragons, onClaimRavens }
                 <span className="seat-summary-item">
                     <strong>Ravens:</strong> {ravensPlayer?.displayName ?? (ravensBot ? `Bot: ${ravensBot.displayName}` : "Open seat")}
                 </span>
-                {canAssignBotOpponent || canClaimDragons || canClaimRavens ? (
+                {canAssign || canClaimDragons || canClaimRavens ? (
                     <span className="controls seat-summary-actions">
                         {canClaimDragons ? (
                             <button type="button" onClick={onClaimDragons}>
@@ -59,7 +51,7 @@ export const SeatPanel = ({ onAssignBotOpponent, onClaimDragons, onClaimRavens }
                                 Claim Ravens
                             </button>
                         ) : null}
-                        {canAssignBotOpponent && botAssignmentTargetSide ? (
+                        {canAssign && targetSide ? (
                             <>
                                 <div className="select-shell">
                                     <select
@@ -86,7 +78,7 @@ export const SeatPanel = ({ onAssignBotOpponent, onClaimDragons, onClaimRavens }
                                         }
                                     }}
                                 >
-                                    {`Assign Bot To ${botAssignmentTargetSide === "dragons" ? "Dragons" : "Ravens"}`}
+                                    {`Assign Bot To ${targetSide === "dragons" ? "Dragons" : "Ravens"}`}
                                 </button>
                             </>
                         ) : null}
