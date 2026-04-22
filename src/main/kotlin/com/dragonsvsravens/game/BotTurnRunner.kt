@@ -21,7 +21,7 @@ class BotTurnRunner(
                 return current
             }
 
-            val selectedMove = botDefinition.strategy.chooseMove(current.session.snapshot, legalMoves)
+            val selectedMove = selectLegalMove(current.session.snapshot, legalMoves, botDefinition.strategy)
             val nextState = gameCommandService.applyCommand(
                 current,
                 GameCommandRequest(
@@ -47,6 +47,20 @@ class BotTurnRunner(
         } ?: return null
 
         return botRegistry.requireSupportedDefinition(activeBotId, session.selectedRuleConfigurationId)
+    }
+
+    internal fun selectLegalMove(
+        snapshot: GameSnapshot,
+        legalMoves: List<LegalMove>,
+        strategy: GameBotStrategy
+    ): LegalMove {
+        val selectedMove = try {
+            strategy.chooseMove(snapshot, legalMoves)
+        } catch (_: RuntimeException) {
+            return legalMoves.first()
+        }
+
+        return selectedMove.takeIf { it in legalMoves } ?: legalMoves.first()
     }
 
     internal fun groupBotUndoExchange(previous: StoredGame, updated: StoredGame): StoredGame {

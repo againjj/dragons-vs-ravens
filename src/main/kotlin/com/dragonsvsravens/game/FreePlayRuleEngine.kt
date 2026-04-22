@@ -3,6 +3,24 @@ package com.dragonsvsravens.game
 internal object FreePlayRuleEngine : RuleSet {
     override fun validateMove(snapshot: GameSnapshot, origin: String, destination: String, piece: Piece) = Unit
 
+    override fun getLegalMoves(snapshot: GameSnapshot): List<LegalMove> =
+        snapshot.board.entries
+            .asSequence()
+            .filter { (_, piece) -> GameRules.sideOwnsPiece(snapshot.activeSide, piece) }
+            .flatMap { (origin, _) ->
+                BoardCoordinates.allSquares(snapshot.boardSize)
+                    .asSequence()
+                    .filter { destination -> destination != origin && !snapshot.board.containsKey(destination) }
+                    .map { destination -> LegalMove(origin, destination) }
+            }
+            .sortedWith(compareBy(LegalMove::origin, LegalMove::destination))
+            .toList()
+
+    override fun countLegalMoves(snapshot: GameSnapshot): Int {
+        val emptySquares = (snapshot.boardSize * snapshot.boardSize) - snapshot.board.size
+        return snapshot.board.values.count { piece -> GameRules.sideOwnsPiece(snapshot.activeSide, piece) } * emptySquares
+    }
+
     override fun getCapturableSquares(snapshot: GameSnapshot): List<String> =
         snapshot.board.entries
             .filter { (_, piece) -> RuleEngineSupport.canCapturePiece(snapshot.activeSide, piece) }

@@ -74,6 +74,11 @@ tasks.withType<Test>().configureEach {
     dependsOn(testFrontend)
     useJUnitPlatform()
     javaLauncher.set(java21Launcher)
+
+    val botMatchHarnessGamesPerMatchup = System.getProperty("botMatchHarnessGamesPerMatchup")
+    if (botMatchHarnessGamesPerMatchup != null) {
+        systemProperty("botMatchHarnessGamesPerMatchup", botMatchHarnessGamesPerMatchup)
+    }
 }
 
 val generatedFrontendDir = layout.buildDirectory.dir("generated/frontend")

@@ -37,6 +37,8 @@ By default, the app uses a local H2 database stored under `build/db/dragons-vs-r
 ./gradlew test
 ```
 
+The backend test suite also includes a configurable Randall-vs-Maxine soak harness. To run a larger head-to-head batch, pass `botMatchHarnessGamesPerMatchup` to Gradle. For example, `-DbotMatchHarnessGamesPerMatchup=10` runs 100 total games because the harness covers 5 supported rulesets in both seat assignments.
+
 ## Local Authentication Setup
 
 Guest and local-account sign-in work without extra setup.

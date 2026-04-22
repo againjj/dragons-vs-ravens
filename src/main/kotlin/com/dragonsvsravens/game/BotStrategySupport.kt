@@ -39,6 +39,16 @@ internal object BotStrategySupport {
         countPiecesForSide(previousSnapshot, oppositeSide(mover)) - countPiecesForSide(nextSnapshot, oppositeSide(mover))
 
     fun evaluateForSide(snapshot: GameSnapshot, perspectiveSide: Side): Int {
+        return evaluateForSide(snapshot, perspectiveSide) { evaluatedSnapshot ->
+            GameRules.countLegalMoves(evaluatedSnapshot)
+        }
+    }
+
+    fun evaluateForSide(
+        snapshot: GameSnapshot,
+        perspectiveSide: Side,
+        legalMoveCounter: (GameSnapshot) -> Int
+    ): Int {
         terminalScore(snapshot, perspectiveSide)?.let { return it }
 
         val weights = evaluationWeights(snapshot.ruleConfigurationId)
@@ -46,7 +56,7 @@ internal object BotStrategySupport {
 
         var score = 0
         score += (countPiecesForSide(snapshot, perspectiveSide) - countPiecesForSide(snapshot, opponent)) * weights.material
-        score += (mobilityScore(snapshot, perspectiveSide) - mobilityScore(snapshot, opponent)) * weights.mobility
+        score += (mobilityScore(snapshot, perspectiveSide, legalMoveCounter) - mobilityScore(snapshot, opponent, legalMoveCounter)) * weights.mobility
 
         val goldDistance = goldCornerDistance(snapshot)
         score += when (perspectiveSide) {
@@ -72,6 +82,9 @@ internal object BotStrategySupport {
         }
     }
 
+    fun isWinningSnapshotFor(snapshot: GameSnapshot, side: Side): Boolean =
+        terminalScore(snapshot, side) == terminalWinScore
+
     fun applyMove(snapshot: GameSnapshot, move: LegalMove): GameSnapshot =
         GameRules.movePiece(snapshot, move.origin, move.destination)
 
@@ -87,8 +100,11 @@ internal object BotStrategySupport {
             else -> originalStyleWeights
         }
 
-    private fun mobilityScore(snapshot: GameSnapshot, side: Side): Int =
-        GameRules.getLegalMoves(snapshotForSide(snapshot, side)).size
+    private fun mobilityScore(
+        snapshot: GameSnapshot,
+        side: Side,
+        legalMoveCounter: (GameSnapshot) -> Int
+    ): Int = legalMoveCounter(snapshotForSide(snapshot, side))
 
     private fun countPiecesForSide(snapshot: GameSnapshot, side: Side): Int =
         snapshot.board.values.count { GameRules.sideOwnsPiece(side, it) }

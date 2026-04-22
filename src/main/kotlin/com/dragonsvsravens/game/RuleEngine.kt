@@ -12,6 +12,12 @@ internal data class RuleConfiguration(
 internal interface RuleSet {
     fun validateMove(snapshot: GameSnapshot, origin: String, destination: String, piece: Piece)
 
+    fun getLegalMoves(snapshot: GameSnapshot): List<LegalMove> =
+        RuleEngineSupport.getLegalMovesByValidation(snapshot, this)
+
+    fun countLegalMoves(snapshot: GameSnapshot): Int =
+        RuleEngineSupport.countLegalMovesByValidation(snapshot, this)
+
     fun getCapturableSquares(snapshot: GameSnapshot): List<String> = emptyList()
 
     fun applyMove(snapshot: GameSnapshot, origin: String, destination: String, piece: Piece): GameSnapshot
@@ -28,6 +34,14 @@ internal interface RuleSet {
 }
 
 internal object RuleEngineSupport {
+    fun getLegalMovesByValidation(snapshot: GameSnapshot, ruleSet: RuleSet): List<LegalMove> =
+        legalMoveSequenceByValidation(snapshot, ruleSet)
+            .sortedWith(compareBy(LegalMove::origin, LegalMove::destination))
+            .toList()
+
+    fun countLegalMovesByValidation(snapshot: GameSnapshot, ruleSet: RuleSet): Int =
+        legalMoveSequenceByValidation(snapshot, ruleSet).count()
+
     fun createMovedSnapshot(
         snapshot: GameSnapshot,
         origin: String,
@@ -97,4 +111,24 @@ internal object RuleEngineSupport {
             Side.dragons -> piece == Piece.raven
             Side.ravens -> piece == Piece.dragon || piece == Piece.gold
         }
+
+    private fun legalMoveSequenceByValidation(snapshot: GameSnapshot, ruleSet: RuleSet): Sequence<LegalMove> =
+        snapshot.board.entries
+            .asSequence()
+            .filter { (_, piece) -> GameRules.sideOwnsPiece(snapshot.activeSide, piece) }
+            .flatMap { (origin, piece) ->
+                BoardCoordinates.allSquares(snapshot.boardSize)
+                    .asSequence()
+                    .filter { destination -> destination != origin && !snapshot.board.containsKey(destination) }
+                    .mapNotNull { destination ->
+                        try {
+                            ruleSet.validateMove(snapshot, origin, destination, piece)
+                            LegalMove(origin = origin, destination = destination)
+                        } catch (_: IllegalArgumentException) {
+                            null
+                        } catch (_: IllegalStateException) {
+                            null
+                        }
+                    }
+            }
 }

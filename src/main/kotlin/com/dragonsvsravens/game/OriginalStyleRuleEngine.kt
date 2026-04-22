@@ -3,6 +3,14 @@ package com.dragonsvsravens.game
 internal class OriginalStyleRuleEngine(
     private val goldMovesOneSquareAtATime: Boolean = false
 ) : RuleSet {
+    override fun getLegalMoves(snapshot: GameSnapshot): List<LegalMove> =
+        legalMoveSequence(snapshot)
+            .sortedWith(compareBy(LegalMove::origin, LegalMove::destination))
+            .toList()
+
+    override fun countLegalMoves(snapshot: GameSnapshot): Int =
+        legalMoveSequence(snapshot).count()
+
     override fun validateMove(snapshot: GameSnapshot, origin: String, destination: String, piece: Piece) {
         val path = BoardCoordinates.pathBetween(origin, destination, snapshot.boardSize)
         require(path.isNotEmpty() || origin[0] == destination[0] || origin.drop(1) == destination.drop(1)) {
@@ -67,6 +75,33 @@ internal class OriginalStyleRuleEngine(
 
     private fun isSingleOrthogonalStep(origin: String, destination: String, boardSize: Int): Boolean =
         BoardCoordinates.isOrthogonallyAdjacent(origin, destination, boardSize)
+
+    private fun legalMoveSequence(snapshot: GameSnapshot): Sequence<LegalMove> =
+        snapshot.board.entries
+            .asSequence()
+            .filter { (_, piece) -> GameRules.sideOwnsPiece(snapshot.activeSide, piece) }
+            .flatMap { (origin, piece) ->
+                val candidateDestinations = if (goldMovesOneSquareAtATime && piece == Piece.gold) {
+                    BoardCoordinates.neighbors(origin, snapshot.boardSize)
+                        .asSequence()
+                        .filter { destination -> !snapshot.board.containsKey(destination) }
+                } else {
+                    BoardCoordinates.orthogonalRays(origin, snapshot.boardSize)
+                        .asSequence()
+                        .flatMap { ray -> ray.asSequence().takeWhile { square -> !snapshot.board.containsKey(square) } }
+                }
+
+                candidateDestinations.mapNotNull { destination ->
+                    try {
+                        validateMove(snapshot, origin, destination, piece)
+                        LegalMove(origin, destination)
+                    } catch (_: IllegalArgumentException) {
+                        null
+                    } catch (_: IllegalStateException) {
+                        null
+                    }
+                }
+            }
 
     private fun wouldExposeFriendlyPieceToCapture(
         snapshot: GameSnapshot,

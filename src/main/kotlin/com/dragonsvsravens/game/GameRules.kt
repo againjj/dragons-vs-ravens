@@ -67,26 +67,16 @@ object GameRules {
         }
 
         val ruleSet = RuleCatalog.getRuleConfiguration(snapshot.ruleConfigurationId).ruleSet
-        return snapshot.board.entries
-            .asSequence()
-            .filter { (_, piece) -> sideOwnsPiece(snapshot.activeSide, piece) }
-            .flatMap { (origin, piece) ->
-                BoardCoordinates.allSquares(snapshot.boardSize)
-                    .asSequence()
-                    .filter { destination -> destination != origin && !snapshot.board.containsKey(destination) }
-                    .mapNotNull { destination ->
-                        try {
-                            ruleSet.validateMove(snapshot, origin, destination, piece)
-                            LegalMove(origin = origin, destination = destination)
-                        } catch (_: IllegalArgumentException) {
-                            null
-                        } catch (_: IllegalStateException) {
-                            null
-                        }
-                    }
-            }
-            .sortedWith(compareBy(LegalMove::origin, LegalMove::destination))
-            .toList()
+        return ruleSet.getLegalMoves(snapshot)
+    }
+
+    fun countLegalMoves(snapshot: GameSnapshot): Int {
+        if (snapshot.phase != Phase.move) {
+            return 0
+        }
+
+        val ruleSet = RuleCatalog.getRuleConfiguration(snapshot.ruleConfigurationId).ruleSet
+        return ruleSet.countLegalMoves(snapshot)
     }
 
     fun capturePiece(snapshot: GameSnapshot, square: String): GameSnapshot =

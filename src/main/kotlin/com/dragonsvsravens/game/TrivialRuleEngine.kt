@@ -3,6 +3,12 @@ package com.dragonsvsravens.game
 internal object TrivialRuleEngine : RuleSet {
     override fun validateMove(snapshot: GameSnapshot, origin: String, destination: String, piece: Piece) = Unit
 
+    override fun getLegalMoves(snapshot: GameSnapshot): List<LegalMove> =
+        FreePlayRuleEngine.getLegalMoves(snapshot)
+
+    override fun countLegalMoves(snapshot: GameSnapshot): Int =
+        FreePlayRuleEngine.countLegalMoves(snapshot)
+
     override fun applyMove(snapshot: GameSnapshot, origin: String, destination: String, piece: Piece): GameSnapshot =
         RuleEngineSupport.applyAutomaticMove(
             snapshot,

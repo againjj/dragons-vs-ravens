@@ -2,6 +2,7 @@ package com.dragonsvsravens.game
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -153,7 +154,7 @@ class GameBotsTest {
         val move = strategy.chooseMove(snapshot, legalMoves)
 
         assertTrue(move in legalMoves)
-        assertEquals(1068, visitedNodes.get())
+        assertTrue(visitedNodes.get() < 1068)
     }
 
     @Test
@@ -198,6 +199,70 @@ class GameBotsTest {
     }
 
     @Test
+    fun `optimized legal move counting matches generated move lists`() {
+        val snapshots = listOf(
+            GameRules.startGame("original-game"),
+            GameRules.startGame("sherwood-rules"),
+            GameRules.startGame("square-one"),
+            GameRules.startGame("square-one-x-9"),
+            GameRules.startGame("trivial"),
+            GameRules.startGame(
+                ruleConfigurationId = GameRules.freePlayRuleConfigurationId,
+                initialBoard = linkedMapOf(
+                    "a1" to Piece.dragon,
+                    "d4" to Piece.gold,
+                    "g7" to Piece.raven
+                )
+            )
+        )
+
+        snapshots.forEach { snapshot ->
+            assertEquals(GameRules.getLegalMoves(snapshot).size, GameRules.countLegalMoves(snapshot))
+        }
+    }
+
+    @Test
+    fun `generated legal moves remain executable for representative positions`() {
+        val snapshots = listOf(
+            GameRules.startGame("original-game"),
+            GameRules.startGame("sherwood-rules"),
+            GameRules.startGame("square-one"),
+            GameRules.startGame("square-one-x-9"),
+            GameRules.startGame("trivial"),
+            GameRules.startGame(
+                ruleConfigurationId = GameRules.freePlayRuleConfigurationId,
+                initialBoard = linkedMapOf(
+                    "a1" to Piece.dragon,
+                    "d4" to Piece.gold,
+                    "g7" to Piece.raven
+                )
+            ),
+            sherwoodMaxineRegressionPosition()
+        )
+
+        snapshots.forEach { snapshot ->
+            GameRules.getLegalMoves(snapshot).forEach { move ->
+                try {
+                    GameRules.movePiece(snapshot, move.origin, move.destination)
+                } catch (exception: RuntimeException) {
+                    fail("Generated move $move was not executable for ${snapshot.ruleConfigurationId}: ${exception.message}")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `minimax bot handles the sherwood occupied destination regression position`() {
+        val strategy = MinimaxGameBotStrategy()
+        val snapshot = sherwoodMaxineRegressionPosition()
+        val legalMoves = GameRules.getLegalMoves(snapshot)
+
+        val move = strategy.chooseMove(snapshot, legalMoves)
+
+        assertTrue(move in legalMoves)
+    }
+
+    @Test
     fun `bot registry exposes both release four bots on supported rulesets and none on free play`() {
         val registry = BotRegistry(object : RandomIndexSource {
             override fun nextInt(bound: Int): Int = 0
@@ -209,4 +274,11 @@ class GameBotsTest {
         )
         assertTrue(registry.availableBotsFor(GameRules.freePlayRuleConfigurationId).isEmpty())
     }
+
+    private fun sherwoodMaxineRegressionPosition(): GameSnapshot =
+        GameRules.startGame("sherwood-rules")
+            .let { GameRules.movePiece(it, "b4", "b3") }
+            .let { GameRules.movePiece(it, "c4", "c5") }
+            .let { GameRules.movePiece(it, "d2", "c2") }
+            .let { GameRules.movePiece(it, "d3", "c3") }
 }

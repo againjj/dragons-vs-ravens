@@ -96,6 +96,42 @@ class BotTurnRunnerTest {
         assertEquals(false, persisted)
     }
 
+    @Test
+    fun `selectLegalMove falls back when a bot returns an illegal move`() {
+        val runner = createRunner()
+        val snapshot = GameRules.startGame("sherwood-rules")
+        val legalMoves = GameRules.getLegalMoves(snapshot)
+
+        val selectedMove = runner.selectLegalMove(
+            snapshot,
+            legalMoves,
+            object : GameBotStrategy {
+                override fun chooseMove(snapshot: GameSnapshot, legalMoves: List<LegalMove>): LegalMove =
+                    LegalMove("d4", "d5")
+            }
+        )
+
+        assertEquals(legalMoves.first(), selectedMove)
+    }
+
+    @Test
+    fun `selectLegalMove falls back when a bot throws during search`() {
+        val runner = createRunner()
+        val snapshot = GameRules.startGame("sherwood-rules")
+        val legalMoves = GameRules.getLegalMoves(snapshot)
+
+        val selectedMove = runner.selectLegalMove(
+            snapshot,
+            legalMoves,
+            object : GameBotStrategy {
+                override fun chooseMove(snapshot: GameSnapshot, legalMoves: List<LegalMove>): LegalMove =
+                    throw IllegalArgumentException("boom")
+            }
+        )
+
+        assertEquals(legalMoves.first(), selectedMove)
+    }
+
     private fun createRunner(clock: Clock = fixedClock()): BotTurnRunner =
         BotTurnRunner(GameCommandService(clock), BotRegistry(FixedRandomIndexSource()))
 
