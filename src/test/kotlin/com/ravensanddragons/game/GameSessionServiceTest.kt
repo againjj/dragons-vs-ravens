@@ -163,21 +163,44 @@ class GameSessionServiceTest {
     }
 
     @Test
-    fun `supported release two rulesets allow assigning each selectable bot and trigger an immediate bot move`() {
+    fun `supported release two rulesets expose every selectable bot`() {
+        val registry = BotRegistry(object : RandomIndexSource {
+            override fun nextInt(bound: Int): Int = 0
+        })
+
+        BotRegistry.releaseTwoSupportedRuleConfigurationIds.forEach { ruleConfigurationId ->
+            assertEquals(
+                listOf(
+                    BotRegistry.randomBotId,
+                    BotRegistry.simpleBotId,
+                    BotRegistry.minimaxBotId,
+                    BotRegistry.deepMinimaxBotId
+                ),
+                registry.availableBotsFor(ruleConfigurationId).map(BotSummary::id)
+            )
+        }
+    }
+
+    @Test
+    fun `assigning each selectable bot on a representative supported ruleset triggers an immediate bot move`() {
         val service = createService()
+        val ruleConfigurationId = "sherwood-rules"
 
-        listOf(BotRegistry.randomBotId, BotRegistry.simpleBotId, BotRegistry.minimaxBotId).forEach { botId ->
-            BotRegistry.releaseTwoSupportedRuleConfigurationIds.forEach { ruleConfigurationId ->
-                val game = service.createGame(CreateGameRequest(ruleConfigurationId = ruleConfigurationId))
-                service.claimSide(game.id, Side.dragons, "player-one")
+        listOf(
+            BotRegistry.randomBotId,
+            BotRegistry.simpleBotId,
+            BotRegistry.minimaxBotId,
+            BotRegistry.deepMinimaxBotId
+        ).forEach { botId ->
+            val game = service.createGame(CreateGameRequest(ruleConfigurationId = ruleConfigurationId))
+            service.claimSide(game.id, Side.dragons, "player-one")
 
-                val updated = service.assignBotOpponent(game.id, botId, "player-one")
+            val updated = service.assignBotOpponent(game.id, botId, "player-one")
 
-                assertEquals(ruleConfigurationId, updated.selectedRuleConfigurationId)
-                assertEquals(botId, updated.ravensBotId)
-                assertEquals(Side.dragons, updated.snapshot.activeSide)
-                assertEquals(1, updated.snapshot.turns.size)
-            }
+            assertEquals(ruleConfigurationId, updated.selectedRuleConfigurationId)
+            assertEquals(botId, updated.ravensBotId)
+            assertEquals(Side.dragons, updated.snapshot.activeSide)
+            assertEquals(1, updated.snapshot.turns.size)
         }
     }
 

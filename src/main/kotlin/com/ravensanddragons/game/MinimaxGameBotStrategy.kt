@@ -4,7 +4,7 @@ fun interface MinimaxSearchObserver {
     fun onNodeEvaluated()
 }
 
-private object NoOpMinimaxSearchObserver : MinimaxSearchObserver {
+internal object NoOpMinimaxSearchObserver : MinimaxSearchObserver {
     override fun onNodeEvaluated() = Unit
 }
 

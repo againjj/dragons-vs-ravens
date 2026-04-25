@@ -10,6 +10,7 @@ class BotRegistry(
         const val randomBotId = "random"
         const val simpleBotId = "simple"
         const val minimaxBotId = "minimax"
+        const val deepMinimaxBotId = "deep-minimax"
         val releaseTwoSupportedRuleConfigurationIds = setOf(
             "original-game",
             "sherwood-rules",
@@ -37,6 +38,12 @@ class BotRegistry(
             displayName = "Maxine",
             supportedRuleConfigurationIds = releaseTwoSupportedRuleConfigurationIds,
             strategy = MinimaxGameBotStrategy()
+        ),
+        deepMinimaxBotId to BotDefinition(
+            id = deepMinimaxBotId,
+            displayName = "Alphie",
+            supportedRuleConfigurationIds = releaseTwoSupportedRuleConfigurationIds,
+            strategy = AlphaBetaGameBotStrategy(searchDepth = 4)
         )
     )
 

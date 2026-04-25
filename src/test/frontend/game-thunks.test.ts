@@ -195,7 +195,8 @@ describe("gameThunks", () => {
                     availableBots: [
                         { id: "random", displayName: "Randall" },
                         { id: "simple", displayName: "Simon" },
-                        { id: "minimax", displayName: "Maxine" }
+                        { id: "minimax", displayName: "Maxine" },
+                        { id: "deep-minimax", displayName: "Alphie" }
                     ]
                 }
             )
@@ -214,7 +215,8 @@ describe("gameThunks", () => {
                 availableBots: [
                     { id: "random", displayName: "Randall" },
                     { id: "simple", displayName: "Simon" },
-                    { id: "minimax", displayName: "Maxine" }
+                    { id: "minimax", displayName: "Maxine" },
+                    { id: "deep-minimax", displayName: "Alphie" }
                 ]
             }
         });

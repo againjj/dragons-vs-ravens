@@ -125,7 +125,8 @@ describe("SeatPanel", () => {
                         availableBots: [
                             { id: "random", displayName: "Randall" },
                             { id: "simple", displayName: "Simon" },
-                            { id: "minimax", displayName: "Maxine" }
+                            { id: "minimax", displayName: "Maxine" },
+                            { id: "deep-minimax", displayName: "Alphie" }
                         ]
                     }
                 }
@@ -164,7 +165,10 @@ describe("SeatPanel", () => {
                         dragonsPlayer: null,
                         ravensPlayer: { id: "player-ravens", displayName: "Raven Player" },
                         dragonsBot: { id: "minimax", displayName: "Maxine" },
-                        availableBots: [{ id: "minimax", displayName: "Maxine" }]
+                        availableBots: [
+                            { id: "minimax", displayName: "Maxine" },
+                            { id: "deep-minimax", displayName: "Alphie" }
+                        ]
                     }
                 }
             }

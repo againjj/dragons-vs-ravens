@@ -125,6 +125,8 @@ class GameControllerTest : AbstractGameControllerTestSupport() {
             jsonPath("$.availableBots[1].displayName", equalTo("Simon"))
             jsonPath("$.availableBots[2].id", equalTo(BotRegistry.minimaxBotId))
             jsonPath("$.availableBots[2].displayName", equalTo("Maxine"))
+            jsonPath("$.availableBots[3].id", equalTo(BotRegistry.deepMinimaxBotId))
+            jsonPath("$.availableBots[3].displayName", equalTo("Alphie"))
         }
     }
 
@@ -146,6 +148,7 @@ class GameControllerTest : AbstractGameControllerTestSupport() {
                 jsonPath("$.availableBots[0].id", equalTo(BotRegistry.randomBotId))
                 jsonPath("$.availableBots[1].id", equalTo(BotRegistry.simpleBotId))
                 jsonPath("$.availableBots[2].id", equalTo(BotRegistry.minimaxBotId))
+                jsonPath("$.availableBots[3].id", equalTo(BotRegistry.deepMinimaxBotId))
             }
         }
     }

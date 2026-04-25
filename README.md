@@ -10,7 +10,8 @@ Ravens and Dragons is a Spring Boot and Kotlin web app for playing a browser-bas
 - Sign in as a guest or local user, with optional Google OAuth support
 - Claim the ravens or dragons side in a live game
 - In `Free Play`, setup clicks now cycle `raven -> dragon -> gold -> empty`, and the starting-side picker lists Ravens first and defaults to Ravens
-- In a fresh supported preset game, choose a server-driven `Randall`, `Simon`, or `Maxine` bot from the live-game seat panel and assign it to the opposite open seat for `Original Game`, `Sherwood Rules`, `Square One`, `Sherwood x 9`, or `Square One x 9`
+- In a fresh supported preset game, choose a server-driven `Randall`, `Simon`, `Maxine`, or `Alphie` bot from the live-game seat panel and assign it to the opposite open seat for `Original Game`, `Sherwood Rules`, `Square One`, `Sherwood x 9`, or `Square One x 9`
+- `Maxine` stays on the existing minimax search, while `Alphie` uses a deeper optimized alpha-beta search with subtree caching and reused child snapshots
 - Undo against a bot reverses one full exchange, and still works after a game-ending human move or bot reply when that last exchange is undoable
 
 ## Requirements
@@ -38,7 +39,17 @@ By default, the app uses a local H2 database stored under `build/db/ravens-and-d
 ./gradlew test
 ```
 
-The backend test suite also includes a configurable Randall-vs-Maxine soak harness. To run a larger head-to-head batch, pass `botMatchHarnessGamesPerMatchup` to Gradle. For example, `-DbotMatchHarnessGamesPerMatchup=10` runs 100 total games because the harness covers 5 supported rulesets in both seat assignments.
+That command runs the default backend plus frontend verification suite.
+
+When you filter backend tests with `--tests`, Gradle skips the frontend test suite so targeted JVM runs stay focused.
+
+The Randall-vs-Maxine soak harness now runs separately:
+
+```bash
+./gradlew botMatchHarnessTest
+```
+
+To run a larger head-to-head batch, pass `botMatchHarnessGamesPerMatchup` to Gradle. For example, `-DbotMatchHarnessGamesPerMatchup=10` runs 100 total games because the harness covers 5 supported rulesets in both seat assignments.
 
 ## Local Authentication Setup
 

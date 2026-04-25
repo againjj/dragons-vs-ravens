@@ -71,9 +71,35 @@ tasks.withType<BootJar>().configureEach {
 }
 
 tasks.withType<Test>().configureEach {
-    dependsOn(testFrontend)
     useJUnitPlatform()
     javaLauncher.set(java21Launcher)
+    filter {
+        excludeTestsMatching("com.ravensanddragons.game.BotMatchHarnessTest")
+    }
+    doFirst {
+        val frontendTestTask = testFrontend.get()
+        if (filter.includePatterns.isEmpty() && !gradle.taskGraph.hasTask(frontendTestTask)) {
+            buildFrontend.get().exec()
+            frontendTestTask.exec()
+        }
+    }
+
+    val botMatchHarnessGamesPerMatchup = System.getProperty("botMatchHarnessGamesPerMatchup")
+    if (botMatchHarnessGamesPerMatchup != null) {
+        systemProperty("botMatchHarnessGamesPerMatchup", botMatchHarnessGamesPerMatchup)
+    }
+}
+
+val botMatchHarnessTest by tasks.registering(Test::class) {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Runs the bot-vs-bot soak harness."
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform()
+    javaLauncher.set(java21Launcher)
+    filter {
+        includeTestsMatching("com.ravensanddragons.game.BotMatchHarnessTest")
+    }
 
     val botMatchHarnessGamesPerMatchup = System.getProperty("botMatchHarnessGamesPerMatchup")
     if (botMatchHarnessGamesPerMatchup != null) {
@@ -109,6 +135,10 @@ val testFrontend by tasks.registering(NpmTask::class) {
         file("tsconfig.json"),
         file("vite.config.ts")
     )
+}
+
+tasks.named("check") {
+    dependsOn(testFrontend)
 }
 
 tasks.processResources {

@@ -158,6 +158,19 @@ class GameBotsTest {
     }
 
     @Test
+    fun `alpha beta bot stays deterministic under stable legal move ordering`() {
+        val strategy = AlphaBetaGameBotStrategy(searchDepth = 4)
+        val snapshot = GameRules.startGame("square-one")
+        val legalMoves = GameRules.getLegalMoves(snapshot)
+
+        val firstChoice = strategy.chooseMove(snapshot, legalMoves)
+        val secondChoice = strategy.chooseMove(snapshot, legalMoves)
+
+        assertTrue(firstChoice in legalMoves)
+        assertEquals(firstChoice, secondChoice)
+    }
+
+    @Test
     fun `minimax bot search uses hypothetical snapshots without mutating the input snapshot`() {
         val strategy = MinimaxGameBotStrategy()
         val snapshot = GameSnapshot(
@@ -263,13 +276,29 @@ class GameBotsTest {
     }
 
     @Test
-    fun `bot registry exposes both release four bots on supported rulesets and none on free play`() {
+    fun `alpha beta bot handles the sherwood occupied destination regression position`() {
+        val strategy = AlphaBetaGameBotStrategy(searchDepth = 4)
+        val snapshot = sherwoodMaxineRegressionPosition()
+        val legalMoves = GameRules.getLegalMoves(snapshot)
+
+        val move = strategy.chooseMove(snapshot, legalMoves)
+
+        assertTrue(move in legalMoves)
+    }
+
+    @Test
+    fun `bot registry exposes every supported bot on release two rulesets and none on free play`() {
         val registry = BotRegistry(object : RandomIndexSource {
             override fun nextInt(bound: Int): Int = 0
         })
 
         assertEquals(
-            listOf(BotRegistry.randomBotId, BotRegistry.simpleBotId, BotRegistry.minimaxBotId),
+            listOf(
+                BotRegistry.randomBotId,
+                BotRegistry.simpleBotId,
+                BotRegistry.minimaxBotId,
+                BotRegistry.deepMinimaxBotId
+            ),
             registry.availableBotsFor("original-game").map(BotSummary::id)
         )
         assertTrue(registry.availableBotsFor(GameRules.freePlayRuleConfigurationId).isEmpty())
