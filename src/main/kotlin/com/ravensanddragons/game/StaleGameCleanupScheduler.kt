@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 class StaleGameCleanupScheduler(
     private val gameSessionService: GameSessionService
 ) {
-    @Scheduled(fixedDelayString = "\${ravens-and-dragons.games.cleanup-fixed-delay-ms:300000}")
+    @Scheduled(fixedDelayString = "#{@staleGameCleanupDelay.toMillis()}")
     fun removeStaleGames() {
         gameSessionService.removeStaleGames()
     }

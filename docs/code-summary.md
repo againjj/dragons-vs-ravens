@@ -137,7 +137,9 @@ The follow-up bot refactor has now split the old single `GameBots.kt` file into 
 - Runtime configuration:
   - `server.port` reads `${PORT:8080}` so the app keeps its local default while also working on Railway-style platforms that inject the listen port at runtime.
   - `spring.datasource.*` defaults to an H2 file database for local persistence and may be overridden for PostgreSQL deploys.
+  - `server.servlet.session.timeout` now defaults to `24h`, so authenticated servlet sessions do not stay alive indefinitely under container defaults.
   - `ravens-and-dragons.games.stale-threshold` controls how long an inactive game can sit before eviction, and defaults to six weeks (`1008h`).
+  - The stale-game cleanup scheduler now derives its fixed delay from that threshold and runs every one-tenth of the configured stale window instead of using a separate cleanup-delay property.
   - Google OAuth is enabled only when the environment defines a `google` Spring client registration through `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID`, `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET`, and typically `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE=openid,profile,email`.
   - Google callback URLs should use `/login/oauth2/code/google`, such as `http://localhost:8080/login/oauth2/code/google` locally or `https://<deploy-host>/login/oauth2/code/google` in production.
   - The app now honors forwarded proxy headers when building Google OAuth authorization requests, so Railway deployments keep the public `https` callback host instead of generating the internal `http` service URL.

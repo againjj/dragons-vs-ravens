@@ -33,6 +33,8 @@ Then open [http://localhost:8080](http://localhost:8080).
 
 By default, the app uses a local H2 database stored under `build/db/ravens-and-dragons`.
 
+The default servlet session timeout is `24h`.
+
 ## Run Tests
 
 ```bash
@@ -95,6 +97,8 @@ SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
 ```
 
 Flyway migrations run automatically on startup.
+
+The stale-game eviction threshold defaults to six weeks, and the cleanup scheduler now runs every one-tenth of that configured threshold.
 
 ## Project Layout
 
