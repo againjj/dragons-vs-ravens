@@ -33,7 +33,7 @@ Then open [http://localhost:8080](http://localhost:8080).
 
 By default, the app uses a local H2 database stored under `build/db/ravens-and-dragons`.
 
-The default servlet session timeout is `24h`.
+The default servlet session timeout is `2h`.
 
 ## Run Tests
 
@@ -86,6 +86,14 @@ Use these redirect URIs in Google Cloud:
 ## Deployment Notes
 
 The app is set up to run on Railway and other platforms that provide the runtime port through `PORT`.
+
+Railway startup now also defaults `JAVA_TOOL_OPTIONS` to:
+
+```text
+-XX:MaxRAMPercentage=60 -XX:InitialRAMPercentage=25 -XX:+UseG1GC -XX:G1PeriodicGCInterval=30000 -XX:+G1PeriodicGCInvokesConcurrent
+```
+
+That keeps the heap bounded relative to the container limit and asks G1 to run periodic concurrent collections while idle so the JVM is more willing to return unused heap pages after quiet periods. You can still override `JAVA_TOOL_OPTIONS` in Railway if you want different limits for a specific memory tier.
 
 For PostgreSQL deployments, configure these datasource settings:
 

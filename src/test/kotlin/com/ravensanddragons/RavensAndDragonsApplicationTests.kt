@@ -21,7 +21,7 @@ class RavensAndDragonsApplicationTests(
     @Test
     fun cleanupDelayAndSessionTimeoutFollowConfiguredDefaults() {
         assertAll(
-            { assertEquals(Duration.ofHours(24), serverProperties.servlet.session.timeout) },
+            { assertEquals(Duration.ofHours(2), serverProperties.servlet.session.timeout) },
             { assertEquals(Duration.ofHours(1008).dividedBy(10), staleGameCleanupDelay) }
         )
     }

@@ -137,7 +137,7 @@ The follow-up bot refactor has now split the old single `GameBots.kt` file into 
 - Runtime configuration:
   - `server.port` reads `${PORT:8080}` so the app keeps its local default while also working on Railway-style platforms that inject the listen port at runtime.
   - `spring.datasource.*` defaults to an H2 file database for local persistence and may be overridden for PostgreSQL deploys.
-  - `server.servlet.session.timeout` now defaults to `24h`, so authenticated servlet sessions do not stay alive indefinitely under container defaults.
+  - `server.servlet.session.timeout` now defaults to `2h`, so authenticated servlet sessions expire more aggressively and keep Railway runtime memory lower.
   - `ravens-and-dragons.games.stale-threshold` controls how long an inactive game can sit before eviction, and defaults to six weeks (`1008h`).
   - The stale-game cleanup scheduler now derives its fixed delay from that threshold and runs every one-tenth of the configured stale window instead of using a separate cleanup-delay property.
   - Google OAuth is enabled only when the environment defines a `google` Spring client registration through `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID`, `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET`, and typically `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE=openid,profile,email`.
@@ -146,7 +146,7 @@ The follow-up bot refactor has now split the old single `GameBots.kt` file into 
   - Railway deploys should set `SPRING_DATASOURCE_URL` to a JDBC host-only URL such as `jdbc:postgresql://<host>:<port>/<db>` and pass username/password separately through `SPRING_DATASOURCE_USERNAME` and `SPRING_DATASOURCE_PASSWORD`.
   - `railway up` uploads the current local workspace, while `railway service redeploy` only restarts the latest already-uploaded deployment.
   - Flyway runs startup migrations from `classpath:db/migration`, and the Gradle build now pins Flyway to `10.22.0` plus `flyway-database-postgresql` so Railway's PostgreSQL 18 startup is accepted.
-  - `railway.json` overrides Railway's deploy start command to `java -jar build/libs/ravens-and-dragons.jar`, points Railway health checks at `GET /health`, and matches the Spring Boot fat jar produced by the Gradle build.
+  - `railway.json` overrides Railway's deploy start command to launch the Spring Boot fat jar with a default `JAVA_TOOL_OPTIONS` profile that caps heap as a fraction of container RAM and enables periodic idle-time G1 collection, points Railway health checks at `GET /health`, and matches the produced `ravens-and-dragons.jar`.
 - Result:
   - Running `./gradlew bootRun` serves the Vite-built frontend bundle plus static CSS through Spring Boot.
 
