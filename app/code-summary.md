@@ -30,6 +30,7 @@ The app keeps the included-game list declarative by registering each game module
   - Owns the shared browser shell, auth bootstrap, lobby/profile/login routing, public game list loading, signed-in user menu/player-game stream wiring, fullscreen action, and game-entry selection for create/play screens.
   - Replaces transient login URLs when authenticated users are redirected to their `next` target so `/login?next=...` does not remain in browser history after sign-in.
   - Classifies shell-level async failures so expired sessions redirect to login, server/network failures show a server-unavailable dialog, and failed lobby/menu loads are not silently rendered as empty lists.
+  - Shows game-start failures on the active create page instead of deferring them to the lobby's open-game dialog.
   - Remounts active game play screens when the current `/g/{gameId}` changes, so game packages with local play-screen state do not keep stale finished or modal state after user-menu navigation.
   - Renders the header brand with the app-owned `AyazianGamesLogo.png` asset while keeping the accessible brand text as `Ayazian Games`.
   - Registers the Tic-Tac-Toe, Gin Rummy, Lunar Base, and Ravens and Dragons frontend package entries for the lobby.

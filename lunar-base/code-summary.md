@@ -14,6 +14,7 @@ The parent project has two child projects:
 - `lunar-base/backend/build.gradle.kts`
   - Kotlin/JVM backend module with Java 21.
   - Depends on `:platform:backend` only.
+  - Generates compiled Kotlin source from the canonical standard-card DSL script so packaged applications do not invoke the Kotlin compiler at runtime.
 - `src/main/kotlin/com/ravensanddragons/lunarbase/LunarBaseGameModuleDefinition.kt`
   - Lunar Base implementation of the platform game module contract.
   - Declares the `lunar-base` slug and `/lunar-base/create` browser route.
@@ -46,7 +47,7 @@ The parent project has two child projects:
   - Uses separate DSL builder and definition types for agents, influences, modules, stations, and the single station front so invalid card fields are unavailable on the wrong card type.
   - Supports `.kts` deck syntax, including card colors, connectors, achievements, declarative actions, static effects, triggered effects, and separate number versus flip-station action amounts.
   - Validates that card names are unique across the station front, stations, modules, agents, and influences so runtime state can use catalog names as card identities, rejects module definitions that combine effect text with a main action or on-playing action, and requires chosen-player references to follow an enclosing player-choice action.
-  - `LunarBaseStandardDeck.kt` loads `src/main/resources/card-sets/standard-cards.kts` as the canonical standard deck script used by both gameplay creation and script-loading tests.
+  - `LunarBaseStandardDeck.kt` exposes the build-compiled definition generated from `src/main/resources/card-sets/standard-cards.kts`, which remains the canonical standard deck script.
 - `src/main/resources/card-sets/standard-cards.kts`
   - Main-resource standard card script that defines counted cards, card names, module colors, module connectors, the shared station front connectors, and station backs.
 - `src/test/kotlin/com/ravensanddragons/lunarbase/cards/LunarBaseCardScriptTest.kt`

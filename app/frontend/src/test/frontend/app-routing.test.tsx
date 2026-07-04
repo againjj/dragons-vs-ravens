@@ -646,6 +646,38 @@ describe("App routing", () => {
         expect(fetchGameViewMock).not.toHaveBeenCalled();
     });
 
+    test("a failed game start shows its error on the create page", async () => {
+        const user = userEvent.setup();
+        fetchAuthSessionMock.mockResolvedValue({
+            authenticated: true,
+            user: {
+                id: "player-lunar",
+                displayName: "Lunar Player",
+                authType: "local"
+            }
+        });
+        const entry = makeTestGameEntry("lunar-base", "Lunar Base", () => undefined);
+        entry.components.CreateScreen = ({ onStartGame }) => (
+            <section>
+                <h1>Create Lunar Base</h1>
+                <button type="button" onClick={() => onStartGame()}>Start</button>
+            </section>
+        );
+        entry.lifecycle.startGame = async () => {
+            throw new Error("Unable to start Lunar Base right now.");
+        };
+        window.history.pushState({}, "", "/lunar-base/create");
+
+        renderWithStore(<App gameEntries={[entry]} />);
+
+        await screen.findByRole("heading", { name: "Create Lunar Base" });
+        await user.click(screen.getByRole("button", { name: "Start" }));
+
+        expect(await screen.findByRole("dialog", { name: "Start Game Error" })).toBeInTheDocument();
+        expect(screen.getByText("Unable to start Lunar Base right now.")).toBeInTheDocument();
+        expect(window.location.pathname).toBe("/lunar-base/create");
+    });
+
     test("back to lobby returns the app to /lobby", async () => {
         const user = userEvent.setup();
         fetchAuthSessionMock.mockResolvedValue({

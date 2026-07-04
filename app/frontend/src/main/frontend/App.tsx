@@ -80,6 +80,7 @@ export const App = ({ gameEntries = registeredGameEntries }: AppProps) => {
     const [isPlayerGamesStreamPaused, setIsPlayerGamesStreamPaused] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [lobbyOpenErrorMessage, setLobbyOpenErrorMessage] = useState<string | null>(null);
+    const [createGameErrorMessage, setCreateGameErrorMessage] = useState<string | null>(null);
     const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(null);
     const gameEntriesBySlug = useMemo(
         () => new Map(gameEntries.map((entry) => [entry.identity.slug, entry])),
@@ -276,11 +277,12 @@ export const App = ({ gameEntries = registeredGameEntries }: AppProps) => {
     };
 
     const handleStartGameFromCreate = (gameSlug: string, options?: GameStartOptions | boolean) => {
+        setCreateGameErrorMessage(null);
         void (async () => {
             try {
                 const entry = gameEntriesBySlug.get(gameSlug);
                 if (!entry) {
-                    setLobbyOpenErrorMessage("Unable to start that game right now.");
+                    setCreateGameErrorMessage("Unable to start that game right now.");
                     return;
                 }
                 const gameId = await entry.lifecycle.startGame(dispatch, gameSlug, normalizeStartOptions(options));
@@ -296,7 +298,7 @@ export const App = ({ gameEntries = registeredGameEntries }: AppProps) => {
                     notifyServerUnavailable();
                     return;
                 }
-                setLobbyOpenErrorMessage(error instanceof Error ? error.message : "Unable to start a game right now.");
+                setCreateGameErrorMessage(error instanceof Error ? error.message : "Unable to start a game right now.");
             }
         })();
     };
@@ -482,6 +484,7 @@ export const App = ({ gameEntries = registeredGameEntries }: AppProps) => {
                         isLoading={isLoadingGame}
                         onCreateGame={(gameSlug) => {
                             setLobbyOpenErrorMessage(null);
+                            setCreateGameErrorMessage(null);
                             setSelectedLobbyGameSlug(gameSlug);
                             navigateToCreate(gameSlug);
                         }}
@@ -499,12 +502,33 @@ export const App = ({ gameEntries = registeredGameEntries }: AppProps) => {
                     />
                 ) : page === "create" ? (
                     currentCreateGameEntry && CurrentCreateScreen ? (
-                        <CurrentCreateScreen
-                            gameName={currentCreateGameEntry.identity.displayName}
-                            onStartGame={(options: GameStartOptions | boolean | undefined) => {
-                                handleStartGameFromCreate(currentCreateGameEntry.identity.slug, options);
-                            }}
-                        />
+                        <>
+                            <CurrentCreateScreen
+                                gameName={currentCreateGameEntry.identity.displayName}
+                                onStartGame={(options: GameStartOptions | boolean | undefined) => {
+                                    handleStartGameFromCreate(currentCreateGameEntry.identity.slug, options);
+                                }}
+                            />
+                            {createGameErrorMessage ? (
+                                <div
+                                    className="modal-backdrop"
+                                    role="presentation"
+                                    onClick={() => setCreateGameErrorMessage(null)}
+                                >
+                                    <section
+                                        className="panel modal-dialog"
+                                        role="dialog"
+                                        aria-modal="true"
+                                        aria-labelledby="create-game-error-title"
+                                        onClick={(event) => event.stopPropagation()}
+                                    >
+                                        <h2 id="create-game-error-title">Start Game Error</h2>
+                                        <p>{createGameErrorMessage}</p>
+                                        <button type="button" onClick={() => setCreateGameErrorMessage(null)}>OK</button>
+                                    </section>
+                                </div>
+                            ) : null}
+                        </>
                     ) : (
                         <section className="panel">
                             <StatusBanner text="Loading..." />

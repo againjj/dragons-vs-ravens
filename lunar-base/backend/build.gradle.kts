@@ -18,10 +18,6 @@ kotlin {
 
 dependencies {
     implementation(project(":platform:backend"))
-    implementation("org.jetbrains.kotlin:kotlin-scripting-common:2.1.21")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:2.1.21")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable:2.1.21")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host:2.1.21")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test:3.3.4")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
@@ -31,6 +27,35 @@ tasks.withType<KotlinCompile> {
     compilerOptions {
         freeCompilerArgs.add("-Xjsr305=strict")
     }
+}
+
+val standardCardsScript = layout.projectDirectory.file("src/main/resources/card-sets/standard-cards.kts")
+val generatedStandardDeckDirectory = layout.buildDirectory.dir("generated/sources/standardDeck/kotlin")
+val generateStandardDeckSource by tasks.registering {
+    val generatedSource = generatedStandardDeckDirectory.map {
+        it.file("com/ravensanddragons/lunarbase/cards/GeneratedStandardDeck.kt")
+    }
+    inputs.file(standardCardsScript)
+    outputs.file(generatedSource)
+    doLast {
+        val output = generatedSource.get().asFile
+        output.parentFile.mkdirs()
+        output.writeText(
+            """package com.ravensanddragons.lunarbase.cards
+
+internal val generatedStandardDeckDefinition: LunarBaseDeckDefinition =
+${standardCardsScript.asFile.readText()}
+"""
+        )
+    }
+}
+
+kotlin.sourceSets.named("main") {
+    kotlin.srcDir(generatedStandardDeckDirectory)
+}
+
+tasks.named("compileKotlin") {
+    dependsOn(generateStandardDeckSource)
 }
 
 val java21Launcher = javaToolchains.launcherFor {

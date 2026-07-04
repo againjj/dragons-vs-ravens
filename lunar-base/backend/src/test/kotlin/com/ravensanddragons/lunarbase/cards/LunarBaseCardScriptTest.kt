@@ -7,7 +7,7 @@ import kotlin.test.assertIs
 
 class LunarBaseCardScriptTest {
     @Test
-    fun loadsStandardCardsScriptAsFinalExpression() {
+    fun compilesStandardCardsScriptIntoTheApplication() {
         val deck = loadStandardDeckScript()
 
         assertEquals(50, deck.modules.sumOf { it.count })
