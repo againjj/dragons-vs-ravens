@@ -81,7 +81,7 @@ The parent project has two child projects:
 - `src/main/frontend/LunarBaseCard.tsx`
   - Owns card rendering with standard card names/costs/colors/connectors/whole orbs, main action/on-playing/effect badges and hover tooltips, clickable main-action badges when a main action can be chosen, colonist/achievement depictions, and station flipped-state display.
 - `src/main/frontend/LunarBasePlayerBoard.tsx`
-  - Owns player board rendering, frontend placement hints with connector matching, stealable module selection/drag affordances, station reveal/flip controls, station flip animation staging, scaled drag images, and board snap/drop helpers exposed to surrounding drag surfaces.
+  - Owns player board rendering, frontend placement hints with connector matching, stealable module selection/drag affordances, station reveal/flip controls, non-actionable help cursors for revealed-side action badges, station flip animation staging, scaled drag images, and board snap/drop helpers exposed to surrounding drag surfaces.
 - `src/main/frontend/useLunarBaseZoom.ts`
   - Owns editable zoom control parsing, clipping, preset stepping, initial zoom, and zoom text synchronization helpers.
 - `src/main/frontend/lunar-base.css`

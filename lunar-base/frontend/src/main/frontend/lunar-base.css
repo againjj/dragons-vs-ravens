@@ -872,6 +872,10 @@
     pointer-events: auto;
 }
 
+.lunar-board-card.is-station-revealed .lunar-card-action-badge {
+    cursor: help;
+}
+
 .lunar-station-controls {
     --lunar-station-control-size: calc(84px * 0.4);
     --lunar-station-control-gap: calc((84px - var(--lunar-station-control-size) * 2) / 3);

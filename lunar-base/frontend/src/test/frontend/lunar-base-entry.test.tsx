@@ -530,6 +530,7 @@ describe("lunarBaseGameEntry", () => {
         expect(revealedBadge).toBeDefined();
         const revealedCard = revealedBadge!.closest(".lunar-board-card");
         expect(revealedCard).toBeDefined();
+        expect(revealedBadge).not.toHaveClass("is-targetable-badge");
 
         fireEvent.mouseEnter(revealedBadge!, { clientX: 50, clientY: 60 });
 

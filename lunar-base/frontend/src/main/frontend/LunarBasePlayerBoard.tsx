@@ -218,7 +218,7 @@ export const PlayerBoard = forwardRef<PlayerBoardHandle, {
                 const stationFlipAnimation = stationFlipAnimations.get(played.card.id) ?? null;
                 const displayedCard = isRevealedStation ? stationOppositeSideCard(played.card) : played.card;
                 const stationControls = (canShowStationControls || canFlipStation) && isStation;
-                const mainActionable = canChooseMainAction(displayedCard);
+                const mainActionable = !isRevealedStation && canChooseMainAction(displayedCard);
                 const stealable = canStealCard(played);
                 const selectedBoardCard = selected?.card.id === played.card.id
                     ? selected
