@@ -15,7 +15,7 @@
   - Exposes `testBackend`, `testFrontend`, and `test` tasks.
 - `platform/frontend/build.gradle.kts`
   - Applies the shared frontend Gradle convention.
-  - Builds and tests the `@ravensanddragons/platform-frontend` package with Gradle-managed Node/npm.
+  - Builds and tests the `@ravensanddragons/platform-frontend` package with Gradle-managed Node/npm and a lockfile resolved to patched frontend tooling dependencies.
 - `platform/backend/src/main/kotlin/com/ravensanddragons/auth/*.kt`
   - Session auth models and helpers.
   - JDBC-backed user persistence.

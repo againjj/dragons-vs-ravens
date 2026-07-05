@@ -1,9 +1,12 @@
 import com.github.gradle.node.NodeExtension
+import com.github.gradle.node.npm.task.NpmInstallTask
+import com.github.gradle.node.npm.task.NpmSetupTask
 import com.github.gradle.node.npm.task.NpmTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 
 class FrontendProjectConventionPlugin : Plugin<Project> {
@@ -17,11 +20,17 @@ class FrontendProjectConventionPlugin : Plugin<Project> {
             npmVersion.set("10.9.0")
         }
 
+        project.tasks.named<NpmSetupTask>("npmSetup") {
+            args.add("--no-fund")
+        }
+
         val extra = project.extensions.extraProperties
         val frontendDisplayName = extra["frontendDisplayName"] as String
         val frontendBuildDependencies = extra.stringList("frontendBuildDependencies")
         val frontendSourceInputs = extra.stringList("frontendSourceInputs")
-        val npmInstall = project.tasks.named("npmInstall")
+        val npmInstall = project.tasks.named<NpmInstallTask>("npmInstall") {
+            args.add("--no-fund")
+        }
         val generatedFrontendDir = project.layout.buildDirectory.dir("generated/frontend")
         val generatedFrontendTestDir = project.layout.buildDirectory.dir("generated/frontend-test")
 

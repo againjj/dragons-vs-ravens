@@ -32,7 +32,7 @@ Game-start failures remain on the active create route and are displayed there ra
   - Owns shared plugin versions, repositories, aggregate lifecycle tasks, root convenience tasks, and deployment-facing jar copy behavior.
   - Gives subproject jar artifacts path-derived names so the assembled Spring Boot jar can include multiple `backend` modules without duplicate `BOOT-INF/lib` entries.
 - `buildSrc/src/main/kotlin/FrontendProjectConventionPlugin.kt`
-  - Owns the shared Gradle convention for frontend Node/npm setup, `buildFrontend`, `test`, common inputs, and verification wiring.
+  - Owns the shared Gradle convention for frontend Node/npm setup, `buildFrontend`, `test`, common inputs, and verification wiring. npm setup and install tasks suppress funding notices while preserving audit output.
 - `gradle/paired-project.gradle.kts`
   - Owns the shared Gradle convention for parent projects with `backend` and `frontend` children, including `testBackend`, `testFrontend`, `test`, and `check` wiring.
 - `app/local-env.gradle.kts`
