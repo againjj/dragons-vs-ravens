@@ -17,10 +17,12 @@ The app keeps the included-game list declarative by registering each game module
   - Configures Java 21 for Kotlin, JavaExec, and tests.
   - Copies the app-owned Vite frontend bundle from `:app:frontend` into Spring Boot static resources during `processResources`.
   - Applies `app/local-env.gradle.kts` so `bootRun` works from the repository root and local env loading stays isolated.
-  - Names the executable jar `ravens-and-dragons.jar`.
+  - Names the executable jar `ayazian-games.jar`.
 - `app/local-env.gradle.kts`
   - Loads standard dotenv `KEY=value` entries from root `.env.local` into the local `bootRun` process when present.
   - Adds `testLocalEnvParser` coverage for `.env.local` parsing and runs it before `:app:backend:test`.
+- `app/backend/src/main/resources/application.properties`
+  - Owns assembled-service runtime configuration, including the `ayazian-games` Spring application name, server port, datasource defaults, session timeout, Flyway locations, and stale-game threshold.
 - `app/frontend/build.gradle.kts`
   - Applies the shared frontend Gradle convention.
   - Builds and tests the deployed React shell with Gradle-managed Node/npm.
@@ -44,13 +46,13 @@ The app keeps the included-game list declarative by registering each game module
   - Assembles the Redux store from app-owned auth state plus Ravens frontend package reducers exposed through the game package integration surface.
 - `app/frontend/src/main/frontend/features/auth/*.ts`
   - Owns browser auth state, auth thunks, local/OAuth profile state, and selectors used by the app shell.
-- `app/backend/src/main/kotlin/com/ravensanddragons/RavensAndDragonsApplication.kt`
+- `app/backend/src/main/kotlin/com/ayaziangames/AyazianGamesApplication.kt`
   - Spring Boot entrypoint.
   - Enables scheduling.
   - Provides the UTC `Clock` bean.
   - Provides the `GameModuleRegistry` bean that currently registers `TicTacToeGameModuleDefinition`, `GinRummyGameModuleDefinition`, `LunarBaseGameModuleDefinition`, and `RavensAndDragonsGameModuleDefinition`.
-  - Derives `staleGameCleanupDelay` from `platform.games.stale-threshold`, with the previous Ravens-branded property still accepted by the platform runtime as a fallback.
-- `app/backend/src/test/kotlin/com/ravensanddragons/RavensAndDragonsApplicationTests.kt`
+  - Derives `staleGameCleanupDelay` from `platform.games.stale-threshold`.
+- `app/backend/src/test/kotlin/com/ayaziangames/AyazianGamesApplicationTests.kt`
   - Verifies the Spring application context loads.
   - Verifies default servlet session timeout and stale cleanup delay.
   - Verifies the assembled app registers the Tic-Tac-Toe, Gin Rummy, Lunar Base, and Ravens and Dragons game modules with the expected routes and persistence boundary metadata.
@@ -74,7 +76,7 @@ The app keeps the included-game list declarative by registering each game module
 - Running `./gradlew bootRun` serves the Vite-built frontend bundle plus static CSS through Spring Boot and loads standard dotenv `KEY=value` entries from `.env.local` in the repository root when present.
 - The frontend packages use Vite 8.0.16.
 - `server.port` defaults to `8080` unless overridden by `PORT`.
-- Railway deployment starts `ravens-and-dragons.jar`.
+- Railway deployment starts `ayazian-games.jar`.
 - The lobby can open a selected public game or a typed game id; public game rows use per-row gradients with a darker selected state, and missing typed ids report feedback without navigating away from the lobby.
 - The shared app header keeps the `Ayazian Games` logo linked back to `/lobby` after login, leaves it inert on the login page, keeps the signed-in display name as plain text, and places a hamburger menu beside the brand for profile/lobby/game/logout navigation plus live turn badges.
 - The login screen requires matching signup password confirmation, and successful local account creation leaves the browser signed out with an account-created popup so the user must sign in.

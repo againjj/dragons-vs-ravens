@@ -1,4 +1,4 @@
-import type { AuthUserSummary } from "@ravensanddragons/platform-frontend/auth-types";
+import type { AuthUserSummary } from "@ayaziangames/platform-frontend/auth-types";
 
 export type Piece = "dragon" | "raven" | "gold";
 export type Side = "dragons" | "ravens";

@@ -12,7 +12,7 @@ This file contains instructions for work inside the `lunar-base/` game module.
 
 - `lunar-base/` owns Lunar Base game rules, game-specific API payloads, frontend UI, and tests.
 - Keep Lunar Base isolated from the other game modules.
-- Lunar Base may depend on `platform/` for shared backend runtime contracts and on `@ravensanddragons/platform-frontend` for shared frontend game-entry types.
+- Lunar Base may depend on `platform/` for shared backend runtime contracts and on `@ayaziangames/platform-frontend` for shared frontend game-entry types.
 
 ## Gameplay Rules
 

@@ -14,7 +14,7 @@ import {
     notifyServerUnavailable,
     serverUnavailableMessage,
     sessionExpiredMessage
-} from "@ravensanddragons/platform-frontend/api-client";
+} from "@ayaziangames/platform-frontend/api-client";
 
 export const playerAccountMissingMessage = "The chosen player account no longer exists.";
 

@@ -26,11 +26,11 @@ extra["pairedProjectDisplayName"] = "Your Game"
 apply(from = "../gradle/paired-project.gradle.kts")
 
 subprojects {
-    group = "com.ravensanddragons.yourgame"
+    group = "com.ayaziangames.yourgame"
 }
 ```
 
-The backend should depend on `:platform:backend`; the frontend should depend on `@ravensanddragons/platform-frontend`.
+The backend should depend on `:platform:backend`; the frontend should depend on `@ayaziangames/platform-frontend`.
 
 Each game must also include:
 
@@ -171,9 +171,9 @@ When a game needs viewer-private state, load it through `GET /api/games/{gameId}
 
 Use shared platform helpers for common frontend work:
 
-- `createResponseError`, `isUnauthorizedError`, `isServerUnavailableError`, `notifyAuthSessionExpired`, and `notifyServerUnavailable` from `@ravensanddragons/platform-frontend/api-client`.
+- `createResponseError`, `isUnauthorizedError`, `isServerUnavailableError`, `notifyAuthSessionExpired`, and `notifyServerUnavailable` from `@ayaziangames/platform-frontend/api-client`.
 - `fetchAuthSession` and `fetchUsers` when a play screen needs current-user data or the shared player picker.
-- `PlayerPicker` from `@ravensanddragons/platform-frontend/player-picker` for add-myself/add-player flows.
+- `PlayerPicker` from `@ayaziangames/platform-frontend/player-picker` for add-myself/add-player flows.
 
 If a game package imports CSS from its entry file, the app frontend Vite build will include that CSS once the package is registered.
 
@@ -182,7 +182,7 @@ If a game package imports CSS from its entry file, the app frontend Vite build w
 Backend:
 
 - Add `implementation(project(":your-game:backend"))` to `app/backend/build.gradle.kts`.
-- Register the module definition in `RavensAndDragonsApplication`.
+- Register the module definition in `AyazianGamesApplication`.
 - Update app backend tests so the assembled registry includes the new slug.
 - Update app backend tests with the new module's display name, browser route, API route pattern, persistence namespace, platform metadata fields, opaque payload names, and smoke-check paths.
 

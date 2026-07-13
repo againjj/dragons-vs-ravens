@@ -25,7 +25,7 @@ const {
     fetchGameViewMock: vi.fn()
 }));
 
-vi.mock("@ravensanddragons/platform-frontend/api-client", () => ({
+vi.mock("@ayaziangames/platform-frontend/api-client", () => ({
     deleteLocalAccountRequest: deleteLocalAccountRequestMock,
     fetchAuthSession: fetchAuthSessionMock,
     fetchLocalProfile: fetchLocalProfileMock,

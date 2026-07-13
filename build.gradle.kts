@@ -7,7 +7,7 @@ plugins {
 }
 
 allprojects {
-    group = "com.ravensanddragons"
+    group = "com.ayaziangames"
     version = "0.0.1-SNAPSHOT"
 
     repositories {
@@ -23,9 +23,9 @@ subprojects {
 
 val copyAppBootJar by tasks.registering(Copy::class) {
     group = LifecycleBasePlugin.BUILD_GROUP
-    description = "Copies the assembled app jar to the historical root build/libs location."
+    description = "Copies the assembled app jar to the root build/libs location."
     dependsOn(":app:backend:bootJar")
-    from(project(":app:backend").layout.buildDirectory.file("libs/ravens-and-dragons.jar"))
+    from(project(":app:backend").layout.buildDirectory.file("libs/ayazian-games.jar"))
     into(layout.buildDirectory.dir("libs"))
 }
 

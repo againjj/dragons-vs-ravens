@@ -15,34 +15,34 @@ The parent project has two child projects:
   - Kotlin/JVM backend module with Java 21.
   - Depends on `:platform:backend` only.
   - Generates compiled Kotlin source from the canonical standard-card DSL script so packaged applications do not invoke the Kotlin compiler at runtime.
-- `src/main/kotlin/com/ravensanddragons/lunarbase/LunarBaseGameModuleDefinition.kt`
+- `src/main/kotlin/com/ayaziangames/lunarbase/LunarBaseGameModuleDefinition.kt`
   - Lunar Base implementation of the platform game module contract.
   - Declares the `lunar-base` slug and `/lunar-base/create` browser route.
-- `src/main/kotlin/com/ravensanddragons/lunarbase/LunarBaseGameHandler.kt`
+- `src/main/kotlin/com/ayaziangames/lunarbase/LunarBaseGameHandler.kt`
   - Implements the platform `GameHandler` port for Lunar Base.
   - Creates configured 2-6 player games, deals private hands, validates commands, rejects attempts to seat the same user more than once, charges catalog card costs reduced by completed colored/gray orbs when playing modules or agents, starts and resumes declarative card actions, tracks the action actor and pending interaction, lets players discard an influence to negate effects from opponent-played agents, automatically advances the turn after the chosen main action completes, manages stock/discard refill only when a draw or supply refill needs cards, delays supply compaction/refill until turn end while keeping influence cards, grants shuttle-arrival credits subject to active effects, and ends games from derived win conditions.
   - Returns direct command responses as the acting user's viewer-specific game view while keeping command stream broadcasts public, so claiming a seat immediately delivers that player's private hand and controls without exposing it to other viewers.
-- `src/main/kotlin/com/ravensanddragons/lunarbase/LunarBaseEndGameRules.kt`
+- `src/main/kotlin/com/ayaziangames/lunarbase/LunarBaseEndGameRules.kt`
   - Derives Lunar Base win results without persisting them. A game ends after any completed action when a player has 20 credits, 10 housed colonists, 5 scientific achievements, or 4 influences in hand; multiple qualifying players draw, and one player with multiple conditions earns an epic victory.
-- `src/main/kotlin/com/ravensanddragons/lunarbase/LunarBaseState.kt`
+- `src/main/kotlin/com/ayaziangames/lunarbase/LunarBaseState.kt`
   - Owns Lunar Base runtime/public/private state DTOs, the canonical catalog-identity persisted-state DTOs, hand/discard count synchronization helpers, persisted-card trimming, list replacement helpers, and credit-cost calculation.
-- `src/main/kotlin/com/ravensanddragons/lunarbase/LunarBaseConstants.kt`
+- `src/main/kotlin/com/ayaziangames/lunarbase/LunarBaseConstants.kt`
   - Owns game lifecycle, card type, player-count, hand-size, randomization, supply-size, and turn-advance constants/helpers.
-- `src/main/kotlin/com/ravensanddragons/lunarbase/LunarBaseDeckFactory.kt`
+- `src/main/kotlin/com/ayaziangames/lunarbase/LunarBaseDeckFactory.kt`
   - Expands the standard card script into counted physical station/module/agent/influence cards whose persisted card identity is the unique catalog name plus instance state.
-- `src/main/kotlin/com/ravensanddragons/lunarbase/LunarBaseCatalogCards.kt`
+- `src/main/kotlin/com/ayaziangames/lunarbase/LunarBaseCatalogCards.kt`
   - Enriches client-facing card views by catalog name with costs/colors/connectors/whole orbs/station front/back metadata/flipped display/colonists/achievement ordinals/action and effect text, and provides the runtime card catalog used to rehydrate canonical persisted card identities.
-- `src/main/kotlin/com/ravensanddragons/lunarbase/LunarBaseBoardRules.kt`
+- `src/main/kotlin/com/ayaziangames/lunarbase/LunarBaseBoardRules.kt`
   - Owns board geometry, module placement validation, connector matching, completed-orb counting, housed-colonist summaries, and unique scientific-achievement summaries.
-- `src/main/kotlin/com/ravensanddragons/lunarbase/LunarBaseActionText.kt`
+- `src/main/kotlin/com/ayaziangames/lunarbase/LunarBaseActionText.kt`
   - Builds readable main action, on-playing, and effect text from the card catalog action/effect model for public card views.
-- `src/main/kotlin/com/ravensanddragons/lunarbase/LunarBaseActionEngine.kt`
+- `src/main/kotlin/com/ayaziangames/lunarbase/LunarBaseActionEngine.kt`
   - Owns resumable Lunar Base action execution, including choose-one/do-all sequencing, scoped actor changes, choosing opponents/targets, actor-only view-hand pauses, source-card labels for active actions, actor-specific interactions, repeated build/draw/draft/resell/discard/flip actions, opponent-agent influence negation, on-playing interrupts from built modules, active influence/board-module static effects, triggered effect action sequences, stealing legally placeable opponent modules, automatic gain/loss of credits, defensive skipping of impossible actions, and automatic turn advancement after a main action finishes.
   - Derives live action interaction text for client reads so card tooltips and in-progress action copy share the backend action formatter without persisting the derived text.
   - Derives legal draft target card ids for client reads so frontend supply affordances respect static influence restrictions without persisting availability flags.
   - Applies static effects that forbid drafting other influences, replace steal-credit opponent choice with a skip interaction, suppress shuttle-arrival credits, or add red-orb shuttle credits. Triggered effects run from build-Dome/Laika-Memorial, discard-this-influence, and draft-any-influence events using the same action stack as on-playing interrupts.
   - Keeps requested build/discard counts in action state rather than clipping them to the current hand, while still resolving discard repeats when the actor's hand becomes empty and preserving build skip interactions when no module is available.
-- `src/main/kotlin/com/ravensanddragons/lunarbase/cards/`
+- `src/main/kotlin/com/ayaziangames/lunarbase/cards/`
   - Owns an additive Kotlin card-definition DSL and immutable definition model for script-loaded Lunar Base decks.
   - Uses separate DSL builder and definition types for agents, influences, modules, stations, and the single station front so invalid card fields are unavailable on the wrong card type.
   - Supports `.kts` deck syntax, including card colors, connectors, achievements, declarative actions, static effects, triggered effects, and separate number versus flip-station action amounts.
@@ -50,7 +50,7 @@ The parent project has two child projects:
   - `LunarBaseStandardDeck.kt` exposes the build-compiled definition generated from `src/main/resources/card-sets/standard-cards.kts`, which remains the canonical standard deck script.
 - `src/main/resources/card-sets/standard-cards.kts`
   - Main-resource standard card script that defines counted cards, card names, module colors, module connectors, the shared station front connectors, and station backs.
-- `src/test/kotlin/com/ravensanddragons/lunarbase/cards/LunarBaseCardScriptTest.kt`
+- `src/test/kotlin/com/ayaziangames/lunarbase/cards/LunarBaseCardScriptTest.kt`
   - Loads the main-resource standard deck through `LunarBaseStandardDeck`, spot-checks representative card data, and verifies DSL validation rules for station fronts, station counts, non-station counts, and required fields.
 
 ## Frontend Project

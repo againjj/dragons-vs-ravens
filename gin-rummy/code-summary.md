@@ -14,9 +14,9 @@ The parent project has two child projects:
 - `gin-rummy/backend/build.gradle.kts`
   - Kotlin/JVM backend module with Java 21.
   - Depends on `:platform:backend` only.
-- `src/main/kotlin/com/ravensanddragons/ginrummy/GinRummyGameModuleDefinition.kt`
+- `src/main/kotlin/com/ayaziangames/ginrummy/GinRummyGameModuleDefinition.kt`
   - Declares the `gin-rummy` slug and module metadata.
-- `src/main/kotlin/com/ravensanddragons/ginrummy/GinRummyGameHandler.kt`
+- `src/main/kotlin/com/ayaziangames/ginrummy/GinRummyGameHandler.kt`
   - Implements platform `GameHandler`.
   - Owns immediate hand dealing at game creation, seat assignment, draw/discard commands, knocking, gin, big gin, scoring, and public/private view shaping.
   - Ends a hand as a no-points draw at the end of a turn when exactly two stock cards remain and no knock/gin/big-gin action ended the hand first.

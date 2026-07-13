@@ -18,8 +18,8 @@ export type EventSourceFactory = (url: string) => EventSourceLike;
 export declare const defaultCommandErrorMessage = "Unable to apply that action right now.";
 export declare const serverUnavailableMessage = "The server is down. Please wait and try again later.";
 export declare const sessionExpiredMessage = "Your session expired. Please sign in again.";
-export declare const authSessionExpiredEventType = "ravensanddragons:auth-session-expired";
-export declare const serverUnavailableEventType = "ravensanddragons:server-unavailable";
+export declare const authSessionExpiredEventType = "ayaziangames:auth-session-expired";
+export declare const serverUnavailableEventType = "ayaziangames:server-unavailable";
 export declare class ApiRequestError extends Error {
     status?: number;
     cause?: unknown;

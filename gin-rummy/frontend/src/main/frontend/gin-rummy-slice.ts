@@ -8,8 +8,8 @@ import {
     notifyServerUnavailable,
     serverUnavailableMessage,
     sessionExpiredMessage
-} from "@ravensanddragons/platform-frontend/api-client";
-import type { AuthUserSummary } from "@ravensanddragons/platform-frontend/auth-types";
+} from "@ayaziangames/platform-frontend/api-client";
+import type { AuthUserSummary } from "@ayaziangames/platform-frontend/auth-types";
 import { fetchGinRummyGame, sendCommand } from "./gin-rummy-client";
 import type { DragSource, EndAction, FlyingCard, GinRummyConfig, GinRummyGame, KnockChoice } from "./gin-rummy-types";
 

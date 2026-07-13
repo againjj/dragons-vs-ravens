@@ -10,8 +10,8 @@ import {
     createResponseError,
     parseErrorMessage,
     parseJson
-} from "@ravensanddragons/platform-frontend/api-client";
-import type { EventSourceFactory, FetchLike } from "@ravensanddragons/platform-frontend/api-client";
+} from "@ayaziangames/platform-frontend/api-client";
+import type { EventSourceFactory, FetchLike } from "@ayaziangames/platform-frontend/api-client";
 export {
     deleteLocalAccountRequest,
     defaultCommandErrorMessage,
@@ -24,7 +24,7 @@ export {
     logoutRequest,
     signupRequest,
     updateLocalProfileRequest
-} from "@ravensanddragons/platform-frontend/api-client";
+} from "@ayaziangames/platform-frontend/api-client";
 
 const getGameUrl = (gameId: string): string => `/api/games/${encodeURIComponent(gameId)}`;
 const getCreateGameUrl = (gameSlug: string): string => `/api/games/${encodeURIComponent(gameSlug)}`;

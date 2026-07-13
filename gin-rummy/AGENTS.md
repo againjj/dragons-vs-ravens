@@ -10,7 +10,7 @@
 
 - `gin-rummy/` owns Gin Rummy game rules, scoring, game-specific API payloads, frontend UI, and tests.
 - Keep Gin Rummy isolated from Ravens and Dragons and Tic-Tac-Toe.
-- Gin Rummy may depend on `platform/` for shared backend runtime contracts and on `@ravensanddragons/platform-frontend` for shared frontend contracts and player picking.
+- Gin Rummy may depend on `platform/` for shared backend runtime contracts and on `@ayaziangames/platform-frontend` for shared frontend contracts and player picking.
 
 ## Gameplay Rules
 

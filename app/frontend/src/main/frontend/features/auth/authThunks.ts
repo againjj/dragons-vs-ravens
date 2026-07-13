@@ -10,9 +10,9 @@ import {
     serverUnavailableMessage,
     signupRequest,
     updateLocalProfileRequest
-} from "@ravensanddragons/platform-frontend/api-client";
+} from "@ayaziangames/platform-frontend/api-client";
 import type { AppThunk } from "../../app/store.js";
-import type { AuthSessionResponse, DeleteAccountRequest, LoginRequest, SignupRequest, UpdateProfileRequest } from "@ravensanddragons/platform-frontend/auth-types";
+import type { AuthSessionResponse, DeleteAccountRequest, LoginRequest, SignupRequest, UpdateProfileRequest } from "@ayaziangames/platform-frontend/auth-types";
 import { authActions } from "./authSlice.js";
 import { refreshCurrentGameView } from "ravens-and-dragons-frontend/app-integration";
 

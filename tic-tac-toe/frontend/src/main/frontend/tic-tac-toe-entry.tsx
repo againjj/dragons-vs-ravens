@@ -8,8 +8,8 @@ import {
     notifyServerUnavailable,
     serverUnavailableMessage,
     sessionExpiredMessage
-} from "@ravensanddragons/platform-frontend/api-client";
-import { buildGameCreatePath, type GameEntry, type GameStartOptions } from "@ravensanddragons/platform-frontend/game-entry";
+} from "@ayaziangames/platform-frontend/api-client";
+import { buildGameCreatePath, type GameEntry, type GameStartOptions } from "@ayaziangames/platform-frontend/game-entry";
 
 type TicTacToeMark = "X" | "O";
 

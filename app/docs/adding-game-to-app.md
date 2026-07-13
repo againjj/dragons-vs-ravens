@@ -5,9 +5,9 @@ The app project assembles platform plus selected game modules. It should not con
 ## Backend
 
 1. Add the game backend project as an implementation dependency in `app/backend/build.gradle.kts`.
-2. Import the game module definition in `RavensAndDragonsApplication`.
+2. Import the game module definition in `AyazianGamesApplication`.
 3. Add the definition to the `GameModuleRegistry` bean.
-4. Update `RavensAndDragonsApplicationTests` with the expected slug, routes, persistence contract, and smoke paths.
+4. Update `AyazianGamesApplicationTests` with the expected slug, routes, persistence contract, and smoke paths.
 
 ## Frontend
 

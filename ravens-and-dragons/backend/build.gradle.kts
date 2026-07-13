@@ -89,7 +89,7 @@ tasks.withType<Test>().configureEach {
     javaLauncher.set(java21Launcher)
     if (name == "test") {
         filter {
-            excludeTestsMatching("com.ravensanddragons.game.BotMatchHarnessTest")
+            excludeTestsMatching("com.ayaziangames.game.BotMatchHarnessTest")
         }
     }
 
@@ -107,7 +107,7 @@ val botMatchHarnessTest by tasks.registering(Test::class) {
     useJUnitPlatform()
     javaLauncher.set(java21Launcher)
     filter {
-        includeTestsMatching("com.ravensanddragons.game.BotMatchHarnessTest*")
+        includeTestsMatching("com.ayaziangames.game.BotMatchHarnessTest*")
     }
 
     val botMatchHarnessGamesPerMatchup = System.getProperty("botMatchHarnessGamesPerMatchup")
@@ -120,7 +120,7 @@ val runMachineTraining by tasks.registering(JavaExec::class) {
     group = LifecycleBasePlugin.BUILD_GROUP
     description = "Generates an offline machine-trained dataset and artifact."
     classpath = trainSourceSet.runtimeClasspath
-    mainClass.set("com.ravensanddragons.training.MachineTrainingCliKt")
+    mainClass.set("com.ayaziangames.training.MachineTrainingCliKt")
     javaLauncher.set(java21Launcher)
     workingDir = rootProject.projectDir
 

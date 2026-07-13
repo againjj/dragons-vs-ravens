@@ -13,7 +13,7 @@ Arguments:
 
 Environment:
   LOCAL_GAME_DB_PATH  H2 file database path without the .mv.db suffix.
-                      Default: build/db/ravens-and-dragons
+                      Default: build/db/ayazian-games
   H2_JAR              Path to h2-*.jar. Auto-detected from the Gradle cache by default.
 USAGE
 }
@@ -29,7 +29,7 @@ if [[ "$#" -gt 1 ]]; then
 fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-db_path="${LOCAL_GAME_DB_PATH:-"$repo_root/build/db/ravens-and-dragons"}"
+db_path="${LOCAL_GAME_DB_PATH:-"$repo_root/build/db/ayazian-games"}"
 db_file="$db_path.mv.db"
 slug="${1:-}"
 

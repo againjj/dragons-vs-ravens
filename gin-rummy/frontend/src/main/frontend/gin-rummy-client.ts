@@ -1,5 +1,5 @@
-import { createResponseError } from "@ravensanddragons/platform-frontend/api-client";
-import type { GameStartOptions } from "@ravensanddragons/platform-frontend/game-entry";
+import { createResponseError } from "@ayaziangames/platform-frontend/api-client";
+import type { GameStartOptions } from "@ayaziangames/platform-frontend/game-entry";
 import type { CreateGameResponse, GinRummyGame } from "./gin-rummy-types";
 export const playRoutePattern = /^\/g\/([^/]+)$/;
 export const readGameIdFromLocation = (): string | null => { const routeGameId = window.location.pathname.match(playRoutePattern)?.[1] ?? null; return routeGameId ? decodeURIComponent(routeGameId) : null; };

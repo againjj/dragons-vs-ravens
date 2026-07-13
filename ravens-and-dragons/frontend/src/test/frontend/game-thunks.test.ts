@@ -3,7 +3,7 @@ import { describe, expect, test, vi, beforeEach } from "vitest";
 import { createAppStore } from "../../../../../app/frontend/src/main/frontend/app/store.js";
 import { createGameDraftActions } from "../../main/frontend/features/game/createGameSlice.js";
 import { createAuthSession, createGameView, createSession } from "./fixtures.js";
-import { ApiRequestError } from "@ravensanddragons/platform-frontend/api-client";
+import { ApiRequestError } from "@ayaziangames/platform-frontend/api-client";
 
 const {
     createGameSessionMock,

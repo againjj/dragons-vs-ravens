@@ -1,4 +1,4 @@
-import type { GameStartOptions } from "@ravensanddragons/platform-frontend/game-entry";
+import type { GameStartOptions } from "@ayaziangames/platform-frontend/game-entry";
 import type { GinRummyConfig } from "./gin-rummy-types";
 import { updateCreateOptions } from "./gin-rummy-slice";
 import { useGinRummyDispatch, useGinRummySelector } from "./gin-rummy-store";

@@ -3,8 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks.js";
 import { selectAuthLoadState, selectCurrentUser, selectIsAuthenticated } from "../features/auth/authSelectors.js";
 import { gameActions, selectGameView } from "ravens-and-dragons-frontend/app-integration";
-import type { GameEntry } from "@ravensanddragons/platform-frontend/game-entry";
-import { createResponseError, isServerUnavailableError, isUnauthorizedError, notifyAuthSessionExpired, notifyServerUnavailable } from "@ravensanddragons/platform-frontend/api-client";
+import type { GameEntry } from "@ayaziangames/platform-frontend/game-entry";
+import { createResponseError, isServerUnavailableError, isUnauthorizedError, notifyAuthSessionExpired, notifyServerUnavailable } from "@ayaziangames/platform-frontend/api-client";
 import type { AppDispatch } from "../app/store.js";
 import { loadAuthSession } from "../features/auth/authThunks.js";
 

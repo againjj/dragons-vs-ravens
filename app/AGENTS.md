@@ -22,7 +22,7 @@ This file contains instructions for work inside the `app/` project.
 - Preserve the current root command behavior: `./gradlew bootRun`, `./gradlew bootJar`, and aggregate tests should keep working from the repository root.
 - Keep local `bootRun` behavior aligned with root local-run rules, including `.env.local` loading when that todo is implemented.
 - Do not change Railway deployment behavior unless the user explicitly asks for deployment or runtime changes.
-- The executable jar should continue to be named `ravens-and-dragons.jar` unless the user explicitly asks to rename the service artifact.
+- The executable jar should continue to be named `ayazian-games.jar` unless the user explicitly asks to rename the service artifact.
 
 ## Testing
 

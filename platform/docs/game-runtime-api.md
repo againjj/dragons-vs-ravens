@@ -49,10 +49,10 @@ When a game uses command-only public data, the immediate game stream event can i
 
 ## Shared Frontend APIs
 
-`@ravensanddragons/platform-frontend/game-entry` exports the `GameEntry` contract. A game entry supplies create/play components and lifecycle functions. Create screens should pass `GameStartOptions` to `onStartGame`, including `publiclyListed` plus any game-specific settings.
+`@ayaziangames/platform-frontend/game-entry` exports the `GameEntry` contract. A game entry supplies create/play components and lifecycle functions. Create screens should pass `GameStartOptions` to `onStartGame`, including `publiclyListed` plus any game-specific settings.
 
-`@ravensanddragons/platform-frontend/player-picker` exports `PlayerPicker`. Use it for Add Player flows instead of duplicating account selection UI. Pass an empty bot list when a game does not support bots.
+`@ayaziangames/platform-frontend/player-picker` exports `PlayerPicker`. Use it for Add Player flows instead of duplicating account selection UI. Pass an empty bot list when a game does not support bots.
 
-`@ravensanddragons/platform-frontend/api-client` exports auth/session/server error helpers. Use them so `401`, server/network failures, and domain errors remain distinguishable.
+`@ayaziangames/platform-frontend/api-client` exports auth/session/server error helpers. Use them so `401`, server/network failures, and domain errors remain distinguishable.
 
 Game play screens should close `EventSource` streams on `onerror` and notify server-unavailable state with the shared helper. Do not repeatedly reconnect while the server is down; reconnect only after a later user action, route/session change, or full page reload. If a game uses `gameView` for private viewer data, refresh that view in response to public stream events instead of sending private data through the stream.

@@ -1,5 +1,5 @@
-import { createResponseError } from "@ravensanddragons/platform-frontend/api-client";
-import type { GameStartOptions } from "@ravensanddragons/platform-frontend/game-entry";
+import { createResponseError } from "@ayaziangames/platform-frontend/api-client";
+import type { GameStartOptions } from "@ayaziangames/platform-frontend/game-entry";
 import type { CreateGameResponse, LunarBaseCommandResponse, LunarBaseGame } from "./lunar-base-types";
 
 export const fetchLunarBaseGame = async (gameId: string): Promise<LunarBaseGame> => {

@@ -1,0 +1,54 @@
+package com.ayaziangames.game
+
+import com.ayaziangames.game.bot.*
+import com.ayaziangames.game.bot.machine.*
+import com.ayaziangames.game.bot.strategy.*
+import com.ayaziangames.game.model.*
+import com.ayaziangames.game.persistence.*
+import com.ayaziangames.game.rules.*
+import com.ayaziangames.game.session.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+
+class OriginalStyleBotSearchTest {
+
+    @Test
+    fun `fast original-style search legal move generation matches canonical rules`() {
+        representativeSnapshots().forEach { snapshot ->
+            assertTrue(OriginalStyleBotSearch.supports(snapshot))
+            assertEquals(GameRules.getLegalMoves(snapshot), OriginalStyleBotSearch.getLegalMoves(snapshot))
+            assertEquals(GameRules.countLegalMoves(snapshot), OriginalStyleBotSearch.countLegalMoves(snapshot))
+        }
+    }
+
+    @Test
+    fun `fast original-style search move application matches canonical rules for representative legal moves`() {
+        representativeSnapshots().forEach { snapshot ->
+            GameRules.getLegalMoves(snapshot)
+                .take(8)
+                .forEach { move ->
+                    assertEquals(
+                        GameRules.movePiece(snapshot, move.origin, move.destination),
+                        OriginalStyleBotSearch.applyMove(snapshot, move)
+                    )
+                }
+        }
+    }
+
+    private fun representativeSnapshots(): List<GameSnapshot> = listOf(
+        GameRules.startGame("original-game"),
+        GameRules.startGame("sherwood-rules"),
+        GameRules.startGame("square-one"),
+        GameRules.startGame("sherwood-x-9"),
+        GameRules.startGame("square-one-x-9"),
+        sherwoodRegressionPosition()
+    )
+
+    private fun sherwoodRegressionPosition(): GameSnapshot =
+        GameRules.startGame("sherwood-rules")
+            .let { GameRules.movePiece(it, "b4", "b3") }
+            .let { GameRules.movePiece(it, "c4", "c5") }
+            .let { GameRules.movePiece(it, "d2", "c2") }
+            .let { GameRules.movePiece(it, "d3", "c3") }
+}

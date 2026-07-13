@@ -33,7 +33,7 @@ val standardCardsScript = layout.projectDirectory.file("src/main/resources/card-
 val generatedStandardDeckDirectory = layout.buildDirectory.dir("generated/sources/standardDeck/kotlin")
 val generateStandardDeckSource by tasks.registering {
     val generatedSource = generatedStandardDeckDirectory.map {
-        it.file("com/ravensanddragons/lunarbase/cards/GeneratedStandardDeck.kt")
+        it.file("com/ayaziangames/lunarbase/cards/GeneratedStandardDeck.kt")
     }
     inputs.file(standardCardsScript)
     outputs.file(generatedSource)
@@ -41,7 +41,7 @@ val generateStandardDeckSource by tasks.registering {
         val output = generatedSource.get().asFile
         output.parentFile.mkdirs()
         output.writeText(
-            """package com.ravensanddragons.lunarbase.cards
+            """package com.ayaziangames.lunarbase.cards
 
 internal val generatedStandardDeckDefinition: LunarBaseDeckDefinition =
 ${standardCardsScript.asFile.readText()}

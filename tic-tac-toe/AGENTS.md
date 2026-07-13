@@ -12,7 +12,7 @@ This file contains instructions for work inside the `tic-tac-toe/` game module.
 
 - `tic-tac-toe/` owns Tic-Tac-Toe game rules, game-specific API payloads, frontend UI, and tests.
 - Keep Tic-Tac-Toe isolated from Ravens and Dragons. Do not depend on Ravens modules.
-- Tic-Tac-Toe may depend on `platform/` for shared backend runtime contracts and on `@ravensanddragons/platform-frontend` for shared frontend game-entry types.
+- Tic-Tac-Toe may depend on `platform/` for shared backend runtime contracts and on `@ayaziangames/platform-frontend` for shared frontend game-entry types.
 
 ## Gameplay Rules
 

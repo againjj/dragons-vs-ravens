@@ -9,10 +9,10 @@ import {
     notifyServerUnavailable,
     serverUnavailableMessage,
     sessionExpiredMessage
-} from "@ravensanddragons/platform-frontend/api-client";
-import type { AuthUserSummary } from "@ravensanddragons/platform-frontend/auth-types";
-import { buildGameCreatePath, type GameEntry, type GameStartOptions } from "@ravensanddragons/platform-frontend/game-entry";
-import { PlayerPicker } from "@ravensanddragons/platform-frontend/player-picker";
+} from "@ayaziangames/platform-frontend/api-client";
+import type { AuthUserSummary } from "@ayaziangames/platform-frontend/auth-types";
+import { buildGameCreatePath, type GameEntry, type GameStartOptions } from "@ayaziangames/platform-frontend/game-entry";
+import { PlayerPicker } from "@ayaziangames/platform-frontend/player-picker";
 import { CardView } from "./LunarBaseCard";
 import { PlayerBoard, setScaledDragImage, type DragImageMetrics, type PlayerBoardHandle } from "./LunarBasePlayerBoard";
 import { createLunarBaseGame, fetchLunarBaseGame, sendCommand } from "./lunar-base-api";

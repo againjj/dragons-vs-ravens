@@ -13,7 +13,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@ravensanddragons/platform-frontend": "file:../../platform/frontend",
+    "@ayaziangames/platform-frontend": "file:../../platform/frontend",
     "@reduxjs/toolkit": "^2.12.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",

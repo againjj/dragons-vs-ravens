@@ -1,4 +1,4 @@
-import { buildGameCreatePath, type GameEntry } from "@ravensanddragons/platform-frontend/game-entry";
+import { buildGameCreatePath, type GameEntry } from "@ayaziangames/platform-frontend/game-entry";
 import { CreateGinRummyScreen } from "./CreateGinRummyScreen";
 import { GinRummyPlayScreen } from "./GinRummyPlayScreen";
 import { createGinRummyGame, playRoutePattern } from "./gin-rummy-client";

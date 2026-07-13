@@ -1,4 +1,4 @@
-import type { AuthSessionResponse } from "@ravensanddragons/platform-frontend/auth-types";
+import type { AuthSessionResponse } from "@ayaziangames/platform-frontend/auth-types";
 import type { GameViewResponse, ServerGameSession } from "../../main/frontend/game-types.js";
 
 export const createSession = (

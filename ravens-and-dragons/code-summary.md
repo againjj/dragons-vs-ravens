@@ -19,33 +19,33 @@ The parent project has two child projects:
   - Defines the `train` source set and `runMachineTraining` task.
   - Disables executable `bootJar`/`bootRun` because the runnable app lives in `app/`.
   - Leaves deployed frontend asset packaging to `app/`; this backend jar contains Ravens backend code and resources only.
-- `src/main/kotlin/com/ravensanddragons/game/RavensAndDragonsGameModuleDefinition.kt`
+- `src/main/kotlin/com/ayaziangames/game/RavensAndDragonsGameModuleDefinition.kt`
   - Ravens and Dragons implementation of the platform game module contract.
   - Records current `/ravens-and-dragons/create`, `/g/{gameId}`, and `/api/games/{gameSlug}` ownership.
   - Declares the `ravens-and-dragons` migration namespace.
   - Draws the persistence line between platform-owned session metadata fields and game-owned opaque payloads.
-- `src/main/kotlin/com/ravensanddragons/game/model/*.kt`
+- `src/main/kotlin/com/ayaziangames/game/model/*.kt`
   - Ravens and Dragons game/session DTOs, board pieces, sides, phases, rule summaries, turn records, undo restore-state models, and Ravens command/view request models.
-- `src/main/kotlin/com/ravensanddragons/game/RavensAndDragonsGameHandler.kt`
+- `src/main/kotlin/com/ayaziangames/game/RavensAndDragonsGameHandler.kt`
   - Implements the platform `GameHandler` port for Ravens and Dragons.
   - Converts opaque platform JSON records into Ravens `GameSession` plus undo state, delegates create/command/view behavior to Ravens services, schedules post-commit bot replies, and serializes Ravens-owned public/private state back into the platform record.
   - Normalizes legacy snapshot-only public payloads into full `GameSession` responses for generic game reads and initial stream snapshots, allowing older persisted Ravens games to reopen through the current multi-game shell.
   - Supplies public-listing display data, including open Ravens/Dragons seat counts, while preserving platform-owned listing flags on game updates.
   - Supplies player-game menu data for signed-in users by reporting seated users and whether the active side belongs to the current user.
-- `src/main/kotlin/com/ravensanddragons/game/rules/*.kt`
+- `src/main/kotlin/com/ayaziangames/game/rules/*.kt`
   - Canonical board coordinates, rule metadata, snapshot creation, rule-engine contracts, and free-play/trivial/original-style rule execution.
-- `src/main/kotlin/com/ravensanddragons/game/session/*.kt`
+- `src/main/kotlin/com/ayaziangames/game/session/*.kt`
   - `GameCommandService.kt` owns command authorization, validation, undo handling, seat-claim transitions, explicit player-seat assignment, and bot-opponent assignment rules.
   - `GameUserReferenceCleanup.kt` implements the platform cleanup port for account deletion.
-- `src/main/kotlin/com/ravensanddragons/game/persistence/*.kt`
+- `src/main/kotlin/com/ayaziangames/game/persistence/*.kt`
   - Ravens-owned stored-game state envelope and Ravens JSON encoding/decoding.
-- `src/main/kotlin/com/ravensanddragons/game/bot/*.kt`
+- `src/main/kotlin/com/ayaziangames/game/bot/*.kt`
   - Bot value types, bot registry, random-index source, and synchronous bot-turn execution plus grouped human-plus-bot undo handling.
-- `src/main/kotlin/com/ravensanddragons/game/bot/strategy/*.kt`
+- `src/main/kotlin/com/ayaziangames/game/bot/strategy/*.kt`
   - Strategy/search implementations for `Randall`, `Simon`, `Maxine`, and `Alphie`, plus shared Kotlin-only evaluation and simulation helpers.
-- `src/main/kotlin/com/ravensanddragons/game/bot/machine/*.kt`
+- `src/main/kotlin/com/ayaziangames/game/bot/machine/*.kt`
   - Machine-trained runtime scaffolding for `Michelle`, including artifact loading, registry support, feature encoding, move scoring, and strategy integration.
-- `src/train/kotlin/com/ravensanddragons/training`
+- `src/train/kotlin/com/ayaziangames/training`
   - Offline Sherwood self-play, dataset generation, ranking trainer, artifact read/write, evolution loop, and CLI.
 - `src/main/resources/bots/machine-trained/*.json`
   - Bundled per-ruleset machine-trained artifacts. The Sherwood artifact for `Michelle` uses schema version 5.
@@ -55,7 +55,7 @@ The parent project has two child projects:
 - `ravens-and-dragons/frontend/build.gradle.kts`
   - Applies the shared frontend Gradle convention.
   - Frontend build and test project using Gradle-managed Node/npm.
-  - Depends on the local `@ravensanddragons/platform-frontend` package for shared frontend contracts and auth/browser helpers.
+  - Depends on the local `@ayaziangames/platform-frontend` package for shared frontend contracts and auth/browser helpers.
   - Typechecks the Ravens frontend package; the deployed browser shell and Vite bundle now live under `app/frontend`.
 - `src/main/frontend/ravens-and-dragons-entry.ts`
   - Registers the current Ravens and Dragons frontend package entry.
@@ -84,7 +84,7 @@ The parent project has two child projects:
 - `src/main/frontend/features/ui/*.ts`
   - Browser-local UI state such as selected square.
 - `src/main/frontend/hooks/*.ts`
-  - Ravens frontend hooks for responsive board sizing. Shared browser hooks such as fullscreen live in `@ravensanddragons/platform-frontend`.
+  - Ravens frontend hooks for responsive board sizing. Shared browser hooks such as fullscreen live in `@ayaziangames/platform-frontend`.
 
 ## Game Model
 
@@ -123,7 +123,7 @@ Server-only undo history stores compact restore-state entries instead of full sn
 
 ## Tests
 
-- Backend rule tests live under `backend/src/test/kotlin/com/ravensanddragons/game`.
+- Backend rule tests live under `backend/src/test/kotlin/com/ayaziangames/game`.
 - Frontend helper and React/Redux tests live under `frontend/src/test/frontend`.
 - `GameRulesTest.kt` verifies backend rule transitions and deterministic Sherwood legal-move generation.
 - `GameControllerTest.kt`, `GameCommandControllerTest.kt`, and authorization tests verify game API behavior.

@@ -8,7 +8,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@ravensanddragons/platform-frontend": "file:../../platform/frontend",
+    "@ayaziangames/platform-frontend": "file:../../platform/frontend",
     "@reduxjs/toolkit": "2.8.2",
     "gin-rummy-frontend": "file:../../gin-rummy/frontend",
     "lunar-base-frontend": "file:../../lunar-base/frontend",

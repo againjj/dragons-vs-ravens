@@ -1,0 +1,338 @@
+package com.ayaziangames.game
+
+import com.ayaziangames.game.bot.*
+import com.ayaziangames.game.bot.machine.*
+import com.ayaziangames.game.bot.strategy.*
+import com.ayaziangames.game.model.*
+import com.ayaziangames.game.persistence.*
+import com.ayaziangames.game.rules.*
+import com.ayaziangames.game.session.*
+import org.hamcrest.Matchers.equalTo
+import org.junit.jupiter.api.Test
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.MediaType
+import org.springframework.test.web.servlet.get
+import org.springframework.test.web.servlet.post
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class GameControllerTest : AbstractGameControllerTestSupport() {
+
+    @Test
+    fun `create game returns an active free-play session that starts in move phase`() {
+        mockMvc.post("/api/games/ravens-and-dragons") {
+            with(authenticated("create-game"))
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(
+                CreateGameRequest(
+                    startingSide = Side.ravens,
+                    board = mapOf(
+                        "a1" to Piece.dragon
+                    )
+                )
+            )
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.game.id") { value(org.hamcrest.Matchers.matchesPattern("[23456789CFGHJMPQRVWX]{7}")) }
+            jsonPath("$.game.lifecycle", equalTo("active"))
+            jsonPath("$.game.gameSlug", equalTo("ravens-and-dragons"))
+            jsonPath("$.game.snapshot.phase", equalTo("move"))
+            jsonPath("$.game.selectedRuleConfigurationId", equalTo("free-play"))
+            jsonPath("$.game.selectedStartingSide", equalTo("ravens"))
+            jsonPath("$.game.snapshot.activeSide", equalTo("ravens"))
+            jsonPath("$.game.snapshot.board.a1", equalTo("dragon"))
+        }
+    }
+
+    @Test
+    fun `game routes mutate only the selected game`() {
+        val firstGame = createGame(CreateGameRequest(board = mapOf("a1" to Piece.dragon)))
+        val secondGame = createGame(CreateGameRequest(board = mapOf("b1" to Piece.dragon)))
+
+        postGameCommand(firstGame.id, command(firstGame.version, "move-piece", origin = "a1", destination = "a2")).andExpect {
+            status { isOk() }
+            jsonPath("$.id", equalTo(firstGame.id))
+            jsonPath("$.snapshot.phase", equalTo("move"))
+            jsonPath("$.snapshot.board.a2", equalTo("dragon"))
+        }
+
+        mockMvc.get("/api/games/${secondGame.id}") {
+            with(authenticated(secondGame.id))
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.id", equalTo(secondGame.id))
+            jsonPath("$.snapshot.board.b1", equalTo("dragon"))
+            jsonPath("$.version", equalTo(0))
+        }
+    }
+
+    @Test
+    fun `version conflict response is scoped to the requested game`() {
+        val firstGame = createGame(CreateGameRequest(board = mapOf("a1" to Piece.dragon)))
+        val secondGame = createGame(CreateGameRequest(board = mapOf("b1" to Piece.dragon)))
+
+        executeGameCommand(firstGame.id, command(firstGame.version, "move-piece", origin = "a1", destination = "a2"))
+        executeGameCommand(secondGame.id, command(secondGame.version, "move-piece", origin = "b1", destination = "b2"))
+
+        postGameCommand(firstGame.id, command(firstGame.version, "move-piece", origin = "a1", destination = "a3")).andExpect {
+            status { isConflict() }
+            jsonPath("$.id", equalTo(firstGame.id))
+            jsonPath("$.version", equalTo(1))
+            jsonPath("$.snapshot.board.a2", equalTo("dragon"))
+        }
+    }
+
+    @Test
+    fun `persisted game can be reloaded after a follow up request`() {
+        val created = createGame(CreateGameRequest(board = mapOf("a1" to Piece.dragon)))
+
+        executeGameCommand(created.id, command(created.version, "move-piece", origin = "a1", destination = "a2"))
+
+        mockMvc.get("/api/games/${created.id}") {
+            with(authenticated(created.id))
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.id", equalTo(created.id))
+            jsonPath("$.version", equalTo(1))
+            jsonPath("$.snapshot.phase", equalTo("move"))
+            jsonPath("$.snapshot.board.a2", equalTo("dragon"))
+        }
+    }
+
+    @Test
+    fun `bot assignment is rejected for unsupported rule configurations`() {
+        val game = createGame(CreateGameRequest(ruleConfigurationId = "free-play"))
+        assignSides(game.id, null, null)
+
+        assignBotOpponent(game.id, BotRegistry.randomBotId).andExpect {
+            status { isBadRequest() }
+            jsonPath("$.message", equalTo("Randall is not available for this rule configuration."))
+        }
+    }
+
+    @Test
+    fun `game view includes bot metadata for assigned seats`() {
+        val game = seedGame(
+            gameId = "bot-view-game",
+            snapshot = GameRules.startGame("sherwood-rules"),
+            selectedRuleConfigurationId = "sherwood-rules",
+            dragonsPlayerUserId = defaultTestUserId,
+            ravensPlayerUserId = null,
+            ravensBotId = BotRegistry.randomBotId
+        )
+
+        mockMvc.get("/api/games/${game.id}/view") {
+            with(authenticated(game.id))
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.ravensBot.id", equalTo(BotRegistry.randomBotId))
+            jsonPath("$.ravensBot.displayName", equalTo("Randall"))
+            jsonPath("$.availableBots[0].id", equalTo(BotRegistry.randomBotId))
+            jsonPath("$.availableBots[1].id", equalTo(BotRegistry.simpleBotId))
+            jsonPath("$.availableBots[1].displayName", equalTo("Simon"))
+            jsonPath("$.availableBots[2].id", equalTo(BotRegistry.minimaxBotId))
+            jsonPath("$.availableBots[2].displayName", equalTo("Maxine"))
+            jsonPath("$.availableBots[3].id", equalTo(BotRegistry.deepMinimaxBotId))
+            jsonPath("$.availableBots[3].displayName", equalTo("Alphie"))
+            jsonPath("$.availableBots[4].id", equalTo(BotRegistry.machineTrainedBotId))
+            jsonPath("$.availableBots[4].displayName", equalTo("Michelle"))
+        }
+    }
+
+    @Test
+    fun `game view exposes bot availability for every release two supported ruleset`() {
+        BotRegistry.releaseTwoSupportedRuleConfigurationIds.forEach { ruleConfigurationId ->
+            val game = seedGame(
+                gameId = "view-$ruleConfigurationId",
+                snapshot = GameRules.startGame(ruleConfigurationId),
+                selectedRuleConfigurationId = ruleConfigurationId,
+                dragonsPlayerUserId = defaultTestUserId,
+                ravensPlayerUserId = null
+            )
+
+            mockMvc.get("/api/games/${game.id}/view") {
+                with(authenticated(game.id))
+            }.andExpect {
+                status { isOk() }
+                jsonPath("$.availableBots[0].id", equalTo(BotRegistry.randomBotId))
+                jsonPath("$.availableBots[1].id", equalTo(BotRegistry.simpleBotId))
+                jsonPath("$.availableBots[2].id", equalTo(BotRegistry.minimaxBotId))
+                jsonPath("$.availableBots[3].id", equalTo(BotRegistry.deepMinimaxBotId))
+                if (ruleConfigurationId == "sherwood-rules") {
+                    jsonPath("$.availableBots[4].id", equalTo(BotRegistry.machineTrainedBotId))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `missing game returns not found on multi game routes`() {
+        mockMvc.get("/api/games/missing-game") {
+            with(authenticated("missing-game"))
+        }.andExpect {
+            status { isNotFound() }
+            jsonPath("$.message", equalTo("Game missing-game was not found."))
+        }
+    }
+
+    @Test
+    fun `public games list includes listed unfinished games sorted by name and id`() {
+        seedGame(
+            gameId = "listed-b",
+            dragonsPlayerUserId = defaultTestUserId,
+            ravensPlayerUserId = null
+        )
+        seedGame(
+            gameId = "listed-a",
+            dragonsPlayerUserId = null,
+            ravensPlayerUserId = null
+        )
+        seedGame(
+            gameId = "finished-game",
+            snapshot = GameRules.startGame(initialBoard = mapOf("a1" to Piece.dragon)).copy(
+                turns = listOf(TurnRecord(type = TurnType.gameOver, outcome = "Done"))
+            ),
+            lifecycle = GameLifecycle.finished,
+            dragonsPlayerUserId = null,
+            ravensPlayerUserId = null
+        )
+        seedGame(
+            gameId = "private-game",
+            dragonsPlayerUserId = null,
+            ravensPlayerUserId = null
+        )
+        jdbcTemplate.update("update games set publicly_listed = false where id = ?", "private-game")
+
+        mockMvc.get("/api/games/public") {
+            with(authenticated("public-games"))
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$[0].gameId", equalTo("listed-a"))
+            jsonPath("$[0].gameName", equalTo("Ravens and Dragons"))
+            jsonPath("$[0].openSeats", equalTo(2))
+            jsonPath("$[1].gameId", equalTo("listed-b"))
+            jsonPath("$[1].openSeats", equalTo(1))
+            jsonPath("$.length()", equalTo(2))
+        }
+    }
+
+    @Test
+    fun `player games list includes unfinished seated games sorted like public games`() {
+        seedGame(
+            gameId = "player-game-b",
+            snapshot = GameRules.startGame(initialBoard = mapOf("a1" to Piece.dragon)),
+            dragonsPlayerUserId = defaultTestUserId,
+            ravensPlayerUserId = alternateTestUserId
+        )
+        seedGame(
+            gameId = "player-game-a",
+            snapshot = GameRules.startGame(initialBoard = mapOf("a1" to Piece.dragon), selectedStartingSide = Side.ravens),
+            dragonsPlayerUserId = defaultTestUserId,
+            ravensPlayerUserId = alternateTestUserId
+        )
+        seedGame(
+            gameId = "spectator-game",
+            dragonsPlayerUserId = alternateTestUserId,
+            ravensPlayerUserId = alternateTestUserId
+        )
+        seedGame(
+            gameId = "finished-player-game",
+            snapshot = GameRules.startGame(initialBoard = mapOf("a1" to Piece.dragon)).copy(
+                turns = listOf(TurnRecord(type = TurnType.gameOver, outcome = "Done"))
+            ),
+            lifecycle = GameLifecycle.finished,
+            dragonsPlayerUserId = defaultTestUserId,
+            ravensPlayerUserId = alternateTestUserId
+        )
+
+        mockMvc.get("/api/games/mine") {
+            with(authenticated("player-games"))
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$[0].gameId", equalTo("player-game-a"))
+            jsonPath("$[0].gameName", equalTo("Ravens and Dragons"))
+            jsonPath("$[0].isCurrentUserTurn", equalTo(false))
+            jsonPath("$[1].gameId", equalTo("player-game-b"))
+            jsonPath("$[1].isCurrentUserTurn", equalTo(true))
+            jsonPath("$.length()", equalTo(2))
+        }
+    }
+
+    @Test
+    fun `create game can opt out of public listing`() {
+        val created = objectMapper.readValue(
+            mockMvc.post("/api/games/ravens-and-dragons") {
+                with(authenticated("create-private-game"))
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(
+                    mapOf(
+                        "publiclyListed" to false,
+                        "board" to mapOf("a1" to "dragon")
+                    )
+                )
+            }
+                .andExpect {
+                    status { isOk() }
+                }
+                .andReturn()
+                .response
+                .contentAsString,
+            CreateGameResponse::class.java
+        ).game
+
+        org.junit.jupiter.api.Assertions.assertFalse(gameStore.get(created.id)?.publiclyListed ?: true)
+
+        mockMvc.get("/api/games/public") {
+            with(authenticated("public-games"))
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.length()", equalTo(0))
+        }
+    }
+
+    @Test
+    fun `missing game stream returns not found for sse requests`() {
+        mockMvc.get("/api/games/missing-game/stream") {
+            with(authenticated("missing-game"))
+            accept = MediaType.TEXT_EVENT_STREAM
+        }.andExpect {
+            status { isNotFound() }
+            content { string("") }
+        }
+    }
+
+    @Test
+    fun `removed default routes return not found`() {
+        mockMvc.get("/api/game") {
+            with(authenticated("legacy-route"))
+        }.andExpect {
+            status { isNotFound() }
+        }
+
+        mockMvc.post("/api/game/commands") {
+            with(authenticated("legacy-route"))
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(command(0, "move-piece", origin = "a1", destination = "a2"))
+        }.andExpect {
+            status { isNotFound() }
+        }
+
+        mockMvc.get("/api/game/stream") {
+            with(authenticated("legacy-route"))
+        }.andExpect {
+            status { isNotFound() }
+        }
+    }
+
+    @Test
+    fun `game route serves the frontend app shell`() {
+        mockMvc.get("/g/CFGHJMP") {
+            with(authenticated("CFGHJMP"))
+            accept = MediaType.TEXT_HTML
+        }.andExpect {
+            status { isOk() }
+            forwardedUrl("/index.html")
+        }
+    }
+}

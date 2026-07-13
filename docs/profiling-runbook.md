@@ -42,7 +42,7 @@ curl -sf http://127.0.0.1:8080/health
 Find the app JVM pid:
 
 ```bash
-jcmd | rg 'RavensAndDragonsApplication|gradlew bootRun|ravens-and-dragons'
+jcmd | rg 'AyazianGamesApplication|gradlew bootRun|ravens-and-dragons'
 ```
 
 ## Temporary Load Driver

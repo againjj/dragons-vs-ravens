@@ -20,7 +20,7 @@ Command-triggered game and player-list stream events are sent after the database
 
 The repository is structured so each game lives in its own sub-project. The current checkout contains four game modules, Tic-Tac-Toe, Gin Rummy, Lunar Base, and Ravens and Dragons, and the app registers each module explicitly.
 
-The React app shell now lives under `app/frontend` and renders Tic-Tac-Toe, Gin Rummy, Lunar Base, and Ravens and Dragons through a frontend game entry contract supplied by the shared `@ravensanddragons/platform-frontend` package. The package also owns shared auth wire types, auth API helpers, browser shell hooks, the shared player picker, and generic create-option typing that future frontend game bundles can reuse.
+The React app shell now lives under `app/frontend` and renders Tic-Tac-Toe, Gin Rummy, Lunar Base, and Ravens and Dragons through a frontend game entry contract supplied by the shared `@ayaziangames/platform-frontend` package. The package also owns shared auth wire types, auth API helpers, browser shell hooks, the shared player picker, and generic create-option typing that future frontend game bundles can reuse.
 Frontend API helpers classify unauthorized, domain, and network/server failures so shell and game surfaces can redirect expired sessions to login, show server-down notices, and avoid silently replacing failed loads with empty lists. Live SSE streams are closed on errors; menu and game streams wait for a later user action or reload before reconnecting instead of polling the server while it is down.
 Game-start failures remain on the active create route and are displayed there rather than being held until the lobby renders.
 
@@ -104,12 +104,13 @@ The shared browser chrome keeps an `Ayazian Games` logo linked back to the lobby
 ## Runtime Configuration
 
 - `server.port` reads `${PORT:8080}`.
+- `spring.application.name` is `ayazian-games`, which is also the application label shown in structured Spring Boot log lines.
 - `spring.datasource.*` defaults to a local H2 file database and may be overridden for PostgreSQL deploys.
 - `server.servlet.session.timeout` defaults to `2h`.
-- `platform.games.stale-threshold` defaults to `1008h`; the previous `ravens-and-dragons.games.stale-threshold` property is still accepted as a fallback.
+- `platform.games.stale-threshold` defaults to `1008h`.
 - The stale cleanup delay is derived as one tenth of the stale threshold.
 - Optional Google OAuth appears only when Spring OAuth Google client registration environment variables are configured.
-- Railway deploys run the Spring Boot fat jar named `ravens-and-dragons.jar`.
+- Railway deploys run the Spring Boot fat jar named `ayazian-games.jar`.
 - Local `bootRun` loads standard dotenv-style `KEY=value` entries from `.env.local` in the repository root when the file exists and fails on unsupported syntax; packaged jars and deployment startup continue to use their ambient process environment.
 - Railway startup supplies default JVM memory flags through `JAVA_TOOL_OPTIONS`: a small initial/minimum heap, an 80% container-relative max heap, G1 GC, and periodic concurrent idle GC so the app can reclaim quiet-period heap while still growing during bot-search bursts.
 

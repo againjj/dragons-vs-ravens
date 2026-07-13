@@ -1,6 +1,6 @@
-# Ravens and Dragons
+# Ayazian Games
 
-Ravens and Dragons is a Spring Boot and Kotlin web app for playing browser-based games with a React and Redux frontend. Games are stored in the app database, each game has its own URL, and connected players stay in sync through server-sent events.
+Ayazian Games is a Spring Boot and Kotlin web app for playing browser-based games with a React and Redux frontend. Games are stored in the app database, each game has its own URL, and connected players stay in sync through server-sent events.
 
 ## Highlights
 
@@ -47,7 +47,7 @@ Start the app:
 
 Then open [http://localhost:8080](http://localhost:8080).
 
-By default, the app uses a local H2 database stored under `build/db/ravens-and-dragons`.
+By default, the app uses a local H2 database stored under `build/db/ayazian-games`.
 
 The default servlet session timeout is `2h`.
 
@@ -82,19 +82,19 @@ The Randall-vs-Maxine soak harness now runs separately:
 
 To run a larger head-to-head batch, pass `botMatchHarnessGamesPerMatchup` to Gradle. For example, `-DbotMatchHarnessGamesPerMatchup=10` runs the release-two Randall/Maxine coverage plus the Sherwood-only Michelle baseline smoke evaluation at ten games per ordered matchup.
 
-`ravens-and-dragons/backend/src/test/kotlin/com/ravensanddragons/game/GameBotsTest.kt` also keeps two disabled manual bot-comparison checks: one for representative depth-2 move agreement between `MinimaxGameBotStrategy` and `AlphaBetaGameBotStrategy`, and one for timing those same representative searches without making the regular suite flaky.
+`ravens-and-dragons/backend/src/test/kotlin/com/ayaziangames/game/GameBotsTest.kt` also keeps two disabled manual bot-comparison checks: one for representative depth-2 move agreement between `MinimaxGameBotStrategy` and `AlphaBetaGameBotStrategy`, and one for timing those same representative searches without making the regular suite flaky.
 
 ## Profiling
 
-A repeatable local memory-profiling runbook lives at [docs/profiling-runbook.md](/Users/jrayazian/code/ravens-and-dragons/docs/profiling-runbook.md). It covers idle baselines, human-play retention checks, bot-search allocation churn, and SSE-connected profiling passes.
+A repeatable local memory-profiling runbook lives at [docs/profiling-runbook.md](/Users/jrayazian/code/ayazian-games/docs/profiling-runbook.md). It covers idle baselines, human-play retention checks, bot-search allocation churn, and SSE-connected profiling passes.
 
 ## Design Docs
 
-- [docs/multi-game-service-structure-plan.md](/Users/jrayazian/code/ravens-and-dragons/docs/multi-game-service-structure-plan.md): staged plan for evolving the app into a multi-game service with top-level game modules such as `ravens-and-dragons/`
-- [docs/adding-a-new-game.md](/Users/jrayazian/code/ravens-and-dragons/docs/adding-a-new-game.md): canonical guide for adding a new top-level game module
-- [docs/machine-trained-bot-improvements.md](/Users/jrayazian/code/ravens-and-dragons/docs/machine-trained-bot-improvements.md): planning notes for making the evolved, ruleset-scoped `machine-trained` bot `Michelle` stronger
-- [docs/todo.md](/Users/jrayazian/code/ravens-and-dragons/docs/todo.md): canonical list of unfinished follow-up work, updated at explicit wrap-up points rather than during exploratory planning
-- [docs/machine-training-runbook.md](/Users/jrayazian/code/ravens-and-dragons/docs/machine-training-runbook.md): human-facing guide to the current Michelle pipeline, including runtime behavior, schema-5 features, training, evolution, validation, installation, rollback, and troubleshooting
+- [docs/multi-game-service-structure-plan.md](/Users/jrayazian/code/ayazian-games/docs/multi-game-service-structure-plan.md): staged plan for evolving the app into a multi-game service with top-level game modules such as `ravens-and-dragons/`
+- [docs/adding-a-new-game.md](/Users/jrayazian/code/ayazian-games/docs/adding-a-new-game.md): canonical guide for adding a new top-level game module
+- [docs/machine-trained-bot-improvements.md](/Users/jrayazian/code/ayazian-games/docs/machine-trained-bot-improvements.md): planning notes for making the evolved, ruleset-scoped `machine-trained` bot `Michelle` stronger
+- [docs/todo.md](/Users/jrayazian/code/ayazian-games/docs/todo.md): canonical list of unfinished follow-up work, updated at explicit wrap-up points rather than during exploratory planning
+- [docs/machine-training-runbook.md](/Users/jrayazian/code/ayazian-games/docs/machine-training-runbook.md): human-facing guide to the current Michelle pipeline, including runtime behavior, schema-5 features, training, evolution, validation, installation, rollback, and troubleshooting
 
 ## Offline Training
 
@@ -108,7 +108,7 @@ That command writes a run-id-named dataset plus a generated Michelle artifact un
 
 Run the local evolution loop with `--mode evolve`, an explicit incumbent artifact path, and any number of repeated `--seed-artifact` inputs before installing a generated artifact as the bundled Sherwood model. Evolution writes the best survivor-comparison artifact plus one artifact for each final survivor, all named from the run id unless explicit filename overrides are provided.
 
-For installation and validation steps, use [docs/machine-training-runbook.md](/Users/jrayazian/code/ravens-and-dragons/docs/machine-training-runbook.md).
+For installation and validation steps, use [docs/machine-training-runbook.md](/Users/jrayazian/code/ayazian-games/docs/machine-training-runbook.md).
 
 ## Local Authentication Setup
 
@@ -186,8 +186,8 @@ The stale-game eviction threshold defaults to six weeks, and the cleanup schedul
 - `ravens-and-dragons`: parent game module that aggregates backend and frontend child projects
 - `ravens-and-dragons/backend`: Ravens and Dragons gameplay, game APIs, resources, JVM tests, and training code
 - `ravens-and-dragons/frontend`: Ravens and Dragons React game entry, Redux state, browser-side game helpers, and game frontend tests
-- `ravens-and-dragons/backend/src/main/kotlin/com/ravensanddragons/game`: backend game rules, bot strategies/orchestration, Ravens session semantics, and the game handler adapter
-- `platform/backend/src/main/kotlin/com/ravensanddragons/auth`: authentication and account management
+- `ravens-and-dragons/backend/src/main/kotlin/com/ayaziangames/game`: backend game rules, bot strategies/orchestration, Ravens session semantics, and the game handler adapter
+- `platform/backend/src/main/kotlin/com/ayaziangames/auth`: authentication and account management
 - `ravens-and-dragons/frontend/src/main/frontend`: Ravens game frontend entry, create/play UI, Redux state, and browser-side helpers
 - `code-summary.md`: service-wide architecture and implementation summary
 - `app/code-summary.md`, `platform/code-summary.md`, `tic-tac-toe/code-summary.md`, `gin-rummy/code-summary.md`, `lunar-base/code-summary.md`, and `ravens-and-dragons/code-summary.md`: project-level implementation summaries

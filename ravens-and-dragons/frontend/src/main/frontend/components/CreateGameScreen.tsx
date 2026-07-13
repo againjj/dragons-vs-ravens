@@ -1,5 +1,5 @@
 import { useRef, useState, type CSSProperties } from "react";
-import type { GameStartOptions } from "@ravensanddragons/platform-frontend/game-entry";
+import type { GameStartOptions } from "@ayaziangames/platform-frontend/game-entry";
 
 import { getBoardDimension, getColumnLetters } from "../board-geometry.js";
 import { useRavensAndDragonsDispatch, useRavensAndDragonsSelector } from "../frontend-state.js";

@@ -12,8 +12,8 @@ import {
     selectIsLoadingGame
 } from "ravens-and-dragons-frontend/app-integration";
 import { continueAsGuest, loadAuthSession, login, logout, signup, signedOutSession } from "./features/auth/authThunks.js";
-import type { GameEntry, GameStartOptions } from "@ravensanddragons/platform-frontend/game-entry";
-import { useFullscreen } from "@ravensanddragons/platform-frontend/hooks/useFullscreen";
+import type { GameEntry, GameStartOptions } from "@ayaziangames/platform-frontend/game-entry";
+import { useFullscreen } from "@ayaziangames/platform-frontend/hooks/useFullscreen";
 import type { AppDispatch } from "./app/store.js";
 import { useGameRoute } from "./hooks/useGameRoute.js";
 import { selectCurrentUser, selectIsAuthenticated, selectOAuthProviders } from "./features/auth/authSelectors.js";
@@ -33,7 +33,7 @@ import {
     serverUnavailableEventType,
     serverUnavailableMessage,
     sessionExpiredMessage
-} from "@ravensanddragons/platform-frontend/api-client";
+} from "@ayaziangames/platform-frontend/api-client";
 
 interface AppProps {
     gameEntries?: GameEntry<AppDispatch>[];

@@ -1,7 +1,7 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { notifyServerUnavailable } from "@ravensanddragons/platform-frontend/api-client";
-import { PlayerPicker } from "@ravensanddragons/platform-frontend/player-picker";
+import { notifyServerUnavailable } from "@ayaziangames/platform-frontend/api-client";
+import { PlayerPicker } from "@ayaziangames/platform-frontend/player-picker";
 import { CardView } from "./CardView";
 import { Hand } from "./Hand";
 import { FinishedGinRummyLayout, RoundResultBoard, RulesReference } from "./RoundResultBoard";

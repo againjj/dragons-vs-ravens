@@ -1,4 +1,4 @@
-import { createResponseError } from "@ravensanddragons/platform-frontend/api-client";
+import { createResponseError } from "@ayaziangames/platform-frontend/api-client";
 
 export interface PlayerGameListing {
     gameId: string;

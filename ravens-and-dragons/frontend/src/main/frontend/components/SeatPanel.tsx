@@ -1,6 +1,6 @@
-import { PlayerPicker } from "@ravensanddragons/platform-frontend/player-picker";
-import type { AuthUserSummary } from "@ravensanddragons/platform-frontend/auth-types";
-import { isServerUnavailableError, isUnauthorizedError, notifyAuthSessionExpired, notifyServerUnavailable } from "@ravensanddragons/platform-frontend/api-client";
+import { PlayerPicker } from "@ayaziangames/platform-frontend/player-picker";
+import type { AuthUserSummary } from "@ayaziangames/platform-frontend/auth-types";
+import { isServerUnavailableError, isUnauthorizedError, notifyAuthSessionExpired, notifyServerUnavailable } from "@ayaziangames/platform-frontend/api-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 

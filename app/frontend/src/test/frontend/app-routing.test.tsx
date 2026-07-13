@@ -8,7 +8,7 @@ import type { AppDispatch } from "../../main/frontend/app/store.js";
 import { authActions } from "../../main/frontend/features/auth/authSlice.js";
 import { createGameView } from "./fixtures.js";
 import { renderWithStore } from "./test-utils.js";
-import type { GameEntry } from "@ravensanddragons/platform-frontend/game-entry";
+import type { GameEntry } from "@ayaziangames/platform-frontend/game-entry";
 
 const {
     fetchAuthSessionMock,
@@ -42,9 +42,9 @@ vi.mock("ravens-and-dragons-frontend/game-client", () => ({
     isSameServerGame: vi.fn()
 }));
 
-vi.mock("@ravensanddragons/platform-frontend/api-client", () => ({
-    authSessionExpiredEventType: "ravensanddragons:auth-session-expired",
-    serverUnavailableEventType: "ravensanddragons:server-unavailable",
+vi.mock("@ayaziangames/platform-frontend/api-client", () => ({
+    authSessionExpiredEventType: "ayaziangames:auth-session-expired",
+    serverUnavailableEventType: "ayaziangames:server-unavailable",
     serverUnavailableMessage: "The server is down. Please wait and try again later.",
     sessionExpiredMessage: "Your session expired. Please sign in again.",
     createResponseError: async (response: Response, fallbackMessage = "Request failed.") => {
@@ -60,8 +60,8 @@ vi.mock("@ravensanddragons/platform-frontend/api-client", () => ({
     loginAsGuest: loginAsGuestMock,
     loginRequest: vi.fn(),
     logoutRequest: logoutRequestMock,
-    notifyAuthSessionExpired: () => window.dispatchEvent(new CustomEvent("ravensanddragons:auth-session-expired")),
-    notifyServerUnavailable: () => window.dispatchEvent(new CustomEvent("ravensanddragons:server-unavailable")),
+    notifyAuthSessionExpired: () => window.dispatchEvent(new CustomEvent("ayaziangames:auth-session-expired")),
+    notifyServerUnavailable: () => window.dispatchEvent(new CustomEvent("ayaziangames:server-unavailable")),
     signupRequest: vi.fn()
 }));
 
@@ -78,7 +78,7 @@ vi.mock("ravens-and-dragons-frontend/useBoardSizing", () => ({
     useBoardSizing: () => undefined
 }));
 
-vi.mock("@ravensanddragons/platform-frontend/hooks/useFullscreen", () => ({
+vi.mock("@ayaziangames/platform-frontend/hooks/useFullscreen", () => ({
     useFullscreen: () => ({
         toggleFullscreen: async () => ({ message: null })
     })
@@ -233,7 +233,7 @@ describe("App routing", () => {
         });
 
         act(() => {
-            window.dispatchEvent(new CustomEvent("ravensanddragons:auth-session-expired"));
+            window.dispatchEvent(new CustomEvent("ayaziangames:auth-session-expired"));
         });
 
         await screen.findByRole("button", { name: "Continue as Guest" });

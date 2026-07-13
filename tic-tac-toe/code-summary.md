@@ -14,10 +14,10 @@ The parent project has two child projects:
 - `tic-tac-toe/backend/build.gradle.kts`
   - Kotlin/JVM backend module with Java 21.
   - Depends on `:platform:backend` only.
-- `src/main/kotlin/com/ravensanddragons/tictactoe/TicTacToeGameModuleDefinition.kt`
+- `src/main/kotlin/com/ayaziangames/tictactoe/TicTacToeGameModuleDefinition.kt`
   - Tic-Tac-Toe implementation of the platform game module contract.
   - Declares the `tic-tac-toe` slug and `/tic-tac-toe/create` browser route.
-- `src/main/kotlin/com/ravensanddragons/tictactoe/TicTacToeGameHandler.kt`
+- `src/main/kotlin/com/ayaziangames/tictactoe/TicTacToeGameHandler.kt`
   - Implements the platform `GameHandler` port for Tic-Tac-Toe.
   - Creates the empty board, validates place-mark commands, alternates turns, detects wins/draws, and preserves platform-owned listing flags on game updates.
   - Supplies Tic-Tac-Toe public-listing display data and reports no player seats for the shared player-game menu because this game has no seat ownership.

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { GameEntryIdentity } from "@ravensanddragons/platform-frontend/game-entry";
+import type { GameEntryIdentity } from "@ayaziangames/platform-frontend/game-entry";
 
 export interface PublicGameListing {
     gameId: string;

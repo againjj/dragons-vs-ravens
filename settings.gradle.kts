@@ -1,4 +1,4 @@
-rootProject.name = "ravens-and-dragons-service"
+rootProject.name = "ayazian-games"
 
 include("platform")
 include("platform:backend")

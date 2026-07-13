@@ -1,7 +1,7 @@
 import type { ThunkAction, ThunkDispatch, UnknownAction } from "@reduxjs/toolkit";
 import { useDispatch, useSelector } from "react-redux";
 
-import type { AuthSessionResponse } from "@ravensanddragons/platform-frontend/auth-types";
+import type { AuthSessionResponse } from "@ayaziangames/platform-frontend/auth-types";
 import type { CreateGameDraftState } from "./game-types.js";
 import type { GameState } from "./features/game/gameSlice.js";
 import type { UiState } from "./features/ui/uiSlice.js";

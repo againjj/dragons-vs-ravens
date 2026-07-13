@@ -3,7 +3,7 @@ extra["pairedProjectDisplayName"] = "app"
 apply(from = "../gradle/paired-project.gradle.kts")
 
 subprojects {
-    group = "com.ravensanddragons.app"
+    group = "com.ayaziangames.app"
 }
 
 tasks.register("bootJar") {

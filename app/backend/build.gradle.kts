@@ -54,7 +54,7 @@ tasks.withType<Test>().configureEach {
 }
 
 tasks.withType<BootJar>().configureEach {
-    archiveFileName.set("ravens-and-dragons.jar")
+    archiveFileName.set("ayazian-games.jar")
 }
 
 apply(from = "../local-env.gradle.kts")
