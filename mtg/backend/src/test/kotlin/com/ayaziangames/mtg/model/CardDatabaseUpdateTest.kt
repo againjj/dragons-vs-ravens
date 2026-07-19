@@ -34,7 +34,10 @@ class CardDatabaseUpdateTest {
     @Test
     fun updateReturnsSameCardDatabaseWhenMapIsUnchanged() {
         val definition = CardDefinition(name = "Forest")
-        val database = CardDatabase(mapOf(definition.name to definition))
+        val database = CardDatabase(
+            name = "cards",
+            cardsByName = mapOf(definition.name to definition)
+        )
 
         assertSame(database, database.update())
     }
@@ -43,7 +46,10 @@ class CardDatabaseUpdateTest {
     fun updateReturnsNewCardDatabaseWhenMapChanges() {
         val forest = CardDefinition(name = "Forest")
         val mountain = CardDefinition(name = "Mountain")
-        val database = CardDatabase(mapOf(forest.name to forest))
+        val database = CardDatabase(
+            name = "cards",
+            cardsByName = mapOf(forest.name to forest)
+        )
 
         val updated = database.update(cardsByName = mapOf(mountain.name to mountain))
 

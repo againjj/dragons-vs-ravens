@@ -4,6 +4,9 @@ data class PlayerAction(
     val playerIndex: Int,
     val command: ActionCommand
 ) {
+    fun serialize(): String =
+        "actionByPlayer($playerIndex) { ${command.serialize()} }"
+
     fun update(
         playerIndex: Int = this.playerIndex,
         command: ActionCommand = this.command
@@ -21,9 +24,14 @@ data class PlayerAction(
         }
 }
 
-sealed interface ActionCommand
+sealed interface ActionCommand {
+    fun serialize(): String
+}
 
 data class DrawCommand(val count: Int) : ActionCommand {
+    override fun serialize(): String =
+        "draw($count)"
+
     fun update(
         count: Int = this.count
     ): DrawCommand =

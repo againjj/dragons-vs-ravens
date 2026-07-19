@@ -12,6 +12,7 @@ class CardDslTest {
     @Test
     fun buildsDeckCardsAsUniqueInstancesOfDatabaseDefinitions() {
         val cards = cardDefinitions {
+            name = "cards"
             cardDefinition {
                 name = "Forest"
             }

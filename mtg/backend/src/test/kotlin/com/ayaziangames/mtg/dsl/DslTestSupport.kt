@@ -6,6 +6,7 @@ import com.ayaziangames.mtg.model.GamePhase
 import com.ayaziangames.mtg.model.GameStep
 
 internal fun forestCardDatabase() = cardDefinitions {
+    name = "cards"
     cardDefinition {
         name = "Forest"
     }

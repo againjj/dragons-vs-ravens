@@ -9,6 +9,7 @@ class CardDatabaseDslTest {
     @Test
     fun buildsCardDefinitionsWithAllConfiguredFields() {
         val cards = cardDefinitions {
+            name = "cards"
             cardDefinition {
                 name = "Grizzly Bears"
                 types = listOf("Creature")
@@ -26,6 +27,7 @@ class CardDatabaseDslTest {
         }
 
         val bears = cards.cardNamed("Grizzly Bears")
+        assertEquals("cards", cards.name)
         assertEquals("Grizzly Bears", bears.name)
         assertEquals(emptyList(), bears.superTypes)
         assertEquals(listOf("Creature"), bears.types)
@@ -48,6 +50,7 @@ class CardDatabaseDslTest {
     fun rejectsDuplicateCardDefinitions() {
         val exception = assertFailsWith<IllegalArgumentException> {
             cardDefinitions {
+                name = "cards"
                 cardDefinition {
                     name = "Forest"
                 }
@@ -61,9 +64,32 @@ class CardDatabaseDslTest {
     }
 
     @Test
+    fun rejectsCardDatabaseNamesAssignedMoreThanOnce() {
+        val exception = assertFailsWith<IllegalArgumentException> {
+            cardDefinitions {
+                name = "cards"
+                name = "otherCards"
+            }
+        }
+
+        assertEquals("Property name can only be assigned once.", exception.message)
+    }
+
+    @Test
+    fun requiresCardDatabaseName() {
+        val exception = assertFailsWith<IllegalArgumentException> {
+            cardDefinitions {
+            }
+        }
+
+        assertEquals("Card definitions require a name.", exception.message)
+    }
+
+    @Test
     fun requiresPowerAndToughnessToBeSpecifiedTogether() {
         val exception = assertFailsWith<IllegalArgumentException> {
             cardDefinitions {
+                name = "cards"
                 cardDefinition {
                     name = "Grizzly Bears"
                     power = 2
@@ -118,6 +144,7 @@ class CardDatabaseDslTest {
     ) {
         val exception = assertFailsWith<IllegalArgumentException> {
             cardDefinitions {
+                name = "cards"
                 cardDefinition(init)
             }
         }

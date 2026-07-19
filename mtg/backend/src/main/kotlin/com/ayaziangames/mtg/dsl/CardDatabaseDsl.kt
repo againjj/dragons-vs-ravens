@@ -6,7 +6,12 @@ import com.ayaziangames.mtg.model.ManaSymbol
 
 @MtgDsl
 class CardDatabaseBuilder internal constructor() {
+    private val assignedName = SingleAssignment<String?>("name", null)
     private val cards = mutableListOf<CardDefinition>()
+
+    var name: String?
+        get() = assignedName.value
+        set(value) = assignedName.set(value)
 
     fun cardDefinition(init: @MtgDsl CardDefinitionBuilder.() -> Unit) {
         cards += CardDefinitionBuilder().apply(init).build()
@@ -17,7 +22,10 @@ class CardDatabaseBuilder internal constructor() {
         require(duplicates.isEmpty()) {
             "Duplicate card definitions: ${duplicates.joinToString()}."
         }
-        return CardDatabase(cards.associateBy { it.name })
+        return CardDatabase(
+            name = requireNotNull(name) { "Card definitions require a name." },
+            cardsByName = cards.associateBy { it.name }
+        )
     }
 }
 

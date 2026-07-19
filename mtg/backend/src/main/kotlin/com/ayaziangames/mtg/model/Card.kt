@@ -58,6 +58,9 @@ enum class ManaSymbol {
 class Card(
     val definition: CardDefinition
 ) {
+    fun serialize(): String =
+        "card(${definition.name.serializeString()})"
+
     fun update(
         definition: CardDefinition = this.definition
     ): Card =

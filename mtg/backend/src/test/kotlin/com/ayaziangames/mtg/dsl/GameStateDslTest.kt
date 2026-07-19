@@ -31,6 +31,7 @@ class GameStateDslTest {
     @Test
     fun buildsGameStateFromNestedPlayerZones() {
         val cards = cardDefinitions {
+            name = "cards"
             cardDefinition {
                 name = "Forest"
                 superTypes = listOf("Basic")

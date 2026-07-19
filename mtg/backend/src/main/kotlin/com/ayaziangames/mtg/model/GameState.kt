@@ -6,6 +6,20 @@ class GameState(
     val phase: GamePhase,
     val step: GameStep? = null
 ) {
+    fun serialize(): String =
+        buildString {
+            appendLine("gameState {")
+            for (playerState in player) {
+                appendLine(playerState.serialize().indentBy(4))
+            }
+            appendLine("    activePlayer = $activePlayer")
+            appendLine("    phase = ${phase.name}")
+            if (step != null) {
+                appendLine("    step = ${step.name}")
+            }
+            append("}")
+        }
+
     fun update(
         player: List<PlayerState> = this.player,
         activePlayer: Int = this.activePlayer,
@@ -36,6 +50,20 @@ class PlayerState(
     val hand: Hand,
     val life: Int
 ) {
+    fun serialize(): String =
+        buildString {
+            appendLine("player {")
+            appendLine("    deck {")
+            append(deck.joinToString("\n") { it.serialize().indentBy(8) })
+            appendLine()
+            appendLine("    }")
+            appendLine(library.serialize(deck).indentBy(4))
+            appendLine(hand.serialize(deck).indentBy(4))
+            appendLine(battlefield.serialize(deck).indentBy(4))
+            appendLine("    life = $life")
+            append("}")
+        }
+
     fun update(
         deck: List<Card> = this.deck,
         library: Library = this.library,
@@ -69,6 +97,16 @@ sealed interface Zone {
 class Library(
     override val cards: List<Card>
 ) : Zone {
+    fun serialize(deck: List<Card>): String =
+        buildString {
+            appendLine("library {")
+            append(cards.joinToString("\n") { "    deckCard(${deck.indexOfCardByIdentity(it)})" })
+            if (cards.isNotEmpty()) {
+                appendLine()
+            }
+            append("}")
+        }
+
     fun update(
         cards: List<Card> = this.cards
     ): Library =
@@ -82,6 +120,16 @@ class Library(
 class Hand(
     override val cards: List<Card>
 ) : Zone {
+    fun serialize(deck: List<Card>): String =
+        buildString {
+            appendLine("hand {")
+            append(cards.joinToString("\n") { "    deckCard(${deck.indexOfCardByIdentity(it)})" })
+            if (cards.isNotEmpty()) {
+                appendLine()
+            }
+            append("}")
+        }
+
     fun update(
         cards: List<Card> = this.cards
     ): Hand =
@@ -97,6 +145,16 @@ class Battlefield(
 ) : Zone {
     override val cards: List<Card> = permanents.map { it.card }
 
+    fun serialize(deck: List<Card>): String =
+        buildString {
+            appendLine("battlefield {")
+            append(permanents.joinToString("\n") { it.serialize(deck).indentBy(4) })
+            if (permanents.isNotEmpty()) {
+                appendLine()
+            }
+            append("}")
+        }
+
     fun update(
         permanents: List<Permanent> = this.permanents
     ): Battlefield =
@@ -111,6 +169,14 @@ class Permanent(
     val card: Card,
     val tapped: Boolean
 ) {
+    fun serialize(deck: List<Card>): String =
+        buildString {
+            appendLine("permanent {")
+            appendLine("    deckCard(${deck.indexOfCardByIdentity(card)})")
+            appendLine("    tapped = $tapped")
+            append("}")
+        }
+
     fun update(
         card: Card = this.card,
         tapped: Boolean = this.tapped
@@ -165,3 +231,9 @@ val COMBAT_DAMAGE = GameStep.COMBAT_DAMAGE
 val END_OF_COMBAT = GameStep.END_OF_COMBAT
 val END_STEP = GameStep.END_STEP
 val CLEANUP = GameStep.CLEANUP
+
+private fun List<Card>.indexOfCardByIdentity(card: Card): Int {
+    val index = indexOfFirst { it === card }
+    require(index >= 0) { "Zone card ${card.definition.name} is not in the player's deck." }
+    return index
+}

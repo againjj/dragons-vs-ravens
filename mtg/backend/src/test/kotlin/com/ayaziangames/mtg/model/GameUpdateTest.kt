@@ -38,7 +38,10 @@ class GameUpdateTest {
             life = 20
         )
         return Game(
-            availableCards = CardDatabase(mapOf(definition.name to definition)),
+            availableCards = CardDatabase(
+                name = "cards",
+                cardsByName = mapOf(definition.name to definition)
+            ),
             gameState = GameState(
                 player = listOf(playerState),
                 activePlayer = 0,
