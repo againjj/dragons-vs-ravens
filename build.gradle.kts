@@ -36,6 +36,7 @@ tasks.named("assemble") {
 tasks.named("check") {
     dependsOn(":platform:check")
     dependsOn(":tic-tac-toe:check")
+    dependsOn(":mtg:check")
     dependsOn(":ravens-and-dragons:check")
     dependsOn(":app:check")
 }
@@ -45,6 +46,7 @@ val testBackend by tasks.registering {
     description = "Runs backend test suites for all service subprojects."
     dependsOn(":platform:testBackend")
     dependsOn(":tic-tac-toe:testBackend")
+    dependsOn(":mtg:testBackend")
     dependsOn(":ravens-and-dragons:testBackend")
     dependsOn(":app:testBackend")
 }
@@ -55,6 +57,7 @@ val testFrontend by tasks.registering {
     dependsOn(":platform:testFrontend")
     dependsOn(":app:testFrontend")
     dependsOn(":tic-tac-toe:testFrontend")
+    dependsOn(":mtg:testFrontend")
     dependsOn(":ravens-and-dragons:testFrontend")
 }
 

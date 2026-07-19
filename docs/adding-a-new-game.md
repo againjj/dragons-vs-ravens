@@ -194,6 +194,10 @@ Frontend:
 - Add the entry to `registeredGameEntries`.
 - Expect `app/frontend/package-lock.json` to change after the app frontend install/build sees the new local package.
 
+The app shell filters imported frontend entries against `GET /api/games/modules`, so a game that is compiled into the browser bundle appears in the lobby/create routes only when the current server registers it.
+
+For a local-only game, gate the backend registry and handler with the same app property used by `bootRun`, and add the slug to the app shell's local-only slug set so the deployed-safe default does not show it before the module list loads.
+
 When app registration changes, update:
 
 - `README.md`

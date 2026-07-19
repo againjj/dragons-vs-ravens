@@ -4,6 +4,7 @@ extra["frontendBuildDependencies"] = listOf(
     ":tic-tac-toe:frontend:npmInstall",
     ":gin-rummy:frontend:npmInstall",
     ":lunar-base:frontend:npmInstall",
+    ":mtg:frontend:npmInstall",
     ":ravens-and-dragons:frontend:npmInstall"
 )
 extra["frontendSourceInputs"] = listOf(
@@ -11,6 +12,7 @@ extra["frontendSourceInputs"] = listOf(
     "../../tic-tac-toe/frontend/src/main/frontend",
     "../../gin-rummy/frontend/src/main/frontend",
     "../../lunar-base/frontend/src/main/frontend",
+    "../../mtg/frontend/src/main/frontend",
     "../../ravens-and-dragons/frontend/src/main/frontend"
 )
 

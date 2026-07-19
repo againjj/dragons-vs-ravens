@@ -2,13 +2,14 @@
 
 ## Overview
 
-This repository is a Spring Boot 3.3 + Kotlin 2.1 service that hosts browser-based games. It is organized as a Gradle multi-project build with six top-level projects:
+This repository is a Spring Boot 3.3 + Kotlin 2.1 service that hosts browser-based games. It is organized as a Gradle multi-project build with seven top-level projects:
 
 - `app/`: parent project for the runnable Spring Boot backend, deployed frontend shell, and deployable jar assembly.
 - `platform/`: parent project for shared service infrastructure such as auth, web error handling, route fallback, the game module contract, and shared frontend package code.
 - `tic-tac-toe/`: the Tic-Tac-Toe game module, including backend 3x3 board rules/API handling and frontend create/play UI.
 - `gin-rummy/`: the Gin Rummy game module, including backend card rules/scoring/API handling and frontend create/play UI.
 - `lunar-base/`: the Lunar Base game module, including backend card/deck/private-hand rules/API handling and frontend create/play UI.
+- `mtg/`: the local-only Magic: the Gathering placeholder module, including a minimal backend and frontend.
 - `ravens-and-dragons/`: the Ravens and Dragons game module, including backend rules/APIs, frontend UI, bots, machine training, assets, and tests.
 
 The backend supports multiple persisted game sessions addressed by game id and broadcasts live updates over server-sent events per game. The frontend opens on a lobby, can route into `/{gameSlug}/create` for a local draft setup flow, and opens live games at `/g/{gameId}`. Game creation now posts through a slugged API path so the hosting service can distinguish the game type from the session id.
@@ -18,16 +19,16 @@ The platform auth surface exposes signed-in player summaries for shared player p
 The runnable app now assembles Ravens and Dragons through a platform-owned game module contract and opaque game runtime. Platform owns generic game ids, persistence, REST/SSE routing, stale cleanup, and handler dispatch. Game handlers supply client-facing public state for generic game reads and initial stream snapshots so a module can normalize older persisted payloads before the frontend resolves the game entry. Ravens and Dragons owns every Ravens-shaped concept, including board pieces, sides, snapshots, command semantics, undo payloads, bot turns, and game-view metadata.
 Command-triggered game and player-list stream events are sent after the database transaction commits. Game handlers can return a typed command result containing canonical game state plus response-only feedback; persistence receives only the state. Game handlers can also mark parts of a command result as command-only public stream state, so SSE events may include transient public details while later reads load the persisted state without them. Direct command responses use a separate handler hook that can return viewer-aware state for the acting user, including only that user's private data; public streams still receive public state. Game handlers can also schedule post-commit follow-up work through the runtime; Ravens and Dragons uses this to return the human command state immediately and then persist/broadcast bot replies separately. Follow-up work computes outside the per-game lock and stale follow-up results are discarded if another command updates the game first.
 
-The repository is structured so each game lives in its own sub-project. The current checkout contains four game modules, Tic-Tac-Toe, Gin Rummy, Lunar Base, and Ravens and Dragons, and the app registers each module explicitly.
+The repository is structured so each game lives in its own sub-project. The current checkout contains five game modules, Tic-Tac-Toe, Gin Rummy, Lunar Base, Magic: the Gathering, and Ravens and Dragons. The app registers deployed modules explicitly and enables Magic: the Gathering only for local `bootRun` through `AYAZIAN_GAMES_LOCAL_MODULES=mtg`.
 
-The React app shell now lives under `app/frontend` and renders Tic-Tac-Toe, Gin Rummy, Lunar Base, and Ravens and Dragons through a frontend game entry contract supplied by the shared `@ayaziangames/platform-frontend` package. The package also owns shared auth wire types, auth API helpers, browser shell hooks, the shared player picker, and generic create-option typing that future frontend game bundles can reuse.
+The React app shell now lives under `app/frontend` and renders server-registered game entries through a frontend game entry contract supplied by the shared `@ayaziangames/platform-frontend` package. The shell imports Tic-Tac-Toe, Gin Rummy, Lunar Base, local-only Magic: the Gathering, and Ravens and Dragons entries, then filters the lobby/create routes against `GET /api/games/modules`. The package also owns shared auth wire types, auth API helpers, browser shell hooks, the shared player picker, and generic create-option typing that future frontend game bundles can reuse.
 Frontend API helpers classify unauthorized, domain, and network/server failures so shell and game surfaces can redirect expired sessions to login, show server-down notices, and avoid silently replacing failed loads with empty lists. Live SSE streams are closed on errors; menu and game streams wait for a later user action or reload before reconnecting instead of polling the server while it is down.
 Game-start failures remain on the active create route and are displayed there rather than being held until the lobby renders.
 
 ## Project Files
 
 - `settings.gradle.kts`
-  - Includes `:platform`, `:platform:backend`, `:platform:frontend`, `:tic-tac-toe`, `:tic-tac-toe:backend`, `:tic-tac-toe:frontend`, `:gin-rummy`, `:gin-rummy:backend`, `:gin-rummy:frontend`, `:lunar-base`, `:lunar-base:backend`, `:lunar-base:frontend`, `:ravens-and-dragons`, `:ravens-and-dragons:backend`, `:ravens-and-dragons:frontend`, `:app`, `:app:backend`, and `:app:frontend`.
+  - Includes `:platform`, `:platform:backend`, `:platform:frontend`, `:tic-tac-toe`, `:tic-tac-toe:backend`, `:tic-tac-toe:frontend`, `:gin-rummy`, `:gin-rummy:backend`, `:gin-rummy:frontend`, `:lunar-base`, `:lunar-base:backend`, `:lunar-base:frontend`, `:mtg`, `:mtg:backend`, `:mtg:frontend`, `:ravens-and-dragons`, `:ravens-and-dragons:backend`, `:ravens-and-dragons:frontend`, `:app`, `:app:backend`, and `:app:frontend`.
 - `build.gradle.kts`
   - Owns shared plugin versions, repositories, aggregate lifecycle tasks, root convenience tasks, and deployment-facing jar copy behavior.
   - Gives subproject jar artifacts path-derived names so the assembled Spring Boot jar can include multiple `backend` modules without duplicate `BOOT-INF/lib` entries.
@@ -86,6 +87,7 @@ The Gradle wrapper is pinned to Gradle 9.4.1. Java 21 is the project toolchain. 
   - `/g/{gameId}`: live game route.
 - Auth endpoints live under `/api/auth`.
 - Game creation uses `POST /api/games/{gameSlug}`.
+- Registered game modules use `GET /api/games/modules`.
 - Game reads use `GET /api/games/{gameId}` and `GET /api/games/{gameId}/view`.
 - Public unfinished games use `GET /api/games/public`.
 - Signed-in player game navigation uses `GET /api/games/mine` and live menu updates use `GET /api/games/mine/stream`.
@@ -93,6 +95,7 @@ The Gradle wrapper is pinned to Gradle 9.4.1. Java 21 is the project toolchain. 
 - Tic-Tac-Toe commands place alternating X/O marks on an empty 3x3 square until a row, column, diagonal, or draw finishes the game.
 - Gin Rummy commands claim human seats, reveal the dealer on the first seated player, draw/pass/discard, reorder hands, knock, gin, big gin, and advance immediately dealt alternating-dealer hands/games/matches while scoring with configured bonuses and sending the just-completed hand result as transient public stream state for browser-local popups. Direct command responses use the acting viewer's private view. Gin Rummy public state also exposes the discard card below the top card so the frontend can keep the discard pile visually accurate while the top discard is being dragged.
 - Lunar Base commands claim seats, play any number of agents before a main action, choose one main action, resume actor-specific card interactions, build modules, draw from stock, draft/resell supply cards, discard hand cards, flip stations, choose action options or players, and automatically advance turns when a main action finishes while keeping private hands in viewer-specific game views until the game ends. Lunar Base direct command responses use the acting viewer's private view, so a newly seated player immediately receives their station controls and hand without revealing another player's hand in public streams. Lunar Base rejects duplicate seat occupancy by the same user. Lunar Base public card views expose catalog-derived costs, colonist counts, achievement ordinals, and station front/back metadata; playing agents/modules spends credits after completed colored and gray orbs reduce the catalog cost, reselling a supply card grants the acting player a credit, and supply refill grants credits from yellow and gray orbs only when the remaining supply is empty or influence-only and the turn advances, unless active card effects suppress shuttle credits or add red-orb credits. Active influence and board-module effects can forbid drafting other influences, forbid stealing credits, and trigger action sequences from influence draft/discard or Dome/Laika Memorial builds. Backend public state derives board orb counts, housed colonists, unique scientific achievements, action state, and end-game result details from persisted state. The frontend keeps player boards and panels in viewer-relative seat order, shows an action panel with derived action text and required buttons, lets seated viewers reveal their own station's other side locally with dimmed-table flip animation, reveals hands/station backs/influence counts after game end, keeps disabled cards at normal brightness, supports action-state-controlled dragging supply and stock cards into hand, dragging supply cards to discard, shows destination snap rectangles from card-center legal drops, preserves the table scroll when partially visible card drags start or drop, keeps cancelled hand drags animated back to the real hand-card position, mirrors remote card movements and station flips from live updates across all player spaces, auto-scrolls the play area near edges while dragging, and uses shared hand/supply movement setup so animated source cards stay hidden until the updated game state removes them.
+- Magic: the Gathering creates an active placeholder game and supports only an `endGame` command that finishes it. It is registered only for local `bootRun`.
 - The canonical Lunar Base standard-card DSL script is converted to compiled Kotlin source during the build, avoiding runtime Kotlin compiler/classpath requirements in the packaged Spring Boot jar.
 - Seat and bot actions are Ravens command types sent through the command endpoint. Ravens uses a platform-owned player picker to add the current user, another existing player, or a legal bot opponent to open seats while allowing the current user to take a second seat when game rules allow it.
 - Live updates use `GET /api/games/{gameId}/stream`.
@@ -108,6 +111,7 @@ The shared browser chrome keeps an `Ayazian Games` logo linked back to the lobby
 - `spring.datasource.*` defaults to a local H2 file database and may be overridden for PostgreSQL deploys.
 - `server.servlet.session.timeout` defaults to `2h`.
 - `platform.games.stale-threshold` defaults to `1008h`.
+- `ayazian-games.local-game-modules` reads `${AYAZIAN_GAMES_LOCAL_MODULES:}`; local `bootRun` sets it to `mtg`, while packaged/deployed starts leave it empty by default.
 - The stale cleanup delay is derived as one tenth of the stale threshold.
 - Optional Google OAuth appears only when Spring OAuth Google client registration environment variables are configured.
 - Railway deploys run the Spring Boot fat jar named `ayazian-games.jar`.
@@ -122,5 +126,6 @@ Read these before changing the corresponding project:
 - `tic-tac-toe/AGENTS.md` and `tic-tac-toe/code-summary.md`
 - `gin-rummy/AGENTS.md` and `gin-rummy/code-summary.md`
 - `lunar-base/AGENTS.md` and `lunar-base/code-summary.md`
+- `mtg/AGENTS.md` and `mtg/code-summary.md`
 - `platform/AGENTS.md` and `platform/code-summary.md`
 - `ravens-and-dragons/AGENTS.md` and `ravens-and-dragons/code-summary.md`

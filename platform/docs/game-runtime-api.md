@@ -37,6 +37,7 @@ Each game supplies one Spring `GameHandler`.
 The platform owns these routes:
 
 - `POST /api/games/{gameSlug}` creates a game.
+- `GET /api/games/modules` returns the registered game module identities for the current server.
 - `GET /api/games/{gameId}` returns public state.
 - `GET /api/games/{gameId}/view` returns viewer-specific state.
 - `POST /api/games/{gameId}/commands` applies a game command and returns the handler's command response for the acting user.

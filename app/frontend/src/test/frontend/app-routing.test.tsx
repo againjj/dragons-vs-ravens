@@ -178,6 +178,46 @@ describe("App routing", () => {
         });
     });
 
+    test("shows local-only MTG when the server registers it", async () => {
+        fetchAuthSessionMock.mockResolvedValue({
+            authenticated: true,
+            user: {
+                id: "guest-1",
+                displayName: "Guest 1",
+                authType: "guest"
+            }
+        });
+        fetchGameMetadataMock.mockImplementation(async (url: string) => {
+            if (url === "/api/games/modules") {
+                return {
+                    ok: true,
+                    json: async () => [
+                        { slug: "tic-tac-toe", displayName: "Tic-Tac-Toe" },
+                        { slug: "gin-rummy", displayName: "Gin Rummy" },
+                        { slug: "lunar-base", displayName: "Lunar Base" },
+                        { slug: "mtg", displayName: "Magic: the Gathering" },
+                        { slug: "ravens-and-dragons", displayName: "Ravens and Dragons" }
+                    ]
+                };
+            }
+            if (url === "/api/games/public") {
+                return {
+                    ok: true,
+                    json: async () => []
+                };
+            }
+            return {
+                ok: true,
+                json: async () => ({ gameSlug: "ravens-and-dragons" })
+            };
+        });
+        window.history.pushState({}, "", "/lobby");
+
+        renderWithStore(<App />);
+
+        expect(await screen.findByRole("option", { name: "Magic: the Gathering" })).toBeInTheDocument();
+    });
+
     test("unauthenticated users loading a game route are redirected to /login and then back after login", async () => {
         const user = userEvent.setup();
         const pushStateSpy = vi.spyOn(window.history, "pushState");

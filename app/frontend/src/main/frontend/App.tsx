@@ -23,6 +23,7 @@ import { ravensAndDragonsGameEntry } from "ravens-and-dragons-frontend";
 import { ticTacToeGameEntry } from "tic-tac-toe-frontend";
 import { ginRummyGameEntry } from "gin-rummy-frontend";
 import { lunarBaseGameEntry } from "lunar-base-frontend";
+import { mtgGameEntry } from "mtg-frontend";
 import {
     authSessionExpiredEventType,
     createResponseError,
@@ -39,7 +40,20 @@ interface AppProps {
     gameEntries?: GameEntry<AppDispatch>[];
 }
 
-const registeredGameEntries: GameEntry<AppDispatch>[] = [ravensAndDragonsGameEntry, ticTacToeGameEntry, ginRummyGameEntry, lunarBaseGameEntry];
+interface RegisteredGameModule {
+    slug: string;
+    displayName: string;
+}
+
+const localOnlyGameSlugs = new Set(["mtg"]);
+const registeredGameEntries: GameEntry<AppDispatch>[] = [
+    ravensAndDragonsGameEntry,
+    ticTacToeGameEntry,
+    ginRummyGameEntry,
+    lunarBaseGameEntry,
+    mtgGameEntry
+];
+const defaultVisibleGameEntries = registeredGameEntries.filter((entry) => !localOnlyGameSlugs.has(entry.identity.slug));
 const appTitle = "Ayazian Games";
 
 const HeaderLogo = () => (
@@ -57,14 +71,34 @@ const fetchPublicGames = async (): Promise<PublicGameListing[]> => {
     return Array.isArray(payload) ? payload as PublicGameListing[] : [];
 };
 
+const fetchRegisteredGameModules = async (): Promise<RegisteredGameModule[] | null> => {
+    const response = await fetch("/api/games/modules");
+    if (!response.ok) {
+        throw await createResponseError(response, "Unable to load available games.");
+    }
+    const payload = await response.json() as unknown;
+    return Array.isArray(payload) ? payload as RegisteredGameModule[] : null;
+};
+
 const useGameSessionLifecycles = (gameEntries: GameEntry<AppDispatch>[]) => {
     gameEntries.forEach((entry) => {
         entry.lifecycle.useSession();
     });
 };
 
-export const App = ({ gameEntries = registeredGameEntries }: AppProps) => {
+export const App = ({ gameEntries }: AppProps) => {
     const dispatch = useAppDispatch();
+    const usesDefaultGameEntries = gameEntries === undefined;
+    const allGameEntries = gameEntries ?? registeredGameEntries;
+    const [enabledGameSlugs, setEnabledGameSlugs] = useState<Set<string>>(
+        () => new Set((gameEntries ?? defaultVisibleGameEntries).map((entry) => entry.identity.slug))
+    );
+    const visibleGameEntries = useMemo(
+        () => usesDefaultGameEntries
+            ? allGameEntries.filter((entry) => enabledGameSlugs.has(entry.identity.slug))
+            : allGameEntries,
+        [allGameEntries, enabledGameSlugs, usesDefaultGameEntries]
+    );
     const isAuthenticated = useAppSelector(selectIsAuthenticated);
     const currentUser = useAppSelector(selectCurrentUser);
     const oauthProviders = useAppSelector(selectOAuthProviders);
@@ -74,7 +108,7 @@ export const App = ({ gameEntries = registeredGameEntries }: AppProps) => {
     const userMenuRef = useRef<HTMLDivElement | null>(null);
     const { toggleFullscreen } = useFullscreen(pageRef);
     const [activeGameSlug, setActiveGameSlug] = useState<string | null>(null);
-    const [selectedLobbyGameSlug, setSelectedLobbyGameSlug] = useState(gameEntries[0].identity.slug);
+    const [selectedLobbyGameSlug, setSelectedLobbyGameSlug] = useState(visibleGameEntries[0]?.identity.slug ?? "");
     const [publicGames, setPublicGames] = useState<PublicGameListing[]>([]);
     const [playerGames, setPlayerGames] = useState<PlayerGameListing[]>([]);
     const [isPlayerGamesStreamPaused, setIsPlayerGamesStreamPaused] = useState(false);
@@ -83,8 +117,8 @@ export const App = ({ gameEntries = registeredGameEntries }: AppProps) => {
     const [createGameErrorMessage, setCreateGameErrorMessage] = useState<string | null>(null);
     const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(null);
     const gameEntriesBySlug = useMemo(
-        () => new Map(gameEntries.map((entry) => [entry.identity.slug, entry])),
-        [gameEntries]
+        () => new Map(visibleGameEntries.map((entry) => [entry.identity.slug, entry])),
+        [visibleGameEntries]
     );
     const activeGameEntry = activeGameSlug ? gameEntriesBySlug.get(activeGameSlug) ?? null : null;
 
@@ -102,18 +136,54 @@ export const App = ({ gameEntries = registeredGameEntries }: AppProps) => {
         setServerErrorMessage(serverUnavailableMessage);
     }, []);
     const { page, navigateToCreate, navigateToGame, navigateToLobby, navigateToProfile, openGameFromLobby, createGameSlug, currentGameId } = useGameRoute(
-        gameEntries,
+        visibleGameEntries,
         activeGameEntry,
         setActiveGameSlug
     );
     const showProfileLink = isAuthenticated && (currentUser?.authType === "local" || currentUser?.authType === "oauth");
     const currentUserId = currentUser?.id ?? null;
     const userTurnCount = playerGames.filter((game) => game.isCurrentUserTurn).length;
-    useGameSessionLifecycles(gameEntries);
+    useGameSessionLifecycles(visibleGameEntries);
 
     const currentCreateGameEntry = createGameSlug ? gameEntriesBySlug.get(createGameSlug) ?? null : null;
     const CurrentCreateScreen = currentCreateGameEntry?.components.CreateScreen ?? null;
-    const selectedLobbyGameEntry = gameEntriesBySlug.get(selectedLobbyGameSlug) ?? gameEntries[0];
+    const selectedLobbyGameEntry = gameEntriesBySlug.get(selectedLobbyGameSlug) ?? visibleGameEntries[0];
+
+    useEffect(() => {
+        if (!usesDefaultGameEntries || !isAuthenticated) {
+            return;
+        }
+
+        let isActive = true;
+        void fetchRegisteredGameModules()
+            .then((modules) => {
+                if (!isActive || modules === null) {
+                    return;
+                }
+                setEnabledGameSlugs(new Set(modules.map((module) => module.slug)));
+            })
+            .catch((error: unknown) => {
+                if (!isActive) {
+                    return;
+                }
+                if (isUnauthorizedError(error)) {
+                    notifyAuthSessionExpired();
+                } else if (isServerUnavailableError(error)) {
+                    notifyServerUnavailable();
+                }
+            });
+
+        return () => {
+            isActive = false;
+        };
+    }, [isAuthenticated, usesDefaultGameEntries]);
+
+    useEffect(() => {
+        if (!visibleGameEntries.some((entry) => entry.identity.slug === selectedLobbyGameSlug)) {
+            setSelectedLobbyGameSlug(visibleGameEntries[0]?.identity.slug ?? "");
+        }
+    }, [selectedLobbyGameSlug, visibleGameEntries]);
+
     const pageTitle = useMemo(() => {
         if (page === "login") {
             return `${appTitle}: Login`;
@@ -476,9 +546,9 @@ export const App = ({ gameEntries = registeredGameEntries }: AppProps) => {
                     />
                 ) : page === "lobby" ? (
                     <LobbyScreen
-                        games={gameEntries.map((entry) => entry.identity)}
+                        games={visibleGameEntries.map((entry) => entry.identity)}
                         publicGames={publicGames}
-                        selectedGameSlug={selectedLobbyGameEntry.identity.slug}
+                        selectedGameSlug={selectedLobbyGameEntry?.identity.slug ?? ""}
                         feedbackMessage={feedbackMessage}
                         openErrorMessage={lobbyOpenErrorMessage}
                         isLoading={isLoadingGame}

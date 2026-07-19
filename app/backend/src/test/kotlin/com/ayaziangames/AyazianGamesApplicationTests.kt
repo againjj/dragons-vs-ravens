@@ -70,6 +70,53 @@ class AyazianGamesApplicationTests(
     }
 
     @Test
+    fun excludesMtgFromDeployedRegistryByDefault() {
+        assertEquals(listOf("tic-tac-toe", "gin-rummy", "lunar-base", "ravens-and-dragons"), gameModuleRegistry.modules.map { it.identity.slug })
+    }
+
+    @Test
+    fun includesMtgForLocalRunsWhenEnabled() {
+        val registry = AyazianGamesApplication().gameModuleRegistry("mtg")
+        val module = registry.requireModule("mtg")
+
+        assertAll(
+            { assertEquals(listOf("tic-tac-toe", "gin-rummy", "lunar-base", "mtg", "ravens-and-dragons"), registry.modules.map { it.identity.slug }) },
+            { assertEquals("Magic: the Gathering", module.identity.displayName) },
+            { assertEquals("/mtg/create", module.routes.browserCreatePath) },
+            { assertEquals("/g/{gameId}", module.routes.browserPlayPathPattern) },
+            { assertEquals("/api/games/{gameSlug}", module.routes.apiBasePath) },
+            { assertEquals("mtg", module.persistence.migrationNamespace) },
+            {
+                assertEquals(
+                    setOf(
+                        "id",
+                        "game_slug",
+                        "version",
+                        "created_at",
+                        "updated_at",
+                        "last_accessed_at",
+                        "lifecycle",
+                        "created_by_user_id",
+                        "publicly_listed"
+                    ),
+                    module.persistence.platformMetadataFields
+                )
+            },
+            {
+                assertEquals(
+                    setOf(
+                        "public_state_json",
+                        "private_state_json"
+                    ),
+                    module.persistence.opaquePayloadNames
+                )
+            },
+            { assertEquals("/mtg/create", module.smokeCheck.browserEntryPath) },
+            { assertEquals("/api/games/mtg", module.smokeCheck.apiEntryPath) }
+        )
+    }
+
+    @Test
     fun assemblesTicTacToeGameModule() {
         val module = gameModuleRegistry.requireModule("tic-tac-toe")
 

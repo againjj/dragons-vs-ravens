@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ayaziangames.auth.AuthSessionSupport
 import com.ayaziangames.auth.ForbiddenActionException
+import com.ayaziangames.platform.game.GameModuleIdentity
+import com.ayaziangames.platform.game.GameModuleRegistry
 import jakarta.servlet.DispatcherType
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
@@ -21,8 +23,13 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 class GameController(
     private val gameSessionService: GameSessionService,
     private val authSessionSupport: AuthSessionSupport,
+    private val gameModuleRegistry: GameModuleRegistry,
     private val objectMapper: ObjectMapper
 ) {
+    @GetMapping("/api/games/modules")
+    fun listGameModules(): List<GameModuleIdentity> =
+        gameModuleRegistry.modules.map { it.identity }
+
     @PostMapping("/api/games/{gameSlug}")
     fun createGame(
         @PathVariable gameSlug: String,

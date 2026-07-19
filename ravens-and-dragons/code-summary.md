@@ -32,6 +32,9 @@ The parent project has two child projects:
   - Normalizes legacy snapshot-only public payloads into full `GameSession` responses for generic game reads and initial stream snapshots, allowing older persisted Ravens games to reopen through the current multi-game shell.
   - Supplies public-listing display data, including open Ravens/Dragons seat counts, while preserving platform-owned listing flags on game updates.
   - Supplies player-game menu data for signed-in users by reporting seated users and whether the active side belongs to the current user.
+- `src/test/kotlin/com/ayaziangames/TestRavensAndDragonsApplication.kt`
+  - Spring Boot test application for Ravens backend integration tests.
+  - Provides the shared clock, stale-cleanup delay, and a single-game `GameModuleRegistry` containing Ravens and Dragons.
 - `src/main/kotlin/com/ayaziangames/game/rules/*.kt`
   - Canonical board coordinates, rule metadata, snapshot creation, rule-engine contracts, and free-play/trivial/original-style rule execution.
 - `src/main/kotlin/com/ayaziangames/game/session/*.kt`

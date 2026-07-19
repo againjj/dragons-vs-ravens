@@ -8,6 +8,7 @@ Ayazian Games is a Spring Boot and Kotlin web app for playing browser-based game
 - Play the included Tic-Tac-Toe game, where X moves first on a 3x3 board and the game ends on a win or draw
 - Play the included Gin Rummy game with human seats, configurable match/scoring rules, drag-reorderable hands, draw/discard turns, end-of-turn stock draw handling, knocking, gin, Big Gin, hand-result summaries, and in-game rule references
 - Play the included Lunar Base game with 2-6 players, optional influence cards, private hands, completed-orb counts from player boards, a shared draggable supply/stock/discard area whose affordances follow current card-effect restrictions, an editable zoomable table with an embedded rulebook viewer, and smooth animated hand, discard, station-flip, and module-placement card movement, including live updates from other browser sessions
+- Run the local-only Magic: the Gathering placeholder module from `./gradlew bootRun`, with a no-options create page and a play page that can end the game
 - Use a shared `Ayazian Games` app shell with compact fixed header/footer chrome, lobby-linked header title after login, route-aware browser tab titles, a turn-aware username menu, gradient-styled public lobby rows, and scrollable page content
 - Play in the browser with live updates shared across tabs and clients, including header turn badges for unfinished games where you have a seat
 - When the server is unavailable, the frontend shows a server-down notice and closes live streams instead of silently clearing lists or polling until the server returns
@@ -48,6 +49,8 @@ Start the app:
 Then open [http://localhost:8080](http://localhost:8080).
 
 By default, the app uses a local H2 database stored under `build/db/ayazian-games`.
+
+Local `bootRun` enables the `mtg` module through `AYAZIAN_GAMES_LOCAL_MODULES=mtg`; packaged and deployed starts leave that setting empty, so MTG is not registered there.
 
 The default servlet session timeout is `2h`.
 
@@ -178,6 +181,9 @@ The stale-game eviction threshold defaults to six weeks, and the cleanup schedul
 - `lunar-base`: parent game module for the Lunar Base game
 - `lunar-base/backend`: Lunar Base game module definition, deck setup, private hands, command handling, and JVM tests
 - `lunar-base/frontend`: Lunar Base frontend game entry, create/play UI, player panels, zoomable table, and frontend tests
+- `mtg`: parent game module for the local-only Magic: the Gathering placeholder
+- `mtg/backend`: Magic: the Gathering module definition, minimal end-game command handling, and JVM tests
+- `mtg/frontend`: Magic: the Gathering frontend game entry, no-options create UI, end-game play UI, and frontend tests
 - `platform`: parent shared-service project that aggregates backend and frontend child projects
 - `platform/backend`: shared-service backend project for auth, OAuth provider metadata, route fallback, generic web exception handling, the game module contract, and opaque game runtime
 - `platform/frontend`: shared frontend package for auth API helpers, game-entry contracts, player picking, and browser hooks
@@ -190,4 +196,4 @@ The stale-game eviction threshold defaults to six weeks, and the cleanup schedul
 - `platform/backend/src/main/kotlin/com/ayaziangames/auth`: authentication and account management
 - `ravens-and-dragons/frontend/src/main/frontend`: Ravens game frontend entry, create/play UI, Redux state, and browser-side helpers
 - `code-summary.md`: service-wide architecture and implementation summary
-- `app/code-summary.md`, `platform/code-summary.md`, `tic-tac-toe/code-summary.md`, `gin-rummy/code-summary.md`, `lunar-base/code-summary.md`, and `ravens-and-dragons/code-summary.md`: project-level implementation summaries
+- `app/code-summary.md`, `platform/code-summary.md`, `tic-tac-toe/code-summary.md`, `gin-rummy/code-summary.md`, `lunar-base/code-summary.md`, `mtg/code-summary.md`, and `ravens-and-dragons/code-summary.md`: project-level implementation summaries

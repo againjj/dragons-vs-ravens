@@ -13,7 +13,7 @@ The app keeps the included-game list declarative by registering each game module
   - Exposes `testBackend`, `testFrontend`, `test`, `bootJar`, and `bootRun` proxy tasks.
 - `app/backend/build.gradle.kts`
   - Applies Spring Boot and Kotlin plugins.
-  - Depends directly on `:platform:backend`, `:tic-tac-toe:backend`, `:gin-rummy:backend`, `:lunar-base:backend`, and `:ravens-and-dragons:backend`.
+  - Depends directly on `:platform:backend`, `:tic-tac-toe:backend`, `:gin-rummy:backend`, `:lunar-base:backend`, `:mtg:backend`, and `:ravens-and-dragons:backend`.
   - Configures Java 21 for Kotlin, JavaExec, and tests.
   - Copies the app-owned Vite frontend bundle from `:app:frontend` into Spring Boot static resources during `processResources`.
   - Applies `app/local-env.gradle.kts` so `bootRun` works from the repository root and local env loading stays isolated.
@@ -22,7 +22,7 @@ The app keeps the included-game list declarative by registering each game module
   - Loads standard dotenv `KEY=value` entries from root `.env.local` into the local `bootRun` process when present.
   - Adds `testLocalEnvParser` coverage for `.env.local` parsing and runs it before `:app:backend:test`.
 - `app/backend/src/main/resources/application.properties`
-  - Owns assembled-service runtime configuration, including the `ayazian-games` Spring application name, server port, datasource defaults, session timeout, Flyway locations, and stale-game threshold.
+  - Owns assembled-service runtime configuration, including the `ayazian-games` Spring application name, server port, datasource defaults, session timeout, Flyway locations, stale-game threshold, and local-only game-module flag.
 - `app/frontend/build.gradle.kts`
   - Applies the shared frontend Gradle convention.
   - Builds and tests the deployed React shell with Gradle-managed Node/npm.
@@ -35,7 +35,7 @@ The app keeps the included-game list declarative by registering each game module
   - Shows game-start failures on the active create page instead of deferring them to the lobby's open-game dialog.
   - Remounts active game play screens when the current `/g/{gameId}` changes, so game packages with local play-screen state do not keep stale finished or modal state after user-menu navigation.
   - Renders the header brand with the app-owned `AyazianGamesLogo.png` asset while keeping the accessible brand text as `Ayazian Games`.
-  - Registers the Tic-Tac-Toe, Gin Rummy, Lunar Base, and Ravens and Dragons frontend package entries for the lobby.
+  - Imports the Tic-Tac-Toe, Gin Rummy, Lunar Base, local-only Magic: the Gathering, and Ravens and Dragons frontend package entries, then filters the lobby/create game list against the server's registered module list.
 - `app/frontend/src/main/frontend/styles/styles.css`
   - Owns the bundled shared browser styles for the app shell, lobby/auth/profile surfaces, and game layout primitives. Game-specific frontend packages own their own detailed UI styling.
   - Keeps the shared `.game-page` wrapper lightweight while game-specific page classes such as Ravens, Gin Rummy, Lunar Base, and Tic-Tac-Toe own their page-level sizing/layout overrides.
@@ -50,12 +50,12 @@ The app keeps the included-game list declarative by registering each game module
   - Spring Boot entrypoint.
   - Enables scheduling.
   - Provides the UTC `Clock` bean.
-  - Provides the `GameModuleRegistry` bean that currently registers `TicTacToeGameModuleDefinition`, `GinRummyGameModuleDefinition`, `LunarBaseGameModuleDefinition`, and `RavensAndDragonsGameModuleDefinition`.
+  - Provides the `GameModuleRegistry` bean that currently registers `TicTacToeGameModuleDefinition`, `GinRummyGameModuleDefinition`, `LunarBaseGameModuleDefinition`, and `RavensAndDragonsGameModuleDefinition`, and adds `MtgGameModuleDefinition` only when `ayazian-games.local-game-modules` contains `mtg`.
   - Derives `staleGameCleanupDelay` from `platform.games.stale-threshold`.
 - `app/backend/src/test/kotlin/com/ayaziangames/AyazianGamesApplicationTests.kt`
   - Verifies the Spring application context loads.
   - Verifies default servlet session timeout and stale cleanup delay.
-  - Verifies the assembled app registers the Tic-Tac-Toe, Gin Rummy, Lunar Base, and Ravens and Dragons game modules with the expected routes and persistence boundary metadata.
+  - Verifies the assembled app registers the deployed Tic-Tac-Toe, Gin Rummy, Lunar Base, and Ravens and Dragons modules by default, and registers Magic: the Gathering when local modules are enabled.
 - `app/docs/adding-game-to-app.md`
   - Documents app-level backend/frontend registration steps for adding a new game without reading existing game projects.
 - `:app:backend:testLocalEnvParser`
@@ -73,7 +73,7 @@ The app keeps the included-game list declarative by registering each game module
 
 ## Runtime Notes
 
-- Running `./gradlew bootRun` serves the Vite-built frontend bundle plus static CSS through Spring Boot and loads standard dotenv `KEY=value` entries from `.env.local` in the repository root when present.
+- Running `./gradlew bootRun` serves the Vite-built frontend bundle plus static CSS through Spring Boot, loads standard dotenv `KEY=value` entries from `.env.local` in the repository root when present, and sets `AYAZIAN_GAMES_LOCAL_MODULES=mtg` so the Magic: the Gathering placeholder appears locally.
 - The frontend packages use Vite 8.0.16.
 - `server.port` defaults to `8080` unless overridden by `PORT`.
 - Railway deployment starts `ayazian-games.jar`.

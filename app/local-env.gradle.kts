@@ -111,6 +111,7 @@ tasks.named<JavaExec>("bootRun") {
     workingDir = rootProject.projectDir
     doFirst {
         environment(parseLocalEnvFile(rootProject.file(".env.local")))
+        environment("AYAZIAN_GAMES_LOCAL_MODULES", "mtg")
     }
 }
 

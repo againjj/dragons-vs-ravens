@@ -1,5 +1,7 @@
 package com.ayaziangames
 
+import com.ayaziangames.game.RavensAndDragonsGameModuleDefinition
+import com.ayaziangames.platform.game.GameModuleRegistry
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.annotation.Bean
@@ -12,6 +14,10 @@ import java.time.Duration
 class TestAyazianGamesApplication {
     @Bean
     fun systemClock(): Clock = Clock.systemUTC()
+
+    @Bean
+    fun gameModuleRegistry(): GameModuleRegistry =
+        GameModuleRegistry(listOf(RavensAndDragonsGameModuleDefinition))
 
     @Bean("staleGameCleanupDelay")
     fun staleGameCleanupDelay(
