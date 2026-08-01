@@ -24,6 +24,44 @@ class ActionUpdateTest {
     }
 
     @Test
+    fun updateReturnsSameUntapCommandWhenIndexesAreUnchanged() {
+        val indexes = listOf(0, 2)
+        val command = UntapCommand(indexes)
+
+        assertSame(command, command.update())
+    }
+
+    @Test
+    fun updateReturnsNewUntapCommandWhenIndexesChange() {
+        val command = UntapCommand(listOf(0))
+        val updatedIndexes = listOf(1)
+
+        val updated = command.update(permanentIndexes = updatedIndexes)
+
+        assertNotSame(command, updated)
+        assertSame(updatedIndexes, updated.permanentIndexes)
+    }
+
+    @Test
+    fun updateReturnsSameDiscardCardsCommandWhenIndexesAreUnchanged() {
+        val indexes = listOf(0, 2)
+        val command = DiscardCardsCommand(indexes)
+
+        assertSame(command, command.update())
+    }
+
+    @Test
+    fun updateReturnsNewDiscardCardsCommandWhenIndexesChange() {
+        val command = DiscardCardsCommand(listOf(0))
+        val updatedIndexes = listOf(1)
+
+        val updated = command.update(cardIndexes = updatedIndexes)
+
+        assertNotSame(command, updated)
+        assertSame(updatedIndexes, updated.cardIndexes)
+    }
+
+    @Test
     fun updateReturnsSamePlayerActionWhenFieldsAreUnchanged() {
         val command = DrawCommand(1)
         val action = PlayerAction(0, command)

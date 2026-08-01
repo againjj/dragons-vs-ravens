@@ -41,3 +41,36 @@ data class DrawCommand(val count: Int) : ActionCommand {
             DrawCommand(count)
         }
 }
+
+data class UntapCommand(val permanentIndexes: List<Int>) : ActionCommand {
+    override fun serialize(): String =
+        "untap(${permanentIndexes.joinToString(prefix = "listOf(", postfix = ")")})"
+
+    fun update(
+        permanentIndexes: List<Int> = this.permanentIndexes
+    ): UntapCommand =
+        if (permanentIndexes === this.permanentIndexes) {
+            this
+        } else {
+            UntapCommand(permanentIndexes)
+        }
+}
+
+data object PassPriorityCommand : ActionCommand {
+    override fun serialize(): String =
+        "passPriority()"
+}
+
+data class DiscardCardsCommand(val cardIndexes: List<Int>) : ActionCommand {
+    override fun serialize(): String =
+        "discardCards(${cardIndexes.joinToString(prefix = "listOf(", postfix = ")")})"
+
+    fun update(
+        cardIndexes: List<Int> = this.cardIndexes
+    ): DiscardCardsCommand =
+        if (cardIndexes === this.cardIndexes) {
+            this
+        } else {
+            DiscardCardsCommand(cardIndexes)
+        }
+}

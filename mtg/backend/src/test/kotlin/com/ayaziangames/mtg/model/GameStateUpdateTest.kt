@@ -12,6 +12,7 @@ class GameStateUpdateTest {
 
         assertSame(fixtures.library, fixtures.library.update())
         assertSame(fixtures.hand, fixtures.hand.update())
+        assertSame(fixtures.graveyard, fixtures.graveyard.update())
         assertSame(fixtures.permanent, fixtures.permanent.update())
         assertSame(fixtures.battlefield, fixtures.battlefield.update())
         assertSame(fixtures.playerState, fixtures.playerState.update())
@@ -35,6 +36,16 @@ class GameStateUpdateTest {
         val updated = fixtures.hand.update(cards = listOf(fixtures.card))
 
         assertNotSame(fixtures.hand, updated)
+        assertEquals(listOf(fixtures.card), updated.cards)
+    }
+
+    @Test
+    fun updateReturnsNewGraveyardWhenCardsChange() {
+        val fixtures = gameStateFixtures()
+
+        val updated = fixtures.graveyard.update(cards = listOf(fixtures.card))
+
+        assertNotSame(fixtures.graveyard, updated)
         assertEquals(listOf(fixtures.card), updated.cards)
     }
 
@@ -66,17 +77,22 @@ class GameStateUpdateTest {
         val fixtures = gameStateFixtures()
         val updatedLibrary = fixtures.library.update(cards = emptyList())
         val updatedHand = fixtures.hand.update(cards = listOf(fixtures.card))
+        val updatedGraveyard = fixtures.graveyard.update(cards = listOf(fixtures.card))
 
         val updated = fixtures.playerState.update(
             library = updatedLibrary,
             hand = updatedHand,
-            life = 19
+            graveyard = updatedGraveyard,
+            life = 19,
+            winLossState = WinLossState.PLAYER_LOST
         )
 
         assertNotSame(fixtures.playerState, updated)
         assertSame(updatedLibrary, updated.library)
         assertSame(updatedHand, updated.hand)
+        assertSame(updatedGraveyard, updated.graveyard)
         assertEquals(19, updated.life)
+        assertEquals(WinLossState.PLAYER_LOST, updated.winLossState)
     }
 
     @Test
@@ -87,13 +103,15 @@ class GameStateUpdateTest {
         val updated = fixtures.gameState.update(
             player = listOf(updatedPlayer),
             phase = GamePhase.MAIN_PHASE_1,
-            step = null
+            step = null,
+            priorityPlayer = 0
         )
 
         assertNotSame(fixtures.gameState, updated)
         assertEquals(listOf(updatedPlayer), updated.player)
         assertEquals(GamePhase.MAIN_PHASE_1, updated.phase)
         assertEquals(null, updated.step)
+        assertEquals(0, updated.priorityPlayer)
     }
 
     private fun gameStateFixtures(): GameStateFixtures {
@@ -101,6 +119,7 @@ class GameStateUpdateTest {
         val card = Card(definition)
         val library = Library(listOf(card))
         val hand = Hand(emptyList())
+        val graveyard = Graveyard(emptyList())
         val permanent = Permanent(card, tapped = false)
         val battlefield = Battlefield(listOf(permanent))
         val playerState = PlayerState(
@@ -108,7 +127,8 @@ class GameStateUpdateTest {
             library = library,
             battlefield = battlefield,
             hand = hand,
-            life = 20
+            life = 20,
+            graveyard = graveyard
         )
         val gameState = GameState(
             player = listOf(playerState),
@@ -120,6 +140,7 @@ class GameStateUpdateTest {
             card = card,
             library = library,
             hand = hand,
+            graveyard = graveyard,
             permanent = permanent,
             battlefield = battlefield,
             playerState = playerState,
@@ -131,6 +152,7 @@ class GameStateUpdateTest {
         val card: Card,
         val library: Library,
         val hand: Hand,
+        val graveyard: Graveyard,
         val permanent: Permanent,
         val battlefield: Battlefield,
         val playerState: PlayerState,

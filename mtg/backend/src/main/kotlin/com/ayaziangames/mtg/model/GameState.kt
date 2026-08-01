@@ -4,7 +4,8 @@ class GameState(
     val player: List<PlayerState>,
     val activePlayer: Int,
     val phase: GamePhase,
-    val step: GameStep? = null
+    val step: GameStep? = null,
+    val priorityPlayer: Int? = null
 ) {
     fun serialize(): String =
         buildString {
@@ -17,6 +18,9 @@ class GameState(
             if (step != null) {
                 appendLine("    step = ${step.name}")
             }
+            if (priorityPlayer != null) {
+                appendLine("    priorityPlayer = $priorityPlayer")
+            }
             append("}")
         }
 
@@ -24,13 +28,15 @@ class GameState(
         player: List<PlayerState> = this.player,
         activePlayer: Int = this.activePlayer,
         phase: GamePhase = this.phase,
-        step: GameStep? = this.step
+        step: GameStep? = this.step,
+        priorityPlayer: Int? = this.priorityPlayer
     ): GameState =
         if (
             player === this.player &&
             activePlayer == this.activePlayer &&
             phase === this.phase &&
-            step === this.step
+            step === this.step &&
+            priorityPlayer == this.priorityPlayer
         ) {
             this
         } else {
@@ -38,7 +44,8 @@ class GameState(
                 player = player,
                 activePlayer = activePlayer,
                 phase = phase,
-                step = step
+                step = step,
+                priorityPlayer = priorityPlayer
             )
         }
 }
@@ -48,7 +55,9 @@ class PlayerState(
     val library: Library,
     val battlefield: Battlefield,
     val hand: Hand,
-    val life: Int
+    val life: Int,
+    val graveyard: Graveyard = Graveyard(emptyList()),
+    val winLossState: WinLossState? = null
 ) {
     fun serialize(): String =
         buildString {
@@ -60,7 +69,11 @@ class PlayerState(
             appendLine(library.serialize(deck).indentBy(4))
             appendLine(hand.serialize(deck).indentBy(4))
             appendLine(battlefield.serialize(deck).indentBy(4))
+            appendLine(graveyard.serialize(deck).indentBy(4))
             appendLine("    life = $life")
+            if (winLossState != null) {
+                appendLine("    winLossState = ${winLossState.name}")
+            }
             append("}")
         }
 
@@ -69,14 +82,18 @@ class PlayerState(
         library: Library = this.library,
         battlefield: Battlefield = this.battlefield,
         hand: Hand = this.hand,
-        life: Int = this.life
+        graveyard: Graveyard = this.graveyard,
+        life: Int = this.life,
+        winLossState: WinLossState? = this.winLossState
     ): PlayerState =
         if (
             deck === this.deck &&
             library === this.library &&
             battlefield === this.battlefield &&
             hand === this.hand &&
-            life == this.life
+            graveyard === this.graveyard &&
+            life == this.life &&
+            winLossState === this.winLossState
         ) {
             this
         } else {
@@ -85,7 +102,9 @@ class PlayerState(
                 library = library,
                 battlefield = battlefield,
                 hand = hand,
-                life = life
+                life = life,
+                graveyard = graveyard,
+                winLossState = winLossState
             )
         }
 }
@@ -137,6 +156,29 @@ class Hand(
             this
         } else {
             Hand(cards)
+        }
+}
+
+class Graveyard(
+    override val cards: List<Card>
+) : Zone {
+    fun serialize(deck: List<Card>): String =
+        buildString {
+            appendLine("graveyard {")
+            append(cards.joinToString("\n") { "    deckCard(${deck.indexOfCardByIdentity(it)})" })
+            if (cards.isNotEmpty()) {
+                appendLine()
+            }
+            append("}")
+        }
+
+    fun update(
+        cards: List<Card> = this.cards
+    ): Graveyard =
+        if (cards === this.cards) {
+            this
+        } else {
+            Graveyard(cards)
         }
 }
 
@@ -215,6 +257,11 @@ enum class GameStep {
     CLEANUP
 }
 
+enum class WinLossState {
+    PLAYER_LOST,
+    PLAYER_WON
+}
+
 val BEGINNING = GamePhase.BEGINNING
 val MAIN_PHASE_1 = GamePhase.MAIN_PHASE_1
 val COMBAT = GamePhase.COMBAT
@@ -231,6 +278,9 @@ val COMBAT_DAMAGE = GameStep.COMBAT_DAMAGE
 val END_OF_COMBAT = GameStep.END_OF_COMBAT
 val END_STEP = GameStep.END_STEP
 val CLEANUP = GameStep.CLEANUP
+
+val PLAYER_LOST = WinLossState.PLAYER_LOST
+val PLAYER_WON = WinLossState.PLAYER_WON
 
 private fun List<Card>.indexOfCardByIdentity(card: Card): Int {
     val index = indexOfFirst { it === card }

@@ -2,7 +2,6 @@ package com.ayaziangames.mtg.dsl
 
 import com.ayaziangames.mtg.model.BEGINNING
 import com.ayaziangames.mtg.model.BEGINNING_OF_COMBAT
-import com.ayaziangames.mtg.model.Battlefield
 import com.ayaziangames.mtg.model.CLEANUP
 import com.ayaziangames.mtg.model.COMBAT
 import com.ayaziangames.mtg.model.COMBAT_DAMAGE
@@ -14,11 +13,10 @@ import com.ayaziangames.mtg.model.ENDING
 import com.ayaziangames.mtg.model.END_STEP
 import com.ayaziangames.mtg.model.GamePhase
 import com.ayaziangames.mtg.model.GameStep
-import com.ayaziangames.mtg.model.Hand
-import com.ayaziangames.mtg.model.Library
 import com.ayaziangames.mtg.model.MAIN_PHASE_1
 import com.ayaziangames.mtg.model.MAIN_PHASE_2
 import com.ayaziangames.mtg.model.ManaSymbol
+import com.ayaziangames.mtg.model.PLAYER_LOST
 import com.ayaziangames.mtg.model.UNTAP_STEP
 import com.ayaziangames.mtg.model.UPKEEP
 import kotlin.test.Test
@@ -59,10 +57,12 @@ class GameStateDslTest {
                         card("Forest")
                     }
                     library {
-                        deckCard(3)
                     }
                     hand {
                         deckCard(0)
+                    }
+                    graveyard {
+                        deckCard(3)
                     }
                     battlefield {
                         permanent {
@@ -75,6 +75,7 @@ class GameStateDslTest {
                         }
                     }
                     life = 17
+                    winLossState = PLAYER_LOST
                 }
                 activePlayer = 0
                 phase = BEGINNING
@@ -93,8 +94,9 @@ class GameStateDslTest {
         assertSame(cards.cardNamed("Forest"), secondForest.definition)
         assertSame(cards.cardNamed("Grizzly Bears"), bears.definition)
         assertSame(cards.cardNamed("Forest"), thirdForest.definition)
-        assertSame(thirdForest, player.library.cards.single())
+        assertEquals(emptyList(), player.library.cards)
         assertSame(firstForest, player.hand.cards.single())
+        assertSame(thirdForest, player.graveyard.cards.single())
 
         assertEquals(2, player.battlefield.permanents.size)
         val firstPermanent = player.battlefield.permanents[0]
@@ -108,10 +110,13 @@ class GameStateDslTest {
         val libraryZone: com.ayaziangames.mtg.model.Zone = player.library
         val battlefieldZone: com.ayaziangames.mtg.model.Zone = player.battlefield
         val handZone: com.ayaziangames.mtg.model.Zone = player.hand
+        val graveyardZone: com.ayaziangames.mtg.model.Zone = player.graveyard
         assertSame(player.library, libraryZone)
         assertSame(player.battlefield, battlefieldZone)
         assertSame(player.hand, handZone)
+        assertSame(player.graveyard, graveyardZone)
         assertEquals(17, player.life)
+        assertEquals(PLAYER_LOST, player.winLossState)
     }
 
     @Test
@@ -134,6 +139,14 @@ class GameStateDslTest {
             phase = BEGINNING
             step = UNTAP_STEP
             step = DRAW_STEP
+        }
+        assertDuplicateGameStateField("priorityPlayer") {
+            minimalPlayer()
+            activePlayer = 0
+            phase = BEGINNING
+            step = DRAW_STEP
+            priorityPlayer = 0
+            priorityPlayer = null
         }
 
         assertDuplicatePlayerField("life") {
@@ -194,6 +207,28 @@ class GameStateDslTest {
             battlefield {
             }
             life = 20
+        }
+        assertDuplicatePlayerField("graveyard") {
+            deck {
+                card("Forest")
+            }
+            graveyard {
+                deckCard(0)
+            }
+            graveyard {
+            }
+            life = 20
+        }
+        assertDuplicatePlayerField("winLossState") {
+            deck {
+                card("Forest")
+            }
+            library {
+                deckCard(0)
+            }
+            life = 20
+            winLossState = PLAYER_LOST
+            winLossState = null
         }
     }
 
@@ -301,6 +336,22 @@ class GameStateDslTest {
         }
         assertEquals("A deck card can only be used once among all zones: Forest.", duplicatePermanentCard.message)
 
+        val duplicateGraveyardCard = assertFailsWith<IllegalArgumentException> {
+            gameWithSinglePlayer {
+                deck {
+                    card("Forest")
+                }
+                hand {
+                    deckCard(0)
+                }
+                graveyard {
+                    deckCard(0)
+                }
+                life = 20
+            }
+        }
+        assertEquals("A deck card can only be used once among all zones: Forest.", duplicateGraveyardCard.message)
+
         val missingZoneCard = assertFailsWith<IllegalArgumentException> {
             gameWithSinglePlayer {
                 deck {
@@ -364,6 +415,19 @@ class GameStateDslTest {
             }
         }
         assertEquals("Zones can only contain cards from the same player's deck: Forest.", battlefieldCard.message)
+
+        val graveyardCard = assertFailsWith<IllegalArgumentException> {
+            gameWithSinglePlayer {
+                deck {
+                    card("Forest")
+                }
+                graveyard {
+                    card(otherDeckCard)
+                }
+                life = 20
+            }
+        }
+        assertEquals("Zones can only contain cards from the same player's deck: Forest.", graveyardCard.message)
     }
 
     @Test
@@ -414,6 +478,52 @@ class GameStateDslTest {
             }
         }
         assertEquals("Player life must be >= 0.", life.message)
+    }
+
+    @Test
+    fun validatesPriorityPlayer() {
+        val missingPriorityPlayer = assertFailsWith<IllegalArgumentException> {
+            game {
+                availableCards = forestCardDatabase()
+                gameState {
+                    minimalPlayer()
+                    activePlayer = 0
+                    phase = BEGINNING
+                    step = UPKEEP
+                }
+            }
+        }
+        assertEquals("Priority player is required for BEGINNING, UPKEEP.", missingPriorityPlayer.message)
+
+        val outOfRangePriorityPlayer = assertFailsWith<IllegalArgumentException> {
+            game {
+                availableCards = forestCardDatabase()
+                gameState {
+                    minimalPlayer()
+                    activePlayer = 0
+                    phase = BEGINNING
+                    step = UPKEEP
+                    priorityPlayer = 1
+                }
+            }
+        }
+        assertEquals("Priority player 1 must be in range 0..0.", outOfRangePriorityPlayer.message)
+
+        val priorityPlayerOutsidePriorityState = assertFailsWith<IllegalArgumentException> {
+            game {
+                availableCards = forestCardDatabase()
+                gameState {
+                    minimalPlayer()
+                    activePlayer = 0
+                    phase = BEGINNING
+                    step = DRAW_STEP
+                    priorityPlayer = 0
+                }
+            }
+        }
+        assertEquals("Priority player is only valid when priority actions are valid.", priorityPlayerOutsidePriorityState.message)
+
+        buildMinimalGame(BEGINNING, UPKEEP)
     }
 
     @Test

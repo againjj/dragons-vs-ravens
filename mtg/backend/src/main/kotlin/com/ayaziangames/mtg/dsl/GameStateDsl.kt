@@ -19,12 +19,14 @@ import com.ayaziangames.mtg.model.GamePhase.MAIN_PHASE_1
 import com.ayaziangames.mtg.model.GamePhase.MAIN_PHASE_2
 import com.ayaziangames.mtg.model.GameState
 import com.ayaziangames.mtg.model.GameStep
+import com.ayaziangames.mtg.model.Graveyard
 import com.ayaziangames.mtg.model.Hand
 import com.ayaziangames.mtg.model.Library
 import com.ayaziangames.mtg.model.Permanent
 import com.ayaziangames.mtg.model.PlayerState
 import com.ayaziangames.mtg.model.UNTAP_STEP
 import com.ayaziangames.mtg.model.UPKEEP
+import com.ayaziangames.mtg.model.WinLossState
 import java.util.IdentityHashMap
 
 @MtgDsl
@@ -35,6 +37,7 @@ class GameStateBuilder internal constructor(
     private val assignedActivePlayer = SingleAssignment<Int?>("activePlayer", null)
     private val assignedPhase = SingleAssignment<GamePhase?>("phase", null)
     private val assignedStep = SingleAssignment<GameStep?>("step", null)
+    private val assignedPriorityPlayer = SingleAssignment<Int?>("priorityPlayer", null)
 
     var activePlayer: Int?
         get() = assignedActivePlayer.value
@@ -45,6 +48,9 @@ class GameStateBuilder internal constructor(
     var step: GameStep?
         get() = assignedStep.value
         set(value) = assignedStep.set(value)
+    var priorityPlayer: Int?
+        get() = assignedPriorityPlayer.value
+        set(value) = assignedPriorityPlayer.set(value)
 
     fun player(init: @MtgDsl PlayerStateBuilder.() -> Unit) {
         players += PlayerStateBuilder(availableCards).apply(init).build()
@@ -57,11 +63,13 @@ class GameStateBuilder internal constructor(
         require(builtActivePlayer in players.indices) {
             "Active player $builtActivePlayer must be in range 0..${players.lastIndex}."
         }
+        validatePriorityPlayer(builtPhase, step, priorityPlayer, players.indices)
         return GameState(
             player = players.toList(),
             activePlayer = builtActivePlayer,
             phase = builtPhase,
-            step = step
+            step = step,
+            priorityPlayer = priorityPlayer
         )
     }
 }
@@ -74,11 +82,16 @@ class PlayerStateBuilder internal constructor(
     private val assignedLibrary = SingleAssignment("library", Library(emptyList()))
     private val assignedHand = SingleAssignment("hand", Hand(emptyList()))
     private val assignedBattlefield = SingleAssignment("battlefield", Battlefield(emptyList()))
+    private val assignedGraveyard = SingleAssignment("graveyard", Graveyard(emptyList()))
     private val assignedLife = SingleAssignment<Int?>("life", null)
+    private val assignedWinLossState = SingleAssignment<WinLossState?>("winLossState", null)
 
     var life: Int?
         get() = assignedLife.value
         set(value) = assignedLife.set(value)
+    var winLossState: WinLossState?
+        get() = assignedWinLossState.value
+        set(value) = assignedWinLossState.set(value)
 
     fun deck(init: @MtgDsl DeckBuilder.() -> Unit) {
         assignedDeck.set(DeckBuilder(availableCards).apply(init).build())
@@ -96,20 +109,27 @@ class PlayerStateBuilder internal constructor(
         assignedBattlefield.set(Battlefield(BattlefieldBuilder(deck()).apply(init).build()))
     }
 
+    fun graveyard(init: @MtgDsl CardZoneBuilder.() -> Unit) {
+        assignedGraveyard.set(Graveyard(CardZoneBuilder(deck()).apply(init).build()))
+    }
+
     internal fun build(): PlayerState {
         val builtDeck = deck()
         val builtLibrary = assignedLibrary.value
         val builtBattlefield = assignedBattlefield.value
         val builtHand = assignedHand.value
+        val builtGraveyard = assignedGraveyard.value
         val builtLife = requireNotNull(life) { "Player state requires life." }
         require(builtLife >= 0) { "Player life must be >= 0." }
-        validateZonesUseDeckCardsExactlyOnce(builtDeck, builtLibrary, builtHand, builtBattlefield)
+        validateZonesUseDeckCardsExactlyOnce(builtDeck, builtLibrary, builtHand, builtBattlefield, builtGraveyard)
         return PlayerState(
             deck = builtDeck.toList(),
             library = Library(builtLibrary.cards.toList()),
             battlefield = Battlefield(builtBattlefield.permanents.toList()),
             hand = Hand(builtHand.cards.toList()),
-            life = builtLife
+            graveyard = Graveyard(builtGraveyard.cards.toList()),
+            life = builtLife,
+            winLossState = winLossState
         )
     }
 
@@ -120,10 +140,11 @@ class PlayerStateBuilder internal constructor(
         deck: List<Card>,
         library: Library,
         hand: Hand,
-        battlefield: Battlefield
+        battlefield: Battlefield,
+        graveyard: Graveyard
     ) {
         val deckCards = deck.identitySet()
-        val zoneCards = library.cards + hand.cards + battlefield.cards
+        val zoneCards = library.cards + hand.cards + battlefield.cards + graveyard.cards
         val cardsFromOtherDecks = zoneCards.filter { it !in deckCards }
         require(cardsFromOtherDecks.isEmpty()) {
             "Zones can only contain cards from the same player's deck: ${cardsFromOtherDecks.names()}."
@@ -217,6 +238,43 @@ private fun validatePhaseStep(phase: GamePhase, step: GameStep?) {
         "Step ${step?.name ?: "null"} is not valid for phase ${phase.name}."
     }
 }
+
+private fun validatePriorityPlayer(
+    phase: GamePhase,
+    step: GameStep?,
+    priorityPlayer: Int?,
+    playerIndexes: IntRange
+) {
+    if (TurnState(phase, step) in priorityTurnStates) {
+        require(priorityPlayer != null) {
+            "Priority player is required for ${phase.name}${step?.let { ", ${it.name}" } ?: ""}."
+        }
+        require(priorityPlayer in playerIndexes) {
+            "Priority player $priorityPlayer must be in range ${playerIndexes.first}..${playerIndexes.last}."
+        }
+    } else {
+        require(priorityPlayer == null) {
+            "Priority player is only valid when priority actions are valid."
+        }
+    }
+}
+
+private data class TurnState(
+    val phase: GamePhase,
+    val step: GameStep?
+)
+
+private val priorityTurnStates = setOf(
+    TurnState(BEGINNING, UPKEEP),
+    TurnState(MAIN_PHASE_1, null),
+    TurnState(COMBAT, BEGINNING_OF_COMBAT),
+    TurnState(COMBAT, DECLARE_ATTACKERS),
+    TurnState(COMBAT, DECLARE_BLOCKERS),
+    TurnState(COMBAT, COMBAT_DAMAGE),
+    TurnState(COMBAT, END_OF_COMBAT),
+    TurnState(MAIN_PHASE_2, null),
+    TurnState(ENDING, END_STEP)
+)
 
 private fun <T : Any> identitySetOf(): MutableSet<T> =
     java.util.Collections.newSetFromMap(IdentityHashMap())
